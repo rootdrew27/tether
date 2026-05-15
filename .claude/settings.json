@@ -1,0 +1,63 @@
+{
+  "permissions": {
+    "allow": [
+      "Read",
+      "WebSearch",
+      "Bash(ls:*)",
+      "Bash(grep:*)",
+      "Bash(cat:*)",
+      "Bash(mkdir:*)",
+      "Bash(wc:*)",
+      "Bash(tree:*)",
+      "Bash(find:*)",
+      "Bash(sleep:*)",
+      "Bash(tee:*)",
+      "Bash(lscpu:*)",
+      "Bash(lsblk:*)",
+      "Bash(lsusb:*)",
+      "Bash(which:*)",
+
+      "Bash(uv pip show:*)",
+      "Bash(uv pip list:*)",
+      "Bash(uv run ruff:*)",
+      "Bash(uv run pyright:*)",
+      "Bash(uv run pytest:*)",
+      "Bash(uv sync:*)"
+    ],
+    "ask": [
+      "Bash(rm:*)"
+    ],
+    "deny": [
+
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'set -o pipefail; cd \"$CLAUDE_PROJECT_DIR\" && listing=$(find tether-vault \\( -name .git -o -name .obsidian -o -name .venv -o -name .claude -o -name node_modules \\) -prune -o -type f -print | sort) && jq -Rn --arg body \"$listing\" '\\''{hookSpecificOutput: {hookEventName: \"SessionStart\", additionalContext: (\"Vault file listing (recursive from tether-vault/, repo-relative paths):\\n\" + $body)}}'\\'''"
+          }
+        ]
+      },
+      {
+        "matcher": "clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'set -o pipefail; cd \"$CLAUDE_PROJECT_DIR\" && listing=$(find tether-vault \\( -name .git -o -name .obsidian -o -name .venv -o -name .claude -o -name node_modules \\) -prune -o -type f -print | sort) && jq -Rn --arg body \"$listing\" '\\''{hookSpecificOutput: {hookEventName: \"SessionStart\", additionalContext: (\"Vault file listing (recursive from tether-vault/, repo-relative paths):\\n\" + $body)}}'\\'''"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+        ]
+      }
+    ]
+  }
+}
