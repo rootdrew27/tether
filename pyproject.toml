@@ -21,7 +21,10 @@ packages = ["tether"]
 
 [dependency-groups]
 dev = [
+    "pdf2image>=1.17.0",
+    "pdfplumber>=0.11.9",
     "pyright>=1.1.409",
+    "pytesseract>=0.3.13",
     "pytest>=8.0.0",
     "ruff>=0.15.11",
 ]
