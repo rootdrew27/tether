@@ -11,7 +11,7 @@ travels with the repo.
 > Status: WIP, no released users. The CLI and on-disk JSON shape may change.
 > Design intent and rationale live in [`tether-vault/`](tether-vault/) (an
 > Obsidian vault); the canonical design doc is
-> [`tether-design-mvp.md`](tether-vault/tether-design-mvp.md).
+> [`Tether-Design-MVP.md`](tether-vault/design/Tether-Design-MVP.md).
 
 ## Concepts
 
@@ -23,7 +23,7 @@ travels with the repo.
 | **Drift** | The condition where current content no longer matches the fingerprint. |
 | **HEALTHY / DRIFTED / BROKEN** | Per-artifact state. A tether is **WEAKENED** when one side is HEALTHY and the other DRIFTED. |
 
-Full glossary: [`tether-vault/DICTION.md`](tether-vault/DICTION.md).
+Full glossary: [`DICTION.md`](tether-vault/DICTION.md) (MVP vocabulary, matches current code). Forward-state model lives in [`DICTION-Future.md`](tether-vault/design/future/DICTION-Future.md).
 
 ## Install
 
@@ -80,7 +80,7 @@ language-agnostic normalizer (line endings, BOM, trailing whitespace, EOF
 newlines, leading-tab expansion). If the normalized hashes match, the artifact
 is still HEALTHY and `tether status` notes "encoding-only drift rescued" —
 the drift signal is preserved as a diff but the state is rescued. See
-[`tether-vault/normalization.md`](tether-vault/normalization.md) for the
+[`Normalization.md`](tether-vault/design/Normalization.md) for the
 pipeline and its deliberate non-goals.
 
 ## Storage layout
@@ -100,19 +100,21 @@ audit trail for a tether (created, refreshed, retargeted).
 
 `tether init claude-code` installs:
 
-- A `.claude/tether.md` memory fragment teaching Claude the tether vocabulary
-  and how to react to drift.
-- `SessionStart` and `Stop` hooks that surface drifted and broken tethers as
-  context at the start of a session and as attention items when Claude
-  finishes a turn.
-- A `permissions.deny` entry for direct edits of `.tether/tethers/` so Claude
-  goes through the CLI rather than rewriting fingerprints by hand.
+- A `.tether/tether.md` memory fragment teaching Claude the tether vocabulary
+  and how to react to drift, imported from the project's `CLAUDE.md`.
+- `SessionStart` and `Stop` hooks (in `.claude/settings.local.json`) that
+  surface drifted and broken tethers as context at the start of a session
+  and as attention items when Claude finishes a turn.
+- `permissions.deny` entries (in `.claude/settings.json`) that block direct
+  edits anywhere under `.tether/` so Claude goes through the CLI rather than
+  rewriting fingerprints by hand, plus `permissions.allow` entries
+  pre-approving the tether subcommands the agent will routinely invoke.
 
 The hooks shell out to `tether hook claude-code session-start` and
 `tether hook claude-code stop`. Both read `cwd` from stdin and emit the
 relevant hook contract (markdown stdout for session-start; a JSON `stop`
 block for stop). See
-[`tether-vault/claude-code-integration.md`](tether-vault/claude-code-integration.md).
+[`Claude-Code-Integration.md`](tether-vault/claude-code/Claude-Code-Integration.md).
 
 ## Development
 

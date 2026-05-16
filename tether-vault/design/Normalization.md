@@ -29,7 +29,7 @@ Applied identically to both sides of the comparison:
 3. **Line endings.** CRLF and lone CR fold to LF.
 4. **Trailing whitespace.** Stripped per line.
 5. **EOF newline.** Trailing blank lines are collapsed; exactly one terminating LF, unless the region was extracted mid-line.
-6. **Leading-tab expansion.** Each leading `\t` becomes N spaces; tabstop is configurable (default 8) and `.editorconfig` is honored when present. Internal whitespace is left untouched.
+6. **Leading-tab expansion.** Each leading `\t` becomes N spaces; tabstop is fixed at 8 in MVP (per-project and `.editorconfig` overrides are tracked in [[Future-Work]]). Internal whitespace is left untouched.
 
 The pipeline is **per-region and locator-agnostic**: it is applied to whatever bytes the locator extracted, regardless of how the locator identified them. A `WholeFile` artifact normalizes the whole file; a `LineRange` artifact normalizes the extracted line range; a future AST-aware locator will normalize the bytes it identifies. Adding a new locator type does not require teaching the normalizer anything.
 

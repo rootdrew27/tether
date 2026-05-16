@@ -15,16 +15,17 @@ This vault holds the design notes, research, and integration strategies for the 
 
 | Path | Contents |
 | --- | --- |
-| `DICTION.md` | Canonical vocabulary. Vault prose should use these terms (`Artifact`, not `tethered file`; `Region hash`, not `chunk hash`). |
+| `DICTION.md` | Canonical MVP vocabulary. Matches what the code does today; imported into the project's `CLAUDE.md`. |
 | `TODO.md` | Active work list. |
-| `design/` | MVP design spec (`Tether-Design-MVP.md`), per-area elaborations (`Drift-Cases.md`, `Normalization.md`, `Git-Integration.md`), and `Future-Work.md` -- the catalog of deferred ideas not specific to the Claude Code integration. |
+| `design/` | MVP design spec (`Tether-Design-MVP.md`), per-area elaborations (`Normalization.md`, `Git-Integration.md`), and `Future-Work.md` -- the catalog of deferred ideas not specific to the Claude Code integration. |
+| `design/future/` | Docs describing forward-state model and behavior that does not yet match MVP code. Includes `DICTION-Future.md` (vocabulary written against the target data model: sub-file locators, region hashes, reconcile) and `Drift-Cases.md` (sub-file region drift cases). New docs that describe future-state design land here. |
 | `claude-code/` | Claude Code integration spec (`Claude-Code-Integration.md`), open items (`Claude-Code-Integration-Open.md`), and a `strategies/` subfolder for deferred integration strategies. |
 | `research/` | Raw research notes from earlier design exploration. |
 
 ## Conventions
 
 - **Filenames use Title-Case-Kebab** so Obsidian wikilinks (`[[File-Name]]`) resolve predictably. Acronyms stay uppercase (`MVP`, `CC`).
-- **Use [[DICTION]] vocabulary** when introducing or referring to tether concepts. The "Aliases to avoid" column in that note is authoritative.
+- **Use [[DICTION]] vocabulary** when introducing or referring to tether concepts (MVP terms — what the code does today). For forward-state work, [[DICTION-Future]] is the matching glossary. The "Aliases to avoid" column in each note is authoritative.
 - **Describe current state only.** Do not record change history in vault docs -- notes about previous behavior, what was changed, or when belong in git history, not in prose. Include change history only when explicitly asked.
 
 ## Working with PDFs in this vault

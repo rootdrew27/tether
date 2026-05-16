@@ -4,8 +4,11 @@ tags:
   - research
   - design
 type: research
-status: active
+status: pre-mvp-research
 ---
+
+> [!info]+ Pre-MVP exploration
+> Early survey of comparable systems and design options; written before the MVP spec was committed. Some recommendations made it into MVP (per-tether JSON files under `.tether/tethers/`, UUIDv7 IDs, CLI + Python API split), others did not (free-form type strings — MVP uses a closed vocabulary; `watchdog`-based file watching — MVP has no watcher; markdown-frontmatter secondary surface — not in MVP; content-hash rolling rename detection — MVP uses git's `find-object`). "Already locked in" notes scattered through this doc reflect mid-exploration decisions, not all of which survived. The current design lives in [[Tether-Design-MVP]] and the deferred catalog in [[Future-Work]].
 
 Research document for the tether tethering system. Covers four areas: similar systems, git-committable metadata storage, link type taxonomies, and file-watching strategies.
 

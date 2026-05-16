@@ -106,93 +106,19 @@ The fragment lives at `.tether/tether.md`, fully tether-owned, imported into the
 
 It lives under `.tether/` rather than `.claude/` because it is tether's content, written and overwritten by tether, and is the kind of artifact that benefits from being committed alongside the tether records it describes. `.claude/` is reserved for Claude-Code-owned settings.
 
-Content of `.tether/tether.md` (overwritten on every `tether init claude-code`):
+**Source of truth: `tether/claude_code/fragment.py`** (`FRAGMENT` constant). That file is what `tether init claude-code` writes to `.tether/tether.md` on every run; embedding the markdown here would drift the moment either side is edited. The contract the fragment must satisfy:
 
-```markdown
-## Tether
+- Introduce tether (what it is, what a tether records, what drift means).
+- Document the closed type vocabulary (`describes`, `tests`, `references`, `related`) and the bidirectional defaults.
+- State that `.tether/` is tether-owned and read-only to the agent; mutations go through the CLI.
+- Define the per-artifact (`HEALTHY` / `DRIFTED` / `BROKEN`) and aggregate (`HEALTHY` / `WEAKENED` / `DRIFTED` / `BROKEN`) states.
+- Describe resolution paths for each non-HEALTHY aggregate, including the "surface to user" option for judgment calls and the two-step `update` → `refresh` for `BROKEN`.
+- Set expectations around `tether status` (diagnostic, not verification) and `tether refresh` (assertion, not auto-action).
+- List the key commands with their signatures.
 
-This project uses **tether**, a system that tracks typed relationships between files (for example: a doc that describes a code file, or a test that exercises a module). When you create a tether between two files, tether records a fingerprint of each file's contents at that moment. Later — on a status check — tether compares the recorded fingerprints to the current contents. If they don't match, the relationship has drifted and may need attention.
+**Note on scope:** this fragment is Claude-Code-specific. Other harnesses (Cursor, Aider, Codex) will get their own per-harness fragments with appropriate vocabulary when those integrations ship.
 
-### When to create tethers
-
-**Create tethers freely.** When you write new code, look for files it relates to and create a tether for each relationship. Examples:
-
-- New code paired with documentation: `tether add docs/feature.md describes src/feature.py`
-- New code paired with tests: `tether add tests/test_feature.py tests src/feature.py`
-- A spec paired with its implementation: `tether add docs/spec.md describes src/impl.py`
-
-**Include a description when the relationship has nuance the type alone doesn't capture** — pass `--description "..."` to `tether add` (or set it later with `tether update --description "..."`). Your future self and other agents will see this description when resolving drift; rich descriptions are a high-leverage way to encode why this relationship matters.
-
-A tether costs one CLI call to create and pays off later whenever the relationship needs to be verified. Default to creating the tether; remove it later if it doesn't hold up.
-
-### Relationship types
-
-Tether uses a closed vocabulary of four types. The type is coarse — the description carries the bespoke semantics:
-
-- **`describes`** — src (prose / doc) describes dst (artifact). Unidirectional; cannot be flipped to bidirectional.
-- **`tests`** — src (test file) exercises dst (subject). Unidirectional; cannot be flipped to bidirectional.
-- **`references`** — src references dst. Unidirectional by default; can be marked bidirectional via `--bidirectional` if the relationship is genuinely symmetric.
-- **`related`** — src and dst are related without a sharper classification. Bidirectional by default; can be marked unidirectional.
-
-If none of these fit, use `related` and let the description do the work — don't invent new types (the CLI rejects them).
-
-### Tether records and access
-
-Everything under `.tether/` is tether-owned: tether records at `.tether/tethers/<uuid>.json`, this fragment at `.tether/tether.md`, and any other state tether writes there. Claude Code's declarative `permissions.deny` rules block `Edit`, `Write`, `MultiEdit`, and `NotebookEdit` calls anywhere under `.tether/`, because direct edits bypass tether's schema validation and audit trail. Always use the tether CLI to mutate tether state.
-
-### State model
-
-Each side of a tether is in one of these states:
-
-- **HEALTHY** — the file's content still matches what was recorded.
-- **DRIFTED** — the file's content has changed since it was recorded; the relationship may now be inaccurate.
-- **BROKEN** — tether can no longer find the file at the recorded path (it was moved or deleted).
-
-The tether as a whole combines both sides:
-
-- **HEALTHY** if both sides are HEALTHY.
-- **WEAKENED** if one side is HEALTHY and the other is DRIFTED.
-- **DRIFTED** if both sides are DRIFTED.
-- **BROKEN** if either side is BROKEN.
-
-### Resolution
-
-The Stop hook surfaces non-HEALTHY tethers at turn end. For each, choose one of two paths:
-
-- **WEAKENED / DRIFTED** — read the drifted file(s) and decide:
-  - If both artifacts should still be aligned and you can edit them safely, bring the lagging artifact(s) into agreement, then `tether refresh <uuid>` to re-record both sides.
-  - If the resolution is a judgment call (e.g. the description claims coverage that may no longer apply, or aligning would remove information a human just added), surface the choice to the user with the options as you see them and end the turn awaiting direction. Don't guess.
-- **BROKEN** — first follow the path: `tether update --src-path <new>` (or `--dst-path <new>`, depending on which side moved) to point the tether at the new location. Then, once the file's content reflects the asserted relationship, `tether refresh <uuid>` to re-record alignment. Two commands deliberately: the first is a structural fix-up; the second is the alignment assertion. If the file is gone entirely, `tether rm <uuid>` instead.
-
-### When to run `tether status`
-
-Treat `tether status` as a diagnostic, not a verification step:
-
-- **Use it** when investigating a Stop block (`tether status <uuid>` for a diff on one tether), or when you suspect drift in a file you haven't touched in this session.
-- **Don't use it** to pre-check before ending the turn — the Stop hook does this for you. If anything is drifted it will surface and tell you what; if not it stays silent.
-- **Don't use it** after `tether refresh` — refresh asserts alignment by construction, so a follow-up status call is wasted work.
-
-### Refresh discipline
-
-`tether refresh` is a deliberate assertion that both files are aligned at their current contents. Don't run it as a shortcut to silence drift without first making the change that justifies the assertion — refreshing without aligning erases the warning that exists to flag forgotten updates.
-
-### Key commands
-
-> **Invocation:** Use whichever form matches your project: bare `tether`, `uv run tether`, `poetry run tether`, `conda run -n <env> tether`, `.venv/bin/tether`, or `${CLAUDE_PROJECT_DIR}/.venv/bin/tether`. These forms are pre-approved in `.claude/settings.json`. The examples below use bare `tether` for brevity; substitute your project's prefix.
-
-- `tether status` — show the state of all tethers in markdown. `tether status <uuid>` scopes to one tether and includes a diff for any drifted side. `--json` outputs structured JSON for scripts.
-- `tether add <src> <type> <dst>` — create a tether. Accepts `--bidirectional`, `--description "..."`.
-- `tether refresh <uuid>` — re-record both sides; asserts they are aligned.
-- `tether update <uuid>` — change metadata without re-fingerprinting. Flags: `--src-path <new>`, `--dst-path <new>`, `--type <new>`, `--bidirectional / --no-bidirectional`, `--description "..."`.
-- `tether mv <old-path> <new-path>` — bulk path rewrite across every tether referencing `<old-path>`. Structural only; no alignment assertion.
-- `tether rm <uuid>` — delete a tether record.
-
-Run `tether --help` for the full surface.
-```
-
-**Note on scope:** this fragment is Claude-Code-specific (references PreToolUse, Stop hook). Other harnesses (Cursor, Aider, Codex) will get their own per-harness fragments with appropriate vocabulary when those integrations ship.
-
-**Note on sub-file locators:** the fragment as written is whole-file-only — MVP ships only the `WholeFile` locator. When the CLI grows `LineRange` (and beyond) locator support, the fragment's intro and example commands update to introduce sub-file relationships. Tracked in [[Future-Work]]; the fragment update itself is tracked as a blocked item in [[Claude-Code-Integration-Open]].
+**Note on sub-file locators:** the fragment is whole-file-only — MVP ships only the `WholeFile` locator. When the CLI grows `LineRange` (and beyond) locator support, the fragment's intro and example commands update to introduce sub-file relationships. Tracked in [[Future-Work]]; the fragment update itself is tracked as a blocked item in [[Claude-Code-Integration-Open]].
 
 ## Write-denial mechanism
 
