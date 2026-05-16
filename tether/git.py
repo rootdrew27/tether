@@ -21,7 +21,7 @@ def run_git(
     )
 
 
-def run_git_checked(
+def run_git_or_raise(
     args: list[str],
     *,
     cwd: Path,
@@ -41,7 +41,7 @@ def run_git_checked(
 
 
 def hash_object_write(file_path: Path, root: Path) -> str:
-    result = run_git_checked(
+    result = run_git_or_raise(
         ["hash-object", "-w", "--", str(file_path)],
         cwd=root,
         error_prefix="git hash-object -w failed",
@@ -50,7 +50,7 @@ def hash_object_write(file_path: Path, root: Path) -> str:
 
 
 def hash_object(file_path: Path, root: Path) -> str:
-    result = run_git_checked(
+    result = run_git_or_raise(
         ["hash-object", "--", str(file_path)],
         cwd=root,
         error_prefix="git hash-object failed",
@@ -59,7 +59,7 @@ def hash_object(file_path: Path, root: Path) -> str:
 
 
 def cat_blob(oid: str, root: Path) -> bytes:
-    result = run_git_checked(
+    result = run_git_or_raise(
         ["cat-file", "blob", oid],
         cwd=root,
         text=False,

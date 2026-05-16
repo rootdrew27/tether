@@ -1,19 +1,19 @@
 from pathlib import Path
 
 from .errors import AlreadyInitializedError, NotAGitRepoError, NotATetherProjectError
-from .git import run_git, run_git_checked
+from .git import run_git, run_git_or_raise
 
-PROJECT_DIR_NAME = ".tether"
+TETHER_DIR = ".tether"
 TETHERS_SUBDIR = "tethers"
 
 
 def find_project_root(start: Path) -> Path:
     start = start.resolve()
     for candidate in [start, *start.parents]:
-        if (candidate / PROJECT_DIR_NAME).is_dir():
+        if (candidate / TETHER_DIR).is_dir():
             return candidate
     raise NotATetherProjectError(
-        f"No {PROJECT_DIR_NAME}/ directory found at {start} or any ancestor"
+        f"No {TETHER_DIR} directory found at {start} or any ancestor"
     )
 
 
@@ -23,7 +23,7 @@ def is_inside_git_work_tree(path: Path) -> bool:
 
 
 def git_toplevel(path: Path) -> Path:
-    result = run_git_checked(
+    result = run_git_or_raise(
         ["rev-parse", "--show-toplevel"],
         cwd=path,
         error_prefix=f"{path} is not inside a git work tree",
@@ -38,7 +38,7 @@ def init_project(start: Path) -> Path:
             f"{start} is not inside a git work tree. Run `git init` first."
         )
     root = git_toplevel(start)
-    tether_dir = root / PROJECT_DIR_NAME
+    tether_dir = root / TETHER_DIR
     tethers_dir = tether_dir / TETHERS_SUBDIR
     already = tether_dir.exists()
     tethers_dir.mkdir(parents=True, exist_ok=True)
@@ -50,4 +50,4 @@ def init_project(start: Path) -> Path:
 
 
 def tethers_dir(project_root: Path) -> Path:
-    return project_root / PROJECT_DIR_NAME / TETHERS_SUBDIR
+    return project_root / TETHER_DIR / TETHERS_SUBDIR
