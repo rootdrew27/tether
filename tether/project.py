@@ -1,7 +1,7 @@
-import subprocess
 from pathlib import Path
 
 from .errors import AlreadyInitializedError, NotAGitRepoError, NotATetherProjectError
+from .git import run_git, run_git_checked
 
 PROJECT_DIR_NAME = ".tether"
 TETHERS_SUBDIR = "tethers"
@@ -18,24 +18,17 @@ def find_project_root(start: Path) -> Path:
 
 
 def is_inside_git_work_tree(path: Path) -> bool:
-    result = subprocess.run(
-        ["git", "rev-parse", "--is-inside-work-tree"],
-        cwd=path,
-        capture_output=True,
-        text=True,
-    )
+    result = run_git(["rev-parse", "--is-inside-work-tree"], cwd=path)
     return result.returncode == 0 and result.stdout.strip() == "true"
 
 
 def git_toplevel(path: Path) -> Path:
-    result = subprocess.run(
-        ["git", "rev-parse", "--show-toplevel"],
+    result = run_git_checked(
+        ["rev-parse", "--show-toplevel"],
         cwd=path,
-        capture_output=True,
-        text=True,
+        error_prefix=f"{path} is not inside a git work tree",
+        error_cls=NotAGitRepoError,
     )
-    if result.returncode != 0:
-        raise NotAGitRepoError(f"{path} is not inside a git work tree")
     return Path(result.stdout.strip())
 
 

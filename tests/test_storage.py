@@ -4,8 +4,9 @@ import pytest
 
 from tether.errors import InvalidTetherError, TetherNotFoundError
 from tether.model import Artifact, Tether
+from uuid_utils import uuid7
+
 from tether.storage import delete, load, load_all, record_path, save
-from tether.uuid7 import uuid7
 
 
 def _make_tether(id_: str | None = None) -> Tether:

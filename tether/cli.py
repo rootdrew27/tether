@@ -44,9 +44,10 @@ from .status import (
     artifact_diff,
     check_tether,
 )
+from uuid_utils import uuid7
+
 from .storage import delete as storage_delete
 from .storage import load, load_all, save
-from .uuid7 import uuid7
 
 P = ParamSpec("P")
 R = TypeVar("R")

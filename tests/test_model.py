@@ -3,8 +3,9 @@ import uuid
 import pytest
 
 from tether.errors import InvalidTetherError
+from uuid_utils import uuid7
+
 from tether.model import Artifact, Tether, default_bidirectional, validate
-from tether.uuid7 import uuid7
 
 
 def _make(

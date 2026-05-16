@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import subprocess
 import tempfile
 from enum import Enum
 from pathlib import Path
@@ -14,6 +13,7 @@ from .git import (
     find_paths_for_blob,
     hash_object,
     hash_object_write,
+    run_git,
 )
 from .model import Tether
 from .normalize import normalize
@@ -116,9 +116,8 @@ def artifact_diff(artifact_path: str, fingerprint: str, project_root: Path) -> s
             old_path.write_bytes(cat_blob(fingerprint, project_root))
         except GitError as e:
             return f"[failed to fetch fingerprinted bytes: {e}]"
-        result = subprocess.run(
+        result = run_git(
             [
-                "git",
                 "diff",
                 "--no-color",
                 "--no-index",
@@ -129,8 +128,6 @@ def artifact_diff(artifact_path: str, fingerprint: str, project_root: Path) -> s
                 str(full),
             ],
             cwd=project_root,
-            capture_output=True,
-            text=True,
         )
         old_path_str = str(old_path)
         full_str = str(full)
