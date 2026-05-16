@@ -28,7 +28,7 @@ uv run tether --help                            # exercise the CLI locally
 
 ## Local dev affordances
 
-- `playground/` at the repo root is gitignored; use it as a throwaway project dir for hand-experimentation (`cd playground && uv run tether init . && ...`). Nothing committed there, recreate as needed.
+- `playground/` at the repo root is gitignored — a throwaway project dir for hand-experimentation. It has its own local git repo anchored at the `fresh` tag (pristine source); reset it with `uv run python scripts/reset_playground.py`. See `tether-vault/other/Playground.md` for the convention and bootstrap steps.
 
 ## Testing notes
 
