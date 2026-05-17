@@ -8,13 +8,13 @@ status: active
 ---
 
 ## Current
-- [ ] Clean documentation
-	- [ ] Remove redundancies
-	- [ ] Remove out-dated or inaccurate info
+- [x] Clean documentation
+	- [x] Remove redundancies
+	- [x] Remove out-dated or inaccurate info
+- [ ] Review Case Study 01
 - [ ] Gain understanding of Tether
+	- How is git used? What other git internals could be used?
 	-  What are the failure cases? Is a watcher needed for V1?
-	- [ ] Test in playground
-	- [ ] Update this document or others with notes on what you notice
 - [ ] Enhanced testing framework for Claude Code integration (resume via `claude --resume testing-framework-enhancement`)
 	- [ ] Do hooks fire?
 	- [ ] Does Claude respond appropriately given certain states?
@@ -27,6 +27,9 @@ status: active
 - [ ] Convert GitHub to public and create package
 
 
+## Dev Tools
+- [ ] Simple Claude Skill for commits (should be callable by claude or user)
+- [ ] Create a precommit hook for formatting, linting, and type checking (and/or include these commands in the claude skill for committing)
 ## Future
 - [ ] Implement Watcher
 	- [ ] Have the watcher occasionally check the CLAUDE.md, settings.json, settings.local.json, etc. for misconfigurations.

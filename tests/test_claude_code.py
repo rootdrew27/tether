@@ -246,7 +246,7 @@ def test_session_start_all_healthy_one_liner(in_project: Path):
     runner = CliRunner()
     runner.invoke(
         main,
-        ["add", "docs/auth.md", "src/auth.py", "--type", "describes"],
+        ["add", "docs/auth.md", "src/auth.py", "--description", "describes auth"],
     )
     result = runner.invoke(
         main,
@@ -262,7 +262,7 @@ def test_session_start_emits_markdown_on_drift(in_project: Path):
     runner = CliRunner()
     runner.invoke(
         main,
-        ["add", "docs/auth.md", "src/auth.py", "--type", "describes"],
+        ["add", "docs/auth.md", "src/auth.py", "--description", "describes auth"],
     )
     (in_project / "src" / "auth.py").write_text("def auth(token): pass\n")
     result = runner.invoke(
@@ -280,7 +280,7 @@ def test_stop_silent_when_all_healthy(in_project: Path):
     runner = CliRunner()
     runner.invoke(
         main,
-        ["add", "docs/auth.md", "src/auth.py", "--type", "describes"],
+        ["add", "docs/auth.md", "src/auth.py", "--description", "describes auth"],
     )
     result = runner.invoke(
         main,
@@ -296,7 +296,7 @@ def test_stop_emits_block_json_on_non_healthy(in_project: Path):
     runner = CliRunner()
     runner.invoke(
         main,
-        ["add", "docs/auth.md", "src/auth.py", "--type", "describes"],
+        ["add", "docs/auth.md", "src/auth.py", "--description", "describes auth"],
     )
     (in_project / "src" / "auth.py").write_text("def auth(token): pass\n")
     result = runner.invoke(

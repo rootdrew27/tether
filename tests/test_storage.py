@@ -13,10 +13,8 @@ def _make_tether(id_: str | None = None) -> Tether:
     return Tether(
         id=id_ or str(uuid7()),
         schema_version=1,
-        src=Artifact(path="a.md", fingerprint="a" * 40),
-        dst=Artifact(path="b.py", fingerprint="b" * 40),
-        type="describes",
-        bidirectional=False,
+        a=Artifact(path="a.md", fingerprint="a" * 40),
+        b=Artifact(path="b.py", fingerprint="b" * 40),
         description="d",
         created_at="2026-05-13T10:00:00Z",
         refreshed_at="2026-05-13T10:00:00Z",
@@ -75,8 +73,8 @@ def test_load_all_skips_invariant_violations(project: Path):
     bad = project / ".tether" / "tethers" / "0192abc1-23ef-7890-abcd-ef0123456789.json"
     bad.write_text(
         '{"id":"0192abc1-23ef-7890-abcd-ef0123456789","schema_version":1,'
-        '"src":{"path":"same.md","fingerprint":"a"},"dst":{"path":"same.md","fingerprint":"b"},'
-        '"type":"describes","bidirectional":false,"description":null,'
+        '"a":{"path":"same.md","fingerprint":"a"},"b":{"path":"same.md","fingerprint":"b"},'
+        '"description":"d",'
         '"created_at":"2026-05-13T10:00:00Z","refreshed_at":"2026-05-13T10:00:00Z"}'
     )
     result = load_all(project)
@@ -89,8 +87,8 @@ def test_load_validates_on_read(project: Path):
     bad = project / ".tether" / "tethers" / "0192abc1-23ef-7890-abcd-ef0123456789.json"
     bad.write_text(
         '{"id":"0192abc1-23ef-7890-abcd-ef0123456789","schema_version":1,'
-        '"src":{"path":"same.md","fingerprint":"a"},"dst":{"path":"same.md","fingerprint":"b"},'
-        '"type":"describes","bidirectional":false,"description":null,'
+        '"a":{"path":"same.md","fingerprint":"a"},"b":{"path":"same.md","fingerprint":"b"},'
+        '"description":"d",'
         '"created_at":"2026-05-13T10:00:00Z","refreshed_at":"2026-05-13T10:00:00Z"}'
     )
     with pytest.raises(InvalidTetherError):

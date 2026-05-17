@@ -13,9 +13,9 @@ This document describes what tether is, the architectural decision to build it a
 
 ## What tether is
 
-> A typed-relationship annotation layer over content, built on top of git.
+> A content-fingerprinted relationship annotation layer, built on top of git.
 
-A *tether* is a typed, directional (or bidirectional) link between two pieces of content in a project — most commonly between a documentation file and a code file, or between a test and the code it exercises. Tethers are first-class records: they have IDs, types, creation timestamps, and most importantly, **fingerprints of the content they linked at the moment they were created**.
+A *tether* is a declaration of connection between two pieces of content in a project — most commonly between a documentation file and a code file, or between a test and the code it exercises. Tethers are first-class records: they have IDs, required descriptions, creation timestamps, and most importantly, **fingerprints of the content they linked at the moment they were created**. A tether is symmetric — neither end is privileged — and the rich semantics of the relationship live in the description, not in a typed vocabulary.
 
 The defining question tether answers is not "what files exist" or "what changed" — git answers those. The question tether answers is:
 
@@ -39,7 +39,7 @@ The right shape — and the one this project commits to — is layered:
 
 ```
 +---------------------------------------------------+
-|  tether: typed relationships, drift detection     |
+|  tether: relationship annotations, drift detection|
 |  (annotations referencing content versions)       |
 +---------------------------------------------------+
 |  git: content storage, history, sync, renames     |
@@ -54,14 +54,13 @@ Tether records the *meaning* of relationships. Git owns the *bytes* those relati
 
 ## What a tether records
 
-Two artifacts are *tethered* when a tether record names them as its two sides. `tether add` is the operation that creates a tether between two artifacts; running it is what causes those artifacts to become tethered. "Tethered" is therefore not a property an artifact carries on its own — it is derived from the existence of a tether record.
+Two artifacts are *tethered* when a tether record names them as its two ends. `tether add` is the operation that creates a tether between two artifacts; running it is what causes those artifacts to become tethered. "Tethered" is therefore not a property an artifact carries on its own — it is derived from the existence of a tether record.
 
 A tether is conceptually a small record:
 
-- **Two artifacts**, each identifying content by *path* and *locator*. The locator says which part of the file the tether refers to: the whole file, a contiguous line range, a section, a function, an explicit marker range. Whole-file is the trivial case of "all of this file"; sub-file locator types extend the same model with finer-grained selectors.
-- **A typed relationship** drawn from a closed vocabulary: `describes`, `tests`, `references`, `related`. The set is intentionally small; relationship nuance lives in the description field rather than in proliferating type names. Directional types read as src-has-relation-to-dst; the symmetric type (`related`) reads as undirected. `describes` and `tests` are strictly unidirectional and may not be flipped to bidirectional; `references` defaults to unidirectional but may be marked bidirectional; `related` defaults to bidirectional.
-- **An optional description** — free-form prose, authored by a human or a model, that elaborates *why* the relationship exists or captures nuance the type alone can't (for example: "this function implements step 3 of the algorithm in §2 of the spec; the loop bounds derive from the proof in §2.1"). Descriptions can be as terse or as verbose as the relationship warrants. Types are coarse-grained classifiers; descriptions carry the rich, project-specific semantics that make a tether legible to a future reader or agent — and let an LLM author a tether whose meaning a downstream model can recover without re-deriving it from the artifacts. Always optional; tethers without descriptions are first-class.
-- **Content fingerprints** — each artifact carries a fingerprint, recorded at tether creation and re-recorded on refresh. With the MVP's `WholeFile`-only locator, a fingerprint is a single git blob OID: tether writes the file's bytes to git's object store via `git hash-object -w`, and the OID is stored in the tether record. This single value powers drift detection (compare the file's current OID to the stored one), supports inspection (`git cat-file -p <oid>` retrieves the fingerprinted bytes for diffing), and lets git's rename detection find renamed files (`git log --find-object=<oid>`). When sub-file locators ship, the fingerprint extends to a `{file_blob_oid, region_hash}` pair with no breaking schema change. Fingerprints are mandatory: every tether on disk carries one for each side, and `tether add` requires both files to exist on disk.
+- **Two artifacts**, each identifying content by *path* and *locator*. The locator says which part of the file the tether refers to: the whole file, a contiguous line range, a section, a function, an explicit marker range. Whole-file is the trivial case of "all of this file"; sub-file locator types extend the same model with finer-grained selectors. The two artifacts are labelled `a` and `b` for stable ordering only — a tether is symmetric, and neither end is privileged.
+- **A required description** — free-form prose, authored by a human or a model, that elaborates *why* the relationship exists (for example: "this function implements step 3 of the algorithm in §2 of the spec; the loop bounds derive from the proof in §2.1"). Descriptions can be as terse or as verbose as the relationship warrants. The data model carries no relationship type and no directionality flag; the description is the sole carrier of the rich, project-specific semantics that make a tether legible to a future reader or agent — and lets an LLM author a tether whose meaning a downstream model can recover without re-deriving it from the artifacts. Required because a tether without a description records the *existence* of a relationship but not its *meaning*; that asymmetry is a trap, not a feature.
+- **Content fingerprints** — each artifact carries a fingerprint, recorded at tether creation and re-recorded on refresh. With the MVP's `WholeFile`-only locator, a fingerprint is a single git blob OID: tether writes the file's bytes to git's object store via `git hash-object -w`, and the OID is stored in the tether record. This single value powers drift detection (compare the file's current OID to the stored one), supports inspection (`git cat-file -p <oid>` retrieves the fingerprinted bytes for diffing), and lets git's rename detection find renamed files (`git log --find-object=<oid>`). When sub-file locators ship, the fingerprint extends to a `{file_blob_oid, region_hash}` pair with no breaking schema change. Fingerprints are mandatory: every tether on disk carries one for each end, and `tether add` requires both files to exist on disk.
 
 The shape is locator-aware from the start. **Tether MVP ships only the `WholeFile` locator** — every tether endpoint is the whole file at its recorded path. Additional locator types — `LineRange` (contiguous start–end line interval), markdown section paths, AST queries via tree-sitter, explicit region markers, language-server-driven symbol references — are additive: they extend the locator vocabulary without changing the rest of the record. Adding a new locator type is a strictly local extension. LineRange and sub-file locators are tracked in [[Future-Work]].
 
@@ -77,16 +76,14 @@ Each tether is stored at `.tether/tethers/<uuid>.json`. The file is pretty-print
 {
   "id": "0192abc1-23ef-7890-abcd-ef0123456789",
   "schema_version": 1,
-  "src": {
+  "a": {
     "path": "docs/auth.md",
     "fingerprint": "abc123def456..."
   },
-  "dst": {
+  "b": {
     "path": "src/auth.py",
     "fingerprint": "fedcba987654..."
   },
-  "type": "describes",
-  "bidirectional": false,
   "description": "Covers password reset and 2FA enrollment flows; impl uses argon2 for hashing.",
   "created_at": "2026-05-13T10:23:45Z",
   "refreshed_at": "2026-05-13T10:23:45Z"
@@ -97,19 +94,17 @@ Each tether is stored at `.tether/tethers/<uuid>.json`. The file is pretty-print
 
 - `id` — UUIDv7. Immutable. Sort order on disk equals creation order.
 - `schema_version` — integer, currently `1`. Reserved for future migrations.
-- `src` / `dst` — nested endpoint objects. Each carries `path` (project-relative POSIX string) and `fingerprint` (git blob OID as a hex string). When sub-file locators ship, a `locator` field is added inside each endpoint object — WholeFile = locator absent.
-- `type` — one of `"related"`, `"describes"`, `"tests"`, `"references"`. Closed vocabulary enforced at validation time.
-- `bidirectional` — boolean. Defaults vary by type (`related` defaults `true`; others default `false`). Operationally a display hint — drift detection ignores it.
-- `description` — free-form prose or `null`. Set on create, mutable via `tether update --description`.
+- `a` / `b` — nested endpoint objects. Each carries `path` (project-relative POSIX string) and `fingerprint` (git blob OID as a hex string). The labels are stable ordering — whichever artifact was passed first to `tether add` becomes `a` — not direction; a tether is symmetric. When sub-file locators ship, a `locator` field is added inside each endpoint object — WholeFile = locator absent.
+- `description` — required free-form prose (non-empty after whitespace strip). Set on create, mutable via `tether update --description`. Carries the project-specific meaning of the relationship; the data model intentionally has no `type` or `bidirectional` field.
 - `created_at`, `refreshed_at` — UTC ISO-8601 timestamps. `created_at` is immutable; `refreshed_at` updates only on `tether refresh`. No generic `updated_at` — git's commit log records non-fingerprint edits.
 
 **Validation invariants** (enforced on construction and on read):
 
 - `id` is a valid UUIDv7.
-- `type` is in the closed vocabulary.
-- If `type ∈ {"describes", "tests"}`, then `bidirectional` is `false`.
-- `src.path != dst.path` — no self-tethers.
-- Both `src.path` / `src.fingerprint` and `dst.path` / `dst.fingerprint` are non-null.
+- `schema_version` is `1`.
+- `a.path != b.path` — no self-tethers.
+- Both `a.path` / `a.fingerprint` and `b.path` / `b.fingerprint` are non-empty.
+- `description` is non-empty after whitespace strip.
 - `created_at <= refreshed_at`.
 
 Validation runs both at `tether add`-time and on every read from disk. A record that fails validation is skipped with a corruption notice in `tether status` output — the rest of the project's tethers still load and report normally. Direct hand-edits to JSON files that break invariants are caught on the next access.
@@ -158,7 +153,7 @@ See [[Git-Integration]] for the per-mechanism elaboration.
 
 Tether records are diffable text; git's text merge handles most conflicts cleanly because sorted-key pretty-printed JSON keeps each field on its own line. The common cases:
 
-- **Both branches modify different fields** (one updates `src.path`, the other edits `description`): clean merge, no conflict.
+- **Both branches modify different fields** (one updates `a.path`, the other edits `description`): clean merge, no conflict.
 - **Both branches refresh the same tether against different content**: conflict on the `fingerprint` and `refreshed_at` lines. Manual resolution by picking the side whose OID matches the merged file's actual content.
 - **Both branches edit the same `description`**: standard text conflict; manual resolution.
 - **One refreshes, one deletes**: standard git modify-delete conflict.
@@ -176,9 +171,7 @@ Two workflows, each illustrating a different axis of the design.
 
 A developer is maintaining a personal project. They have written `docs/auth.md` describing the authentication flow and `src/auth.py` implementing it. They want to know — months later, after many edits — whether the doc still matches the code.
 
-They tether the two:
-
-> "These two belong together. The doc *describes* the code."
+They tether the two with a description like *"these two belong together — the doc covers the authentication flow that this module implements."*
 
 Tether records both files' current content as fingerprints. Time passes. The developer edits `src/auth.py` to add a new password parameter. They forget to update the doc.
 
@@ -186,14 +179,14 @@ Later, before another edit, they ask tether for status. Tether reports: *the cod
 
 ### Workflow 2: A team reviewing tether changes in pull requests
 
-A developer on a team adds a new module: `src/billing.py`. They write `docs/billing.md` to accompany it. As part of the same PR, they tether the two with type `describes`.
+A developer on a team adds a new module: `src/billing.py`. They write `docs/billing.md` to accompany it. As part of the same PR, they tether the two, with a description spelling out which doc sections cover which billing flows.
 
 What the reviewer sees in the PR diff:
 - New code file `src/billing.py`.
 - New doc file `docs/billing.md`.
-- New tether record `.tether/tethers/<uuid>.json` containing both artifacts, their content fingerprints, and the relationship type.
+- New tether record `.tether/tethers/<uuid>.json` containing both artifacts, their content fingerprints, and the description.
 
-The reviewer can read the proposed relationship at a glance. They might comment "this should also be tethered to `tests/test_billing.py` as `tests` once we add the test file" — a review comment that is now natural, because the *relationship layer is part of the change under review*.
+The reviewer can read the proposed relationship at a glance. They might comment "this should also be tethered to `tests/test_billing.py` once we add the test file" — a review comment that is now natural, because the *relationship layer is part of the change under review*.
 
 After merge, the tether is part of `main`. Anyone who later modifies the billing code or doc can ask tether whether the alignment is still intact. The reviewer's intent — that these three files form a cohesive unit — is recorded as data, not just as words in a PR description that no one will read again.
 
@@ -211,7 +204,7 @@ Three patterns make tether useful to agents, all by query rather than by subscri
 
 **Refresh deliberately, not automatically.** When the agent has made a coherent change across a tether's artifacts, it explicitly re-fingerprints by running `tether refresh`. Refresh is a positive assertion that the artifacts are aligned at their current contents; it travels with the content changes through the same git commit and PR review. Tether does not auto-refresh on file touches — doing so would erase the drift signal that lets a partial change set ("code updated, doc forgotten") surface on the next query. A refresh against a BROKEN tether refuses, since alignment cannot be asserted for content that cannot be located.
 
-**Structural changes are separate from alignment assertions.** Path updates (when a tethered file is renamed) go through `tether update --src-path` or `tether update --dst-path` — these change *where* a side points but do not touch fingerprints. Following a rename and asserting alignment is two commands: first `tether update --<side>-path <new>`, then `tether refresh` once the file's content reflects what the tether is meant to assert. This separation keeps the audit trail honest — a refresh in `git log` always corresponds to an explicit alignment assertion, never a side effect of moving a file. Bulk path rewrites across many tethers use `tether mv <old-path> <new-path>`, which is the same structural-only operation applied to every tether referencing the path.
+**Structural changes are separate from alignment assertions.** Path updates (when a tethered file is renamed) go through `tether update --a-path` or `tether update --b-path` — these change *where* an end points but do not touch fingerprints. Following a rename and asserting alignment is two commands: first `tether update --<a|b>-path <new>`, then `tether refresh` once the file's content reflects what the tether is meant to assert. This separation keeps the audit trail honest — a refresh in `git log` always corresponds to an explicit alignment assertion, never a side effect of moving a file. Bulk path rewrites across many tethers use `tether mv <old-path> <new-path>`, which is the same structural-only operation applied to every tether referencing the path.
 
 ### Boundaries
 

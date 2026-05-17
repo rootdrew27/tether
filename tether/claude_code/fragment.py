@@ -1,21 +1,14 @@
 FRAGMENT = """# tether
 
-This project uses **tether** to track typed relationships between files. A tether is a record that links two artifacts (a doc and the code it describes, a test and the code it exercises, etc.) and remembers each file's content at the moment the relationship was asserted. When either file drifts from the recorded fingerprint, the tether surfaces it on `tether status` and at session boundaries.
+This project uses **tether** to track relationships between files. A tether is a record that links two artifacts (a doc and the code it describes, a test and the code it exercises, etc.) and remembers each file's content at the moment the relationship was asserted. When either file drifts from the recorded fingerprint, the tether surfaces it on `tether status` and at session boundaries.
+
+A tether has no direction and no type — it is a declaration of connection between two files. The rich semantics live entirely in the description.
 
 ## When to create tethers
 
 Create tethers freely. Whenever you author or modify two files that are intentionally coupled — a doc and the code it describes, a test and its target, two related implementation files — record the relationship with `tether add`. Tethers cost nothing on disk and pay off as the codebase changes.
 
-Always pass `--description` with a sentence that captures *why* the relationship exists. The description carries the rich semantics that the type alone cannot, and is what a future reader (human or model) reads first.
-
-## Relationship types
-
-Tether uses a closed vocabulary of four types. Pick the most specific that fits; put nuance in `--description`.
-
-- `describes` — `src` documents `dst`. **Unidirectional only.**
-- `tests` — `src` exercises `dst`. **Unidirectional only.**
-- `references` — `src` references `dst`. Defaults unidirectional; pass `--bidirectional` for mutual references.
-- `related` — generic mutual link. **Bidirectional by default.**
+`--description` is **required** on every tether. Write a sentence that captures *why* the relationship exists; that prose is what a future reader (human or model) reads first.
 
 ## Tether records and access
 
@@ -44,7 +37,7 @@ The aggregate state of a tether is derived:
 - **WEAKENED / DRIFTED** — read the drifted file(s) and decide:
   - If both artifacts should still be aligned and you can edit them safely, bring the lagging artifact(s) into agreement and run `tether refresh <uuid>` to re-fingerprint. *Do not refresh* until alignment is real — refresh erases the drift signal.
   - If the resolution is a judgment call (e.g. the description claims coverage that may no longer apply, or aligning would remove information a human just added), surface the choice to the user with the options as you see them and end the turn awaiting direction. Don't guess.
-- **BROKEN** — the file was renamed or removed. To follow a rename: `tether update --src-path <new>` or `tether update --dst-path <new>` (structural-only, no fingerprint change), then `tether refresh <uuid>` once the new path matches the intended content. If the file is truly gone, `tether rm <uuid>`.
+- **BROKEN** — the file was renamed or removed. To follow a rename: `tether update --a-path <new>` or `tether update --b-path <new>` (structural-only, no fingerprint change), then `tether refresh <uuid>` once the new path matches the intended content. If the file is truly gone, `tether rm <uuid>`.
 
 ## When to run `tether status`
 
@@ -60,9 +53,9 @@ Run `tether status` as a *diagnostic*, not a verification step:
 
 - `tether status` — show all tethers, severity-ordered.
 - `tether status <uuid>` — show one tether with a unified diff for any DRIFTED artifact.
-- `tether add <src> <dst> --type <type> [--bidirectional/--unidirectional] [--description "..."]` — create a tether.
+- `tether add <a> <b> --description "..."` — create a tether. `--description` is required.
 - `tether refresh <uuid>` — re-fingerprint both artifacts; the explicit assertion that they are aligned.
-- `tether update <uuid> [--src-path <p>] [--dst-path <p>] [--description "..."] [--bidirectional/--unidirectional]` — structural change, no fingerprint touch.
+- `tether update <uuid> [--a-path <p>] [--b-path <p>] [--description "..."]` — structural change, no fingerprint touch.
 - `tether mv <old> <new>` — bulk path rewrite across every tether referencing `<old>`.
 - `tether rm <uuid>` — delete a tether record.
 """

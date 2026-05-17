@@ -10,15 +10,11 @@ Row = tuple[Tether, TetherCheck]
 STATE_ORDER: tuple[str, ...] = ("HEALTHY", "WEAKENED", "DRIFTED", "BROKEN")
 
 
-def arrow(t: Tether) -> str:
-    return "↔" if t.bidirectional else "→"
-
-
 def tether_line(t: Tether, check: TetherCheck) -> str:
     return (
         f"- `{t.id}`: {check.aggregate.value} — "
-        f"`{t.src.path}` ({check.src.state.value}) {arrow(t)} "
-        f"`{t.dst.path}` ({check.dst.state.value}) — `{t.type}`"
+        f"`{t.a.path}` ({check.a.state.value}) — "
+        f"`{t.b.path}` ({check.b.state.value})"
     )
 
 
@@ -46,8 +42,8 @@ def item_lines(rows: list[Row], *, with_description: bool = True) -> list[str]:
     for t, check in by_severity(rows):
         lines.append(tether_line(t, check))
         if with_description:
-            lines.append(f"  Description: {t.description or '(none)'}")
-        for label, art in (("src", check.src), ("dst", check.dst)):
+            lines.append(f"  Description: {t.description}")
+        for label, art in (("a", check.a), ("b", check.b)):
             if art.state == ArtifactState.BROKEN and art.rename_candidates:
                 joined = ", ".join(f"`{p}`" for p in art.rename_candidates)
                 lines.append(f"  {label} rename candidates (by fingerprint): {joined}")

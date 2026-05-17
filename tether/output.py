@@ -17,13 +17,11 @@ class ArtifactStatus(msgspec.Struct, frozen=True, kw_only=True):
 class TetherStatus(msgspec.Struct, frozen=True, kw_only=True):
     id: str
     schema_version: int
-    type: str
-    bidirectional: bool
-    description: str | None
+    description: str
     created_at: str
     refreshed_at: str
-    src: ArtifactStatus
-    dst: ArtifactStatus
+    a: ArtifactStatus
+    b: ArtifactStatus
     state: AggregateState
 
 

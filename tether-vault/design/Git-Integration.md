@@ -19,7 +19,7 @@ Because each tether is its own file with a globally unique ID (UUIDv7), parallel
 
 ## Pull request review
 
-A new tether shows up in a PR as one new JSON file. A reviewer can see the relationship being proposed without reading any prose: who is being linked to whom, what type of link, whether bidirectional. Modifications to existing tethers show up as field-level diffs. The PR review surface is the same one the team already uses for code.
+A new tether shows up in a PR as one new JSON file. A reviewer can see the relationship being proposed: which two files are being linked, and the description that explains why. Modifications to existing tethers show up as field-level diffs. The PR review surface is the same one the team already uses for code.
 
 ## Time travel
 

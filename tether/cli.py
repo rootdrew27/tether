@@ -13,13 +13,7 @@ from msgspec.structs import replace
 from . import __version__
 from .errors import TetherError
 from .git import hash_object_write
-from .model import (
-    UNIDIRECTIONAL_ONLY,
-    VALID_TYPES,
-    Artifact,
-    Tether,
-    default_bidirectional,
-)
+from .model import Artifact, Tether
 from .output import (
     ArtifactStatus,
     LoadError,
@@ -89,7 +83,7 @@ def handle_errors(fn: Callable[P, R]) -> Callable[P, R]:
 @click.group()
 @click.version_option(__version__)
 def main() -> None:
-    """tether: typed-relationship annotation layer over content."""
+    """tether: content-fingerprinted relationship annotation layer."""
 
 
 @main.group(invoke_without_command=True)
@@ -118,59 +112,40 @@ def init_claude_code() -> None:
 
 
 @main.command()
-@click.argument("src_path")
-@click.argument("dst_path")
+@click.argument("a_path")
+@click.argument("b_path")
 @click.option(
-    "--type",
-    "tether_type",
-    type=click.Choice(sorted(VALID_TYPES)),
+    "--description",
     required=True,
-    help="Relationship type.",
+    help="Required free-form description of why the relationship exists.",
 )
-@click.option(
-    "--bidirectional/--unidirectional",
-    default=None,
-    help="Direction. Defaults by type (related=bidirectional, others=unidirectional).",
-)
-@click.option("--description", default=None, help="Optional free-form description.")
 @handle_errors
-def add(
-    src_path: str,
-    dst_path: str,
-    tether_type: str,
-    bidirectional: bool | None,
-    description: str | None,
-) -> None:
+def add(a_path: str, b_path: str, description: str) -> None:
     """Create a new tether between two existing files."""
+    if not description.strip():
+        raise TetherError("--description must be non-empty")
     root = _root()
-    src_rel = _resolve_rel(root, src_path)
-    dst_rel = _resolve_rel(root, dst_path)
-    if src_rel == dst_rel:
-        raise TetherError("src and dst must differ; self-tethers are not allowed")
+    a_rel = _resolve_rel(root, a_path)
+    b_rel = _resolve_rel(root, b_path)
+    if a_rel == b_rel:
+        raise TetherError("a and b must differ; self-tethers are not allowed")
 
-    src_abs = root / src_rel
-    dst_abs = root / dst_rel
-    if not src_abs.is_file():
-        raise TetherError(f"source file does not exist: {src_rel}")
-    if not dst_abs.is_file():
-        raise TetherError(f"destination file does not exist: {dst_rel}")
+    a_abs = root / a_rel
+    b_abs = root / b_rel
+    if not a_abs.is_file():
+        raise TetherError(f"file does not exist: {a_rel}")
+    if not b_abs.is_file():
+        raise TetherError(f"file does not exist: {b_rel}")
 
-    if bidirectional is None:
-        bidirectional = default_bidirectional(tether_type)
-    if tether_type in UNIDIRECTIONAL_ONLY and bidirectional:
-        raise TetherError(f"type {tether_type!r} cannot be bidirectional")
-
-    src_fp = hash_object_write(src_abs, root)
-    dst_fp = hash_object_write(dst_abs, root)
+    a_fp = hash_object_write(a_abs, root)
+    b_fp = hash_object_write(b_abs, root)
 
     now = _utcnow_iso()
     t = Tether(
         id=str(uuid7()),
         schema_version=1,
-        src=Artifact(path=src_rel, fingerprint=src_fp),
-        dst=Artifact(path=dst_rel, fingerprint=dst_fp),
-        type=tether_type,  # type: ignore[arg-type]
-        bidirectional=bidirectional,
+        a=Artifact(path=a_rel, fingerprint=a_fp),
+        b=Artifact(path=b_rel, fingerprint=b_fp),
         description=description,
         created_at=now,
         refreshed_at=now,
@@ -196,15 +171,15 @@ def refresh(tether_id: str) -> None:
     root = _root()
     t = load(root, tether_id)
     check = check_tether(t, root)
-    if ArtifactState.BROKEN in (check.src.state, check.dst.state):
+    if ArtifactState.BROKEN in (check.a.state, check.b.state):
         raise TetherError(
             "refresh refuses on BROKEN tether — locator does not resolve. "
-            "Use `tether update --src-path/--dst-path` to follow the rename first."
+            "Use `tether update --a-path/--b-path` to follow the rename first."
         )
     new_t = replace(
         t,
-        src=replace(t.src, fingerprint=hash_object_write(root / t.src.path, root)),
-        dst=replace(t.dst, fingerprint=hash_object_write(root / t.dst.path, root)),
+        a=replace(t.a, fingerprint=hash_object_write(root / t.a.path, root)),
+        b=replace(t.b, fingerprint=hash_object_write(root / t.b.path, root)),
         refreshed_at=_utcnow_iso(),
     )
     save(root, new_t)
@@ -213,40 +188,35 @@ def refresh(tether_id: str) -> None:
 
 @main.command()
 @click.argument("tether_id")
-@click.option("--src-path", "new_src_path", default=None)
-@click.option("--dst-path", "new_dst_path", default=None)
+@click.option("--a-path", "new_a_path", default=None)
+@click.option("--b-path", "new_b_path", default=None)
 @click.option("--description", "new_description", default=None)
-@click.option("--bidirectional/--unidirectional", "new_bidir", default=None)
 @handle_errors
 def update(
     tether_id: str,
-    new_src_path: str | None,
-    new_dst_path: str | None,
+    new_a_path: str | None,
+    new_b_path: str | None,
     new_description: str | None,
-    new_bidir: bool | None,
 ) -> None:
-    """Modify a tether's path, description, or direction without touching fingerprints."""
-    if all(v is None for v in (new_src_path, new_dst_path, new_description, new_bidir)):
+    """Modify a tether's path or description without touching fingerprints."""
+    if all(v is None for v in (new_a_path, new_b_path, new_description)):
         raise TetherError(
-            "no fields to update; pass --src-path, --dst-path, --description, "
-            "or --bidirectional/--unidirectional"
+            "no fields to update; pass --a-path, --b-path, or --description"
         )
+    if new_description is not None and not new_description.strip():
+        raise TetherError("--description must be non-empty")
     root = _root()
     t = load(root, tether_id)
     changes: dict[str, Any] = {}
-    if new_src_path is not None:
-        changes["src"] = replace(t.src, path=_resolve_rel(root, new_src_path))
-    if new_dst_path is not None:
-        changes["dst"] = replace(t.dst, path=_resolve_rel(root, new_dst_path))
+    if new_a_path is not None:
+        changes["a"] = replace(t.a, path=_resolve_rel(root, new_a_path))
+    if new_b_path is not None:
+        changes["b"] = replace(t.b, path=_resolve_rel(root, new_b_path))
     if new_description is not None:
         changes["description"] = new_description
-    if new_bidir is not None:
-        changes["bidirectional"] = new_bidir
     new_t = replace(t, **changes)
-    if new_t.src.path == new_t.dst.path:
-        raise TetherError("src and dst must differ after update")
-    if new_t.type in UNIDIRECTIONAL_ONLY and new_t.bidirectional:
-        raise TetherError(f"type {new_t.type!r} cannot be bidirectional")
+    if new_t.a.path == new_t.b.path:
+        raise TetherError("a and b must differ after update")
     save(root, new_t)
     click.echo(f"Updated tether {tether_id}")
 
@@ -263,16 +233,16 @@ def mv(old_path: str, new_path: str) -> None:
     result = load_all(root)
     modified: list[str] = []
     for t in result.tethers:
-        src_match = t.src.path == old_rel
-        dst_match = t.dst.path == old_rel
-        if not (src_match or dst_match):
+        a_match = t.a.path == old_rel
+        b_match = t.b.path == old_rel
+        if not (a_match or b_match):
             continue
         new_t = replace(
             t,
-            src=replace(t.src, path=new_rel) if src_match else t.src,
-            dst=replace(t.dst, path=new_rel) if dst_match else t.dst,
+            a=replace(t.a, path=new_rel) if a_match else t.a,
+            b=replace(t.b, path=new_rel) if b_match else t.b,
         )
-        if new_t.src.path == new_t.dst.path:
+        if new_t.a.path == new_t.b.path:
             raise TetherError(
                 f"mv would create self-tether on {t.id}; aborting (no records changed)"
             )
@@ -307,7 +277,7 @@ def status(tether_id: str | None, as_json: bool, diff: bool | None) -> None:
     if tether_id is not None:
         t = load(root, tether_id)
         check = check_tether(t, root)
-        rescued = check.src.normalization_rescued or check.dst.normalization_rescued
+        rescued = check.a.normalization_rescued or check.b.normalization_rescued
         show_diff = (
             diff
             if diff is not None
@@ -330,7 +300,7 @@ def status(tether_id: str | None, as_json: bool, diff: bool | None) -> None:
 
 
 def _is_rescued(check: TetherCheck) -> bool:
-    return check.src.normalization_rescued or check.dst.normalization_rescued
+    return check.a.normalization_rescued or check.b.normalization_rescued
 
 
 def _all_tethers_md(
@@ -425,24 +395,22 @@ def _one_tether_md(
     root: Path,
     show_diff: bool,
 ) -> str:
-    direction = "bidirectional" if t.bidirectional else "unidirectional"
     lines = [
         f"# Tether `{t.id}`",
         "",
         f"- **State:** {check.aggregate.value}",
-        f"- **Type:** `{t.type}` ({direction})",
-        f"- **src:** `{t.src.path}` — {check.src.state.value}"
-        + (" (encoding-only drift rescued)" if check.src.normalization_rescued else ""),
-        f"- **dst:** `{t.dst.path}` — {check.dst.state.value}"
-        + (" (encoding-only drift rescued)" if check.dst.normalization_rescued else ""),
+        f"- **a:** `{t.a.path}` — {check.a.state.value}"
+        + (" (encoding-only drift rescued)" if check.a.normalization_rescued else ""),
+        f"- **b:** `{t.b.path}` — {check.b.state.value}"
+        + (" (encoding-only drift rescued)" if check.b.normalization_rescued else ""),
         f"- **Created:** {t.created_at}",
         f"- **Refreshed:** {t.refreshed_at}",
-        f"- **Description:** {t.description or '(none)'}",
+        f"- **Description:** {t.description}",
     ]
     if show_diff:
         for label, path, fingerprint, art in (
-            ("src", t.src.path, t.src.fingerprint, check.src),
-            ("dst", t.dst.path, t.dst.fingerprint, check.dst),
+            ("a", t.a.path, t.a.fingerprint, check.a),
+            ("b", t.b.path, t.b.fingerprint, check.b),
         ):
             if art.state == ArtifactState.DRIFTED:
                 lines.extend(
@@ -488,13 +456,11 @@ def _build_tether_status(
     return TetherStatus(
         id=t.id,
         schema_version=t.schema_version,
-        type=t.type,
-        bidirectional=t.bidirectional,
         description=t.description,
         created_at=t.created_at,
         refreshed_at=t.refreshed_at,
-        src=_build_artifact_status(t.src, check.src, root, include_diff),
-        dst=_build_artifact_status(t.dst, check.dst, root, include_diff),
+        a=_build_artifact_status(t.a, check.a, root, include_diff),
+        b=_build_artifact_status(t.b, check.b, root, include_diff),
         state=check.aggregate,
     )
 

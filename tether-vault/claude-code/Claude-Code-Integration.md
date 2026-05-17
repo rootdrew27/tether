@@ -36,7 +36,7 @@ A separate, declarative `permissions.deny` rule covers `.tether/tethers/` — se
   tether: 12 tethers, all HEALTHY.
   ```
 
-- **Mixed states:** markdown section listing items needing attention. Each item shows tether ID, severity, paths with per-side states, type, and description. No diffs in the SessionStart output — those are fetched on demand.
+- **Mixed states:** markdown section listing items needing attention. Each item shows tether ID, severity, paths with per-side states, and description. No diffs in the SessionStart output — those are fetched on demand.
 
   ```markdown
   ## Tether status
@@ -45,13 +45,13 @@ A separate, declarative `permissions.deny` rule covers `.tether/tethers/` — se
 
   Needs attention:
 
-  - `0192abc1-23ef-7890-abcd-ef0123456789`: BROKEN — `docs/auth.md` (HEALTHY) → `src/auth_old.py` (BROKEN) — `describes`
+  - `0192abc1-23ef-7890-abcd-ef0123456789`: BROKEN — `docs/auth.md` (HEALTHY) — `src/auth_old.py` (BROKEN)
     Description: Auth flow spec.
 
-  - `0192def2-...`: WEAKENED — `docs/api.md` (DRIFTED) → `src/api.py` (HEALTHY) — `describes`
+  - `0192def2-...`: WEAKENED — `docs/api.md` (DRIFTED) — `src/api.py` (HEALTHY)
     Description: REST endpoints; impl uses FastAPI.
 
-  - `0192ghi3-...`: WEAKENED — `docs/billing.md` (HEALTHY) → `src/billing.py` (DRIFTED) — `describes`
+  - `0192ghi3-...`: WEAKENED — `docs/billing.md` (HEALTHY) — `src/billing.py` (DRIFTED)
     Description: Stripe integration and webhook handling.
 
   For diffs: `tether status <uuid>`. To assert alignment after editing both sides: `tether refresh <uuid>`.
@@ -65,28 +65,28 @@ The output is markdown on stdout, which Claude Code injects as context. The agen
 
 **Block condition (v1, stateless):** any tether currently non-HEALTHY (WEAKENED / DRIFTED / BROKEN) blocks turn end. Pre-existing drift triggers blocking, just as new drift does. This is deliberately stateless for v1; a session-baseline-stateful variant (block only on tethers that became non-HEALTHY during this session) is a planned refinement — see [[Claude-Code-Integration-Open]].
 
-**Reason format:** markdown list of non-HEALTHY tethers, ordered by severity (BROKEN → DRIFTED → WEAKENED) with UUIDv7 ascending as tiebreaker. Each entry shows the tether ID (backtick-wrapped, full UUID for copy-paste), aggregate state, paths with per-side states inline, type, and description on a continuation line. No diffs — those are fetched on demand. No per-state action hints — those live in the persistent CLAUDE.md fragment. Sample:
+**Reason format:** markdown list of non-HEALTHY tethers, ordered by severity (BROKEN → DRIFTED → WEAKENED) with UUIDv7 ascending as tiebreaker. Each entry shows the tether ID (backtick-wrapped, full UUID for copy-paste), aggregate state, paths with per-side states inline, and description on a continuation line. No diffs — those are fetched on demand. No per-state action hints — those live in the persistent CLAUDE.md fragment. Sample:
 
 ```
 ## Stop blocked: tethers need attention
 
-- `0192abc1-23ef-7890-abcd-ef0123456789`: BROKEN — `docs/old.md` (HEALTHY) → `src/legacy.py` (BROKEN) — `describes`
+- `0192abc1-23ef-7890-abcd-ef0123456789`: BROKEN — `docs/old.md` (HEALTHY) — `src/legacy.py` (BROKEN)
   Description: Spec for the legacy auth path; src/legacy.py may have been renamed.
 
-- `0192def2-...`: WEAKENED — `docs/auth.md` (DRIFTED) → `src/auth.py` (HEALTHY) — `describes`
+- `0192def2-...`: WEAKENED — `docs/auth.md` (DRIFTED) — `src/auth.py` (HEALTHY)
   Description: Covers password reset and 2FA enrollment; impl uses argon2.
 
-- `0192ghi3-...`: DRIFTED — `docs/api.md` (DRIFTED) ↔ `src/api.py` (DRIFTED) — `related`
-  Description: (none)
+- `0192ghi3-...`: DRIFTED — `docs/api.md` (DRIFTED) — `src/api.py` (DRIFTED)
+  Description: Public REST surface; impl handles auth and rate-limiting middleware.
 
 For each entry above, either:
 - resolve and `tether refresh <uuid>` once both artifacts reflect the intended state, OR
 - if the resolution is a judgment call, surface the choice to the user with the options as you see them and end the turn awaiting direction.
 
-Do not refresh until alignment is real — refresh erases the drift signal. For renames, use `tether update --src-path/--dst-path <new>` before refresh.
+Do not refresh until alignment is real — refresh erases the drift signal. For renames, use `tether update --a-path/--b-path <new>` before refresh.
 ```
 
-The arrow between paths reflects the `bidirectional` flag: `→` for directional types (`describes`, `tests`, default `references`), `↔` for bidirectional (`related` default + any explicitly-flipped). Empty descriptions render as `(none)` rather than being omitted — explicit absence is clearer than implicit. UUIDs are shown in full (not truncated) so the agent can copy-paste them as command arguments. No truncation of the list for MVP, regardless of count.
+A tether is symmetric, so paths are separated by an em dash with no directional arrow. Descriptions are always present (required at `tether add` time, validated on read). UUIDs are shown in full (not truncated) so the agent can copy-paste them as command arguments. No truncation of the list for MVP, regardless of count.
 
 The "surface to user as a first-class resolution" path is deliberate: it preserves the agent's ability to defer a judgment call to the user rather than forcing a unilateral fix. When the resolution is mechanical (align two files that should match), the agent resolves and refreshes; when the resolution involves intent the agent shouldn't infer (a description that may or may not still apply, an edit that may or may not be a regression), the agent surfaces options and ends the turn. The Stop hook re-fires on the next turn end if drift remains, so deferring is safe.
 
@@ -109,7 +109,7 @@ It lives under `.tether/` rather than `.claude/` because it is tether's content,
 **Source of truth: `tether/claude_code/fragment.py`** (`FRAGMENT` constant). That file is what `tether init claude-code` writes to `.tether/tether.md` on every run; embedding the markdown here would drift the moment either side is edited. The contract the fragment must satisfy:
 
 - Introduce tether (what it is, what a tether records, what drift means).
-- Document the closed type vocabulary (`describes`, `tests`, `references`, `related`) and the bidirectional defaults.
+- State that tethers are symmetric (no direction, no type) and that `--description` is required at `tether add` time.
 - State that `.tether/` is tether-owned and read-only to the agent; mutations go through the CLI.
 - Define the per-artifact (`HEALTHY` / `DRIFTED` / `BROKEN`) and aggregate (`HEALTHY` / `WEAKENED` / `DRIFTED` / `BROKEN`) states.
 - Describe resolution paths for each non-HEALTHY aggregate, including the "surface to user" option for judgment calls and the two-step `update` → `refresh` for `BROKEN`.

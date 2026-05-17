@@ -14,10 +14,10 @@ The canonical vocabulary for the **MVP** of tether. Terms below match what the c
 
 | Term                  | Definition                                                                                                          | Aliases to avoid                       |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
-| **Tether**            | A typed, directional or bidirectional link between two artifacts, with a content fingerprint at each artifact.       | Link, connection, edge, relation       |
-| **Artifact**          | One of the two sides of a tether: a path (project-relative POSIX) plus a fingerprint. MVP refers to the whole file at the path. | Knot, endpoint, side, target, node     |
+| **Tether**            | A declaration of connection between two artifacts, with a content fingerprint at each artifact and a required description. Symmetric — neither end is privileged. | Link, connection, edge, relation       |
+| **Artifact**          | One of the two ends of a tether: a path (project-relative POSIX) plus a fingerprint. MVP refers to the whole file at the path. | Knot, endpoint, side, target, node     |
 | **Fingerprint**       | The git blob OID of the artifact file's content, recorded at tether creation and re-recorded on refresh.            | Anchor, snapshot, pin                  |
-| **Relationship type** | One of a closed vocabulary: `describes`, `tests`, `references`, `related`. Enforced at validation time.              | Tag, label, kind, category             |
+| **Description**       | A required free-form sentence (or longer) that captures *why* the relationship exists. Carries the project-specific semantics of the tether; the data model itself is intentionally untyped. | Note, label, comment                   |
 | **Drift**             | The condition where current content diverges from what was fingerprinted. The umbrella phenomenon, not a status value. | Drift event                            |
 | **Drift normalization** | Comparison-time pipeline applied to both sides when raw fingerprints disagree. Catches encoding-level changes (line endings, BOM, trailing whitespace, leading-tab expansion at tabstop 8) without altering the stored fingerprint. | Canonicalization, whitespace fix       |
 | **Normalizer**        | The implementation of drift normalization. Language-agnostic in MVP.                                                | Canonicalizer                          |
@@ -41,10 +41,10 @@ The aggregate state is derived from per-artifact states: both HEALTHY → HEALTH
 | ----------------------------- | ------------------------------------------------------------------------------------------------------------------ | -------------------------- |
 | **tether init**               | Initialize tether state in a project (`.tether/` directory). Refuses outside a git repository.                      | Setup, bootstrap           |
 | **tether init claude-code**   | Install the Claude Code integration: hooks, permissions, the agent fragment.                                        | Install                    |
-| **tether add**                | Create a new tether between two existing on-disk artifacts, recording fingerprints for both.                        | Create, link, connect      |
+| **tether add**                | Create a new tether between two existing on-disk artifacts, recording fingerprints for both and a required description. | Create, link, connect      |
 | **tether status**             | Report the current state of tethers (per-artifact and aggregate). With a tether ID, includes a unified diff for any DRIFTED or normalization-rescued side. | Check, query, inspect      |
 | **tether refresh**            | Re-fingerprint both artifacts of a tether, asserting they are aligned at their current contents. Refuses on a BROKEN tether. | Update fingerprint, re-pin |
-| **tether update**             | Modify a tether's metadata (path, description, directionality) without re-fingerprinting.                            | Edit, retarget             |
+| **tether update**             | Modify a tether's metadata (path, description) without re-fingerprinting.                                            | Edit, retarget             |
 | **tether mv**                 | Bulk path rewrite: rewrite every artifact pointing at OLD_PATH to NEW_PATH. Structural only; no alignment assertion. | Bulk rename                |
 | **tether rm**                 | Delete a tether record.                                                                                            | Remove, delete, unlink     |
 | **Refresh**                   | The act of re-fingerprinting; framed as a positive assertion of alignment that travels with the content changes it ratifies. | Auto-update, sync          |
@@ -78,10 +78,9 @@ The aggregate state is derived from per-artifact states: both HEALTHY → HEALTH
 
 ## Relationships
 
-- A **Tether** has exactly two **Artifacts** (`src` and `dst`).
+- A **Tether** has exactly two **Artifacts** named `a` and `b`. The labels carry stable ordering (whichever was passed to `tether add` first becomes `a`), not direction; neither end is privileged.
 - Each **Artifact** has a `path` and a single **Fingerprint** (git blob OID).
-- A **Tether** carries one **Relationship type** and a directionality flag (uni- or bidirectional).
-- `describes` and `tests` are strictly unidirectional; `related` defaults to bidirectional; `references` defaults to unidirectional.
+- A **Tether** carries a required **Description**. The data model has no relationship type and no directionality flag; the description is where the nuance lives.
 - **Refresh** updates both artifacts' fingerprints atomically; it is never partial.
 - **Refresh** refuses on a **BROKEN** tether (alignment cannot be asserted for content that cannot be located).
 - A **Tether record** is one file per tether under `.tether/tethers/`, named by UUIDv7 and committed alongside content.
@@ -89,12 +88,12 @@ The aggregate state is derived from per-artifact states: both HEALTHY → HEALTH
 
 ## Example dialogue
 
-> **Dev:** "I added a `describes` **Tether** from `docs/auth.md` to `src/auth.py`. After my edits this morning, what's the status?"
+> **Dev:** "I added a **Tether** between `docs/auth.md` and `src/auth.py`. After my edits this morning, what's the status?"
 > **Tether expert:** "The doc **Artifact** is **HEALTHY**, but the code **Artifact** is **DRIFTED** — its current git blob OID no longer matches the **Fingerprint**. Aggregate state is **WEAKENED**."
 > **Dev:** "Got it — so I update the doc and then `tether refresh`?"
 > **Tether expert:** "Right. **Refresh** re-fingerprints both **Artifacts** together; it's the assertion that they're now aligned. Don't refresh until you've actually updated the doc, or you'll erase the drift signal."
 > **Dev:** "What if I'd renamed `auth.py` to `authentication.py` instead of just editing it?"
-> **Tether expert:** "Then the file isn't at the recorded path — the code **Artifact** is **BROKEN**. Tether queries `git log --find-object` against the **Fingerprint** and surfaces matching paths as rename candidates. You'd run `tether update --dst-path authentication.py` to follow the rename, then `tether refresh` once aligned."
+> **Tether expert:** "Then the file isn't at the recorded path — the code **Artifact** is **BROKEN**. Tether queries `git log --find-object` against the **Fingerprint** and surfaces matching paths as rename candidates. You'd run `tether update --b-path authentication.py` to follow the rename, then `tether refresh` once aligned."
 
 ## Flagged ambiguities
 
@@ -102,5 +101,6 @@ The aggregate state is derived from per-artifact states: both HEALTHY → HEALTH
 - **"Fingerprint" as noun vs. verb.** "A fingerprint" is the recorded git blob OID; "to fingerprint" is the act of recording it. Recommend keeping the noun as primary and using "re-fingerprint" / "record a fingerprint" for the verb forms.
 - **"Drift" vs. "DRIFTED".** "Drift" is the umbrella phenomenon (content diverging from fingerprint); **DRIFTED** is a specific per-artifact state value. **WEAKENED** is also a form of drift but is aggregate-only. When discussing state, use the all-caps state name; when discussing the phenomenon, use lowercase "drift".
 - **"Artifact" vs. "tethered file".** The README and casual conversation say "tethered file"; technical writing should use **Artifact**. Acceptable as shorthand since MVP's artifacts are always whole files.
+- **`a` and `b` are not "source" and "destination".** They are stable labels for the two ends of a symmetric relationship — the order in which the user passed them to `tether add`. Avoid "source"/"destination" or "src"/"dst" phrasing in prose; it implies an asymmetry the data model does not carry.
 - **"Refresh" as command vs. concept.** `tether refresh` is the command; **Refresh** (the concept) is the deliberate assertion of alignment. The concept is the more important framing — refresh is an *assertion*, not a side effect of editing.
-- **"Update" vs. "refresh".** `tether update` changes path, description, or directionality without asserting alignment; `tether refresh` asserts alignment by re-fingerprinting. These are distinct operations and should not be conflated — update follows a move, refresh ratifies a coherent change.
+- **"Update" vs. "refresh".** `tether update` changes path or description without asserting alignment; `tether refresh` asserts alignment by re-fingerprinting. These are distinct operations and should not be conflated — update follows a move, refresh ratifies a coherent change.

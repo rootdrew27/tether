@@ -1,21 +1,10 @@
 from __future__ import annotations
 
 import uuid
-from typing import Literal
 
 import msgspec
 
 from .errors import InvalidTetherError
-
-TetherType = Literal["related", "describes", "tests", "references"]
-VALID_TYPES: frozenset[str] = frozenset(["related", "describes", "tests", "references"])
-UNIDIRECTIONAL_ONLY: frozenset[str] = frozenset(["describes", "tests"])
-DEFAULT_BIDIRECTIONAL: dict[str, bool] = {
-    "related": True,
-    "describes": False,
-    "tests": False,
-    "references": False,
-}
 
 
 class Artifact(msgspec.Struct, frozen=True, kw_only=True):
@@ -26,17 +15,11 @@ class Artifact(msgspec.Struct, frozen=True, kw_only=True):
 class Tether(msgspec.Struct, frozen=True, kw_only=True):
     id: str
     schema_version: int
-    src: Artifact
-    dst: Artifact
-    type: TetherType
-    bidirectional: bool
-    description: str | None
+    a: Artifact
+    b: Artifact
+    description: str
     created_at: str
     refreshed_at: str
-
-
-def default_bidirectional(t: str) -> bool:
-    return DEFAULT_BIDIRECTIONAL[t]
 
 
 def validate(t: Tether) -> None:
@@ -52,22 +35,17 @@ def validate(t: Tether) -> None:
             f"unsupported schema_version {t.schema_version}; this build supports 1"
         )
 
-    if t.type not in VALID_TYPES:
-        raise InvalidTetherError(
-            f"invalid type {t.type!r}; must be one of {sorted(VALID_TYPES)}"
-        )
-
-    if t.type in UNIDIRECTIONAL_ONLY and t.bidirectional:
-        raise InvalidTetherError(f"type {t.type!r} cannot be bidirectional")
-
-    if not t.src.path or not t.dst.path:
+    if not t.a.path or not t.b.path:
         raise InvalidTetherError("artifact paths must be non-empty")
 
-    if t.src.path == t.dst.path:
-        raise InvalidTetherError("src.path == dst.path: self-tethers are not allowed")
+    if t.a.path == t.b.path:
+        raise InvalidTetherError("a.path == b.path: self-tethers are not allowed")
 
-    if not t.src.fingerprint or not t.dst.fingerprint:
+    if not t.a.fingerprint or not t.b.fingerprint:
         raise InvalidTetherError("artifact fingerprints must be non-empty")
+
+    if not t.description.strip():
+        raise InvalidTetherError("description must be non-empty")
 
     if t.created_at > t.refreshed_at:
         raise InvalidTetherError(

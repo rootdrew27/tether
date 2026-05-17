@@ -102,7 +102,7 @@ def stop() -> None:
             "- if the resolution is a judgment call, surface the choice to the user with the options as you see them and end the turn awaiting direction.",
             "",
             "Do not refresh until alignment is real — refresh erases the drift signal. "
-            "For renames, use `tether update --src-path/--dst-path <new>` before refresh.",
+            "For renames, use `tether update --a-path/--b-path <new>` before refresh.",
         ]
     )
 

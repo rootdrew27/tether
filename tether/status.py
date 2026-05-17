@@ -47,17 +47,17 @@ class ArtifactCheck(msgspec.Struct, frozen=True, kw_only=True):
 
 
 class TetherCheck(msgspec.Struct, frozen=True, kw_only=True):
-    src: ArtifactCheck
-    dst: ArtifactCheck
+    a: ArtifactCheck
+    b: ArtifactCheck
     aggregate: AggregateState
 
 
-def aggregate(src: ArtifactState, dst: ArtifactState) -> AggregateState:
-    if ArtifactState.BROKEN in (src, dst):
+def aggregate(a: ArtifactState, b: ArtifactState) -> AggregateState:
+    if ArtifactState.BROKEN in (a, b):
         return AggregateState.BROKEN
-    if src == ArtifactState.DRIFTED and dst == ArtifactState.DRIFTED:
+    if a == ArtifactState.DRIFTED and b == ArtifactState.DRIFTED:
         return AggregateState.DRIFTED
-    if ArtifactState.DRIFTED in (src, dst):
+    if ArtifactState.DRIFTED in (a, b):
         return AggregateState.WEAKENED
     return AggregateState.HEALTHY
 
@@ -95,9 +95,9 @@ def check_artifact(
 
 
 def check_tether(t: Tether, project_root: Path, tabstop: int = 8) -> TetherCheck:
-    src = check_artifact(t.src.path, t.src.fingerprint, project_root, tabstop=tabstop)
-    dst = check_artifact(t.dst.path, t.dst.fingerprint, project_root, tabstop=tabstop)
-    return TetherCheck(src=src, dst=dst, aggregate=aggregate(src.state, dst.state))
+    a = check_artifact(t.a.path, t.a.fingerprint, project_root, tabstop=tabstop)
+    b = check_artifact(t.b.path, t.b.fingerprint, project_root, tabstop=tabstop)
+    return TetherCheck(a=a, b=b, aggregate=aggregate(a.state, b.state))
 
 
 def artifact_diff(artifact_path: str, fingerprint: str, project_root: Path) -> str:

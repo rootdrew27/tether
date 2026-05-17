@@ -1,6 +1,6 @@
 # tether
 
-A typed-relationship annotation layer over content, layered on git.
+A content-fingerprinted relationship annotation layer, layered on git.
 
 Create durable, content-fingerprinted links ("tethers") between any two files
 in a project — say, a doc and the code it describes — and tether will tell you
@@ -17,8 +17,8 @@ travels with the repo.
 
 | Term | Meaning |
 |---|---|
-| **Tether** | A typed link between two **artifacts**, with content fingerprints recorded at both ends. |
-| **Artifact** | One side of a tether: a path plus a locator. In MVP the locator is always `WholeFile`. |
+| **Tether** | A declaration of connection between two **artifacts**, with content fingerprints recorded at both ends and a required description. |
+| **Artifact** | One end of a tether: a path plus a locator. In MVP the locator is always `WholeFile`. |
 | **Fingerprint** | The git blob OID of the artifact's content, captured at tether creation or refresh. |
 | **Drift** | The condition where current content no longer matches the fingerprint. |
 | **HEALTHY / DRIFTED / BROKEN** | Per-artifact state. A tether is **WEAKENED** when one side is HEALTHY and the other DRIFTED. |
@@ -39,7 +39,7 @@ Requires Python 3.12+ and a git repository (`tether init` refuses outside one).
 ```bash
 cd my-project
 uv run tether init
-uv run tether add docs/auth.md src/auth.py --type describes
+uv run tether add docs/auth.md src/auth.py --description "Covers password reset and 2FA enrollment."
 uv run tether status
 # edit src/auth.py ...
 uv run tether status         # src/auth.py now reports DRIFTED, aggregate WEAKENED
@@ -54,15 +54,16 @@ uv run tether refresh <id>   # re-fingerprint both artifacts together
 |---|---|
 | `tether init` | Initialize `.tether/` in the current git repo. |
 | `tether init claude-code` | Wire up Claude Code hooks and a memory fragment. |
-| `tether add SRC DST --type T [--bidirectional / --unidirectional] [--description ...]` | Create a tether. |
+| `tether add A B --description "..."` | Create a tether. `--description` is required. |
 | `tether status [ID] [--json] [--diff/--no-diff]` | Report tether state; per-artifact for one ID, summary for all. |
 | `tether refresh ID` | Re-fingerprint both artifacts; asserts they are now aligned. |
-| `tether update ID [--src-path ...] [--dst-path ...] [--description ...] [--bidirectional / --unidirectional]` | Modify a tether without touching fingerprints. |
+| `tether update ID [--a-path ...] [--b-path ...] [--description ...]` | Modify a tether without touching fingerprints. |
 | `tether mv OLD_PATH NEW_PATH` | Rewrite all tether artifacts pointing at `OLD_PATH` to `NEW_PATH`. |
 | `tether rm ID` | Delete a tether record. |
 
-Relationship types: `describes`, `tests`, `references`, `related`. `describes`
-and `tests` are unidirectional by default; `related` defaults to bidirectional.
+A tether is symmetric — neither end is privileged. The two artifacts are named
+`a` and `b` for stable ordering only; the relationship's meaning lives in the
+required description.
 
 ## How drift works
 

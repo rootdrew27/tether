@@ -45,7 +45,7 @@ Session timeline for an agent editing a tethered code file:
 | --------- | --------------------------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1         | `Read docs/auth.md`               | HEALTHY               | (silent)                                                                                                                                                              |
 | 2         | `Read src/auth.py`                | HEALTHY               | (silent)                                                                                                                                                              |
-| 3         | `Edit src/auth.py`                | HEALTHY → WEAKENED    | `Tether X (describes docs/auth.md → src/auth.py) just became WEAKENED — docs/auth.md unchanged. Decide: align the doc, surface to user, or update the description.` |
+| 3         | `Edit src/auth.py`                | HEALTHY → WEAKENED    | `Tether X (docs/auth.md — src/auth.py) just became WEAKENED — docs/auth.md unchanged. Decide: align the doc, surface to user, or update the description.` |
 | 4         | `Read docs/auth.md`               | WEAKENED              | (silent — no transition)                                                                                                                                              |
 | 5         | `Edit docs/auth.md`               | WEAKENED              | (silent — still WEAKENED, the aggregate didn't transition)                                                                                                            |
 | 6         | `Bash uv run tether refresh X`    | WEAKENED → HEALTHY    | `Tether X resolved.`                                                                                                                                                  |
@@ -71,7 +71,7 @@ Properties on display:
 
 **Diff and output.** Per tether, emit one short paragraph when the aggregate state changed since the cached value. Aggregate-only transitions are the v1 reporting threshold; per-artifact transitions (e.g. "the docs side just drifted while the code side is still HEALTHY") may be added later if the aggregate-only signal proves too coarse.
 
-For BROKEN transitions, output mirrors the fragment's BROKEN guidance: suggest `tether update --src-path/--dst-path` to follow a rename, fall back to `tether rm` if the file is truly gone.
+For BROKEN transitions, output mirrors the fragment's BROKEN guidance: suggest `tether update --a-path/--b-path` to follow a rename, fall back to `tether rm` if the file is truly gone.
 
 **Errors.** Corrupt records, unreadable files, etc. are reported once per error key and cached so subsequent calls don't re-spam. Entries clear when the underlying issue resolves.
 
