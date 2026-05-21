@@ -1,3 +1,4 @@
+```
  ▐▛███▜▌   Claude Code v2.1.143
 ▝▜█████▛▘  Opus 4.7 · Claude Team
   ▘▘ ▝▝    ~/PersonalProjects/tether/playground
@@ -92,7 +93,7 @@
   update the description to match the new surface, then refresh.
 
 ● Bash(uv run tether update 019e36df-a270-7653-84a1-6af594d8286a --description
-      "usage.md documents the CLI surface defined in cli.py: the argparse
+      usage.md documents the CLI surface defined in cli.py: the argparse
       subcommands (add/sub…)
   ⎿  Updated tether 019e36df-a270-7653-84a1-6af594d8286a
 
@@ -114,3 +115,4 @@
   Verified with uv run python cli.py mod 10 3 → 1.0.
 
 ✻ Crunched for 53s
+```

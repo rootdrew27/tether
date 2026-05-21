@@ -11,7 +11,10 @@ status: active
 - [x] Clean documentation
 	- [x] Remove redundancies
 	- [x] Remove out-dated or inaccurate info
+- [ ] Research memory systems and coding agents
 - [ ] Review Case Study 01
+- [ ] Logging System
+	- This enables dropping the excess functionality exposed on  the CLI because all input to Claude will be in the logs
 - [ ] Gain understanding of Tether
 	- How is git used? What other git internals could be used?
 	-  What are the failure cases? Is a watcher needed for V1?
@@ -24,9 +27,8 @@ status: active
 	- [ ] Compare it against other versions of `tether` and against Claude w/o `tether`
 	- [ ] Automate this process!
 - [ ] Use `tether` to develop `tether`!
+	- [ ] Create Claude Skill to create tethers in a new repository
 - [ ] Convert GitHub to public and create package
-
-
 ## Dev Tools
 - [ ] Simple Claude Skill for commits (should be callable by claude or user)
 - [ ] Create a precommit hook for formatting, linting, and type checking (and/or include these commands in the claude skill for committing)

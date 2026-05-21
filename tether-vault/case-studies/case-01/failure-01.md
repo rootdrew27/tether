@@ -1,3 +1,5 @@
+ 
+ ```
  ▐▛███▜▌   Claude Code v2.1.143
 ▝▜█████▛▘  Opus 4.7 · Claude Team
   ▘▘ ▝▝    ~/PersonalProjects/tether/playground
@@ -87,3 +89,4 @@
 ✻ Cogitated for 43s
 
 ※ recap: Goal was adding a modulo operation to the calc CLI. Done: added `mod` to common.py, wired it into cli.py's OPS, updated docs/usage.md, and refreshed the tether. Next: nothing pending — awaiting your direction. (disable recaps in /config)
+ ```
