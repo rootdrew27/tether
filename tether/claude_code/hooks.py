@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+from typing import Any, TypeVar
 
 import msgspec
 
@@ -12,14 +13,21 @@ from ..render import (
     counts,
     errors_section,
     item_lines,
+    refs_xml,
     summary_line,
 )
 from ..status import AggregateState, check_tether
-from ..storage import LoadResult, load_all
+from ..storage import LoadResult, find_by_path, load_all
 
 
 class HookInput(msgspec.Struct, kw_only=True):
     cwd: str
+
+
+class PreToolUseInput(msgspec.Struct, kw_only=True):
+    cwd: str
+    tool_name: str
+    tool_input: dict[str, Any]
 
 
 class StopBlock(msgspec.Struct, kw_only=True):
@@ -27,19 +35,34 @@ class StopBlock(msgspec.Struct, kw_only=True):
     reason: str
 
 
-def _read_cwd() -> Path:
+class PreToolUseHookSpecificOutput(msgspec.Struct, kw_only=True):
+    hookEventName: str
+    additionalContext: str
+
+
+class PreToolUseOutput(msgspec.Struct, kw_only=True):
+    hookSpecificOutput: PreToolUseHookSpecificOutput
+
+
+T = TypeVar("T")
+
+
+def _read_input(struct_type: type[T]) -> T:
     raw = sys.stdin.buffer.read()
     if not raw.strip():
         print("tether hook: stdin is empty (expected hook JSON)", file=sys.stderr)
         sys.exit(2)
     try:
-        data = msgspec.json.decode(raw, type=HookInput)
+        return msgspec.json.decode(raw, type=struct_type)
     except (msgspec.ValidationError, msgspec.DecodeError) as e:
         print(f"tether hook: invalid stdin JSON: {e}", file=sys.stderr)
         sys.exit(2)
-    cwd = Path(data.cwd)
+
+
+def _resolve_cwd(cwd_str: str) -> Path:
+    cwd = Path(cwd_str)
     if not cwd.exists():
-        print(f"tether hook: cwd does not exist: {data.cwd}", file=sys.stderr)
+        print(f"tether hook: cwd does not exist: {cwd_str}", file=sys.stderr)
         sys.exit(2)
     return cwd
 
@@ -51,7 +74,7 @@ def _evaluate(root: Path) -> tuple[LoadResult, list[Row]]:
 
 
 def session_start() -> None:
-    cwd = _read_cwd()
+    cwd = _resolve_cwd(_read_input(HookInput).cwd)
     try:
         root = find_project_root(cwd)
     except TetherError:
@@ -79,7 +102,7 @@ def session_start() -> None:
 
 
 def stop() -> None:
-    cwd = _read_cwd()
+    cwd = _resolve_cwd(_read_input(HookInput).cwd)
     try:
         root = find_project_root(cwd)
     except TetherError:
@@ -108,4 +131,40 @@ def stop() -> None:
 
     block = StopBlock(decision="block", reason="\n".join(lines))
     sys.stdout.write(msgspec.json.encode(block).decode("utf-8"))
+    sys.stdout.write("\n")
+
+
+def pre_tool_use() -> None:
+    # Load errors from corrupt records are dropped here so PreRead does not
+    # nag on every tool call; SessionStart and Stop surface them project-wide.
+    data = _read_input(PreToolUseInput)
+    if data.tool_name != "Read":
+        return
+    file_path = data.tool_input.get("file_path")
+    if not isinstance(file_path, str) or not file_path:
+        return
+
+    try:
+        root = find_project_root(Path(data.cwd))
+    except TetherError:
+        return
+
+    try:
+        rel = Path(file_path).resolve().relative_to(root).as_posix()
+    except (OSError, ValueError):
+        return
+
+    result = find_by_path(root, rel)
+    if not result.tethers:
+        return
+
+    rows: list[Row] = [(t, check_tether(t, root)) for t in result.tethers]
+    xml = refs_xml(rel, rows, [], root)
+    output = PreToolUseOutput(
+        hookSpecificOutput=PreToolUseHookSpecificOutput(
+            hookEventName="PreToolUse",
+            additionalContext=xml,
+        )
+    )
+    sys.stdout.write(msgspec.json.encode(output).decode("utf-8"))
     sys.stdout.write("\n")

@@ -16,11 +16,12 @@ from .git import hash_object_write
 from .model import Artifact, Tether
 from .output import (
     ArtifactStatus,
-    LoadError,
+    RefsReport,
     StatusReport,
     StatusSummary,
     TetherStatus,
     encode_pretty,
+    relativize_errors,
 )
 from .project import find_project_root, init_project
 from .render import (
@@ -28,6 +29,7 @@ from .render import (
     counts,
     errors_section,
     item_lines,
+    refs_xml,
     summary_line,
 )
 from .status import (
@@ -41,7 +43,7 @@ from .status import (
 from uuid_utils import uuid7
 
 from .storage import delete as storage_delete
-from .storage import load, load_all, save
+from .storage import find_by_path, load, load_all, save
 
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -465,33 +467,72 @@ def _build_tether_status(
     )
 
 
-def _build_status_report(
-    rows: list[Row],
-    errors: list[tuple[Path, str]],
-    root: Path,
-) -> StatusReport:
+def _build_status_summary(rows: list[Row]) -> StatusSummary:
     c = counts(rows)
-    summary = StatusSummary(
+    return StatusSummary(
         total=len(rows),
         healthy=c["HEALTHY"],
         weakened=c["WEAKENED"],
         drifted=c["DRIFTED"],
         broken=c["BROKEN"],
     )
-    error_objs: list[LoadError] = []
-    for p, m in errors:
-        if Path(p).is_absolute():
-            try:
-                rel = str(Path(p).relative_to(root))
-            except ValueError:
-                rel = str(p)
-        else:
-            rel = str(p)
-        error_objs.append(LoadError(path=rel, error=m))
+
+
+def _build_status_report(
+    rows: list[Row],
+    errors: list[tuple[Path, str]],
+    root: Path,
+) -> StatusReport:
     return StatusReport(
-        summary=summary,
+        summary=_build_status_summary(rows),
         tethers=[_build_tether_status(t, ck, root, False) for t, ck in rows],
-        errors=error_objs,
+        errors=relativize_errors(errors, root),
+    )
+
+
+@main.command()
+@click.argument("path")
+@click.option(
+    "--json",
+    "as_json",
+    is_flag=True,
+    default=False,
+    help="Emit JSON (default when no format flag is given).",
+)
+@click.option(
+    "--xml",
+    "as_xml",
+    is_flag=True,
+    default=False,
+    help="Emit XML (the format injected into Claude Code on PreToolUse Read).",
+)
+@handle_errors
+def refs(path: str, as_json: bool, as_xml: bool) -> None:
+    """List tethers referencing PATH (severity-ordered)."""
+    if as_json and as_xml:
+        raise TetherError("--json and --xml are mutually exclusive")
+    root = _root()
+    rel = _resolve_rel(root, path)
+    result = find_by_path(root, rel)
+    rows: list[Row] = [(t, check_tether(t, root)) for t in result.tethers]
+
+    if as_xml:
+        click.echo(refs_xml(rel, rows, result.errors, root), nl=False)
+        return
+    click.echo(encode_pretty(_build_refs_report(rel, rows, result.errors, root)))
+
+
+def _build_refs_report(
+    rel: str,
+    rows: list[Row],
+    errors: list[tuple[Path, str]],
+    root: Path,
+) -> RefsReport:
+    return RefsReport(
+        queried_path=rel,
+        summary=_build_status_summary(rows),
+        tethers=[_build_tether_status(t, ck, root, False) for t, ck in rows],
+        errors=relativize_errors(errors, root),
     )
 
 
@@ -517,3 +558,10 @@ def hook_claude_code_stop() -> None:
     from .claude_code.hooks import stop
 
     stop()
+
+
+@hook_claude_code.command("pre-tool-use")
+def hook_claude_code_pre_tool_use() -> None:
+    from .claude_code.hooks import pre_tool_use
+
+    pre_tool_use()

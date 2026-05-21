@@ -12,6 +12,7 @@ from tether.claude_code.install import install
 from tether.claude_code.settings import (
     ALLOW_PATTERNS,
     DENY_PATTERNS,
+    build_pre_tool_use_hook,
     build_session_start_hook,
     build_stop_hook,
     detect_tether_command,
@@ -57,6 +58,7 @@ def test_install_perms_in_settings_hooks_in_local(project: Path):
         sl["hooks"]["SessionStart"], "hook claude-code session-start"
     )
     assert _has_owned_hook(sl["hooks"]["Stop"], "hook claude-code stop")
+    assert _has_owned_hook(sl["hooks"]["PreToolUse"], "hook claude-code pre-tool-use")
     assert "permissions" not in sl or not sl.get("permissions")
 
 
@@ -195,6 +197,20 @@ def test_build_hook_shape():
     s = build_stop_hook("/x/tether")
     assert s["hooks"][0]["command"].endswith(" hook claude-code stop")
 
+    p = build_pre_tool_use_hook("/x/tether")
+    assert p["matcher"] == "Read"
+    assert p["hooks"][0]["timeout"] == 10
+    assert p["hooks"][0]["command"].endswith(" hook claude-code pre-tool-use")
+
+
+def test_install_includes_refs_allow_patterns(project: Path):
+    install(project)
+    s = json.loads((project / ".claude" / "settings.json").read_text())
+    assert any("refs:" in p for p in s["permissions"]["allow"])
+    # And it's present across the standard invocation prefixes
+    assert "Bash(tether refs:*)" in s["permissions"]["allow"]
+    assert "Bash(uv run tether refs:*)" in s["permissions"]["allow"]
+
 
 def test_detect_tether_command_anchors_inside_project(
     project: Path, monkeypatch: pytest.MonkeyPatch
@@ -326,3 +342,155 @@ def test_hook_missing_cwd_exits_2(in_project: Path):
         input=json.dumps({}),
     )
     assert result.exit_code == 2
+
+
+def _pre_tool_use_input(
+    cwd: Path,
+    tool_name: str = "Read",
+    file_path: str | None = None,
+) -> str:
+    tool_input: dict[str, object] = {}
+    if file_path is not None:
+        tool_input["file_path"] = file_path
+    return json.dumps(
+        {
+            "cwd": str(cwd),
+            "session_id": "test",
+            "tool_name": tool_name,
+            "tool_input": tool_input,
+        }
+    )
+
+
+def test_pre_tool_use_empty_stdin_exits_2(in_project: Path):
+    result = CliRunner().invoke(main, ["hook", "claude-code", "pre-tool-use"], input="")
+    assert result.exit_code == 2
+
+
+def test_pre_tool_use_silent_for_non_read_tool(in_project: Path):
+    _seed_files(in_project)
+    runner = CliRunner()
+    runner.invoke(
+        main,
+        ["add", "docs/auth.md", "src/auth.py", "--description", "describes auth"],
+    )
+    result = runner.invoke(
+        main,
+        ["hook", "claude-code", "pre-tool-use"],
+        input=_pre_tool_use_input(
+            in_project,
+            tool_name="Edit",
+            file_path=str(in_project / "src" / "auth.py"),
+        ),
+    )
+    assert result.exit_code == 0
+    assert result.output.strip() == ""
+
+
+def test_pre_tool_use_silent_when_file_path_missing(in_project: Path):
+    _seed_files(in_project)
+    runner = CliRunner()
+    runner.invoke(
+        main,
+        ["add", "docs/auth.md", "src/auth.py", "--description", "describes auth"],
+    )
+    result = runner.invoke(
+        main,
+        ["hook", "claude-code", "pre-tool-use"],
+        input=_pre_tool_use_input(in_project, file_path=None),
+    )
+    assert result.exit_code == 0
+    assert result.output.strip() == ""
+
+
+def test_pre_tool_use_silent_for_file_outside_project(
+    in_project: Path, tmp_path_factory: pytest.TempPathFactory
+):
+    _seed_files(in_project)
+    outside = tmp_path_factory.mktemp("outside") / "elsewhere.py"
+    outside.write_text("x = 1\n")
+    result = CliRunner().invoke(
+        main,
+        ["hook", "claude-code", "pre-tool-use"],
+        input=_pre_tool_use_input(in_project, file_path=str(outside)),
+    )
+    assert result.exit_code == 0
+    assert result.output.strip() == ""
+
+
+def test_pre_tool_use_silent_when_no_matching_tethers(in_project: Path):
+    _seed_files(in_project)
+    runner = CliRunner()
+    runner.invoke(
+        main,
+        ["add", "docs/auth.md", "src/auth.py", "--description", "describes auth"],
+    )
+    # Read a file that is not part of any tether
+    (in_project / "README.md").write_text("# readme\n")
+    result = runner.invoke(
+        main,
+        ["hook", "claude-code", "pre-tool-use"],
+        input=_pre_tool_use_input(in_project, file_path=str(in_project / "README.md")),
+    )
+    assert result.exit_code == 0
+    assert result.output.strip() == ""
+
+
+def test_pre_tool_use_emits_additional_context_on_match(in_project: Path):
+    _seed_files(in_project)
+    runner = CliRunner()
+    runner.invoke(
+        main,
+        ["add", "docs/auth.md", "src/auth.py", "--description", "describes auth"],
+    )
+    result = runner.invoke(
+        main,
+        ["hook", "claude-code", "pre-tool-use"],
+        input=_pre_tool_use_input(
+            in_project, file_path=str(in_project / "src" / "auth.py")
+        ),
+    )
+    assert result.exit_code == 0
+    payload = msgspec.json.decode(result.output.encode())
+    assert payload["hookSpecificOutput"]["hookEventName"] == "PreToolUse"
+    xml = payload["hookSpecificOutput"]["additionalContext"]
+    assert "<tether-context>" in xml
+    assert '<self path="src/auth.py"' in xml
+    assert '<peer path="docs/auth.md"' in xml
+    assert "describes auth" in xml
+
+
+def test_pre_tool_use_drops_load_errors_from_context(in_project: Path):
+    _seed_files(in_project)
+    runner = CliRunner()
+    runner.invoke(
+        main,
+        ["add", "docs/auth.md", "src/auth.py", "--description", "describes auth"],
+    )
+    # Plant a corrupt record
+    (in_project / ".tether" / "tethers" / "garbage.json").write_text("not json")
+    result = runner.invoke(
+        main,
+        ["hook", "claude-code", "pre-tool-use"],
+        input=_pre_tool_use_input(
+            in_project, file_path=str(in_project / "src" / "auth.py")
+        ),
+    )
+    assert result.exit_code == 0
+    payload = msgspec.json.decode(result.output.encode())
+    xml = payload["hookSpecificOutput"]["additionalContext"]
+    assert "<errors>" not in xml
+    assert "garbage.json" not in xml
+
+
+def test_pre_tool_use_silent_for_nonexistent_absolute_path(in_project: Path):
+    # Path.resolve(strict=False) preserves a nonexistent absolute path; the
+    # relative_to check against the project root fails, so the hook exits
+    # silently rather than blocking the Read.
+    result = CliRunner().invoke(
+        main,
+        ["hook", "claude-code", "pre-tool-use"],
+        input=_pre_tool_use_input(in_project, file_path="/definitely/not/here.py"),
+    )
+    assert result.exit_code == 0
+    assert result.output.strip() == ""

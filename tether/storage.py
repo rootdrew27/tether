@@ -63,3 +63,15 @@ def load_all(project_root: Path) -> LoadResult:
         except (msgspec.DecodeError, msgspec.ValidationError, InvalidTetherError) as e:
             errors.append((path, str(e)))
     return LoadResult(tethers=tethers, errors=errors)
+
+
+def find_by_path(project_root: Path, rel_path: str) -> LoadResult:
+    """Return tethers whose `a.path` or `b.path` equals `rel_path`.
+
+    Path comparison is exact string equality on the stored project-relative
+    POSIX form. Load errors are surfaced via the returned `LoadResult` so the
+    caller can decide whether to report them.
+    """
+    result = load_all(project_root)
+    matches = [t for t in result.tethers if rel_path in (t.a.path, t.b.path)]
+    return LoadResult(tethers=matches, errors=result.errors)

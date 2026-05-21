@@ -87,11 +87,13 @@ The README mentions: "Users (i.e. applications) can subscribe to events and filt
 
 No consumer exists yet — the Claude Code integration uses one-shot hook subcommands. Designing the contract speculatively risks locking in shapes that don't fit the first real consumer. Defer until there's a concrete need.
 
-### "How tethered is this file" utility
+### Locator-aware `tether refs <path>` output
 
-Obsidian-CLI-style query: given a path, list every tether that references it. Useful for the agent when deciding whether to create a new tether or follow an existing one, and for humans browsing relationships in unfamiliar code. Locator-aware output once sub-file locators ship.
+`tether refs <path>` ships in MVP listing tethers whose `a.path` or `b.path` matches the queried path. When sub-file locators land (`LineRange` and beyond — see §"Locator extensions" above), the command needs to grow:
 
-Suggested surface: `tether refs <path>` or `tether for <path>` — name TBD.
+- Range-aware matching: `tether refs src/auth.py:80-120` should match tethers whose endpoint covers that range.
+- Per-tether locator detail in the markdown / JSON / XML output.
+- Updates to the agent-facing XML schema injected on `PreToolUse` Read (see [[Claude-Code-Integration]]) so the `<self>` element carries the locator the queried file is named by.
 
 ## Background automation
 
@@ -158,8 +160,6 @@ Journal first (substrate). Then refined BROKEN diagnostics (cheap, read-only). T
 The Claude Code integration is one harness. Cursor, Aider, Codex, and others have their own memory/hook/permission conventions. Each gets its own per-harness fragment (`.cursor/tether.md`, `.aider/tether.md`, etc.) and a corresponding `tether init cursor` / `tether init aider` subcommand. Same pattern as `tether init claude-code`, different file paths and vocabulary.
 
 Deferred — MVP is Claude-Code-only. The "Note on scope" in [[Claude-Code-Integration]] acknowledges this is the first harness, not the only one.
-
-The "how tethered is this file" CLI utility above is also the foundation for the **PreToolUse Read hook for tethered-file context injection** — a Claude-Code-specific deferred feature tracked in [[Claude-Code-Integration-Open]]. Both ship together.
 
 ## Normalizer extensions
 

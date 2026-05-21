@@ -12,14 +12,15 @@ This document specifies how tether integrates with Claude Code. The conceptual f
 
 ## Event matrix
 
-The integration uses two Claude Code hook events:
+The integration uses three Claude Code hook events:
 
 | Event | Purpose |
 |---|---|
 | `SessionStart` | Inject tether status as context at the start of every session (including `resume`, `clear`, and `compact`). Orientation. |
+| `PreToolUse` (matcher `"Read"`) | When the agent reads a tethered file, inject a `<tether-context>` block describing every tether involving that file (states, peer path, description). Decision-time steering. |
 | `Stop` | Check tether status before the agent ends its turn. Block the turn (force continuation) if any tether is non-HEALTHY. |
 
-Per-edit `PreToolUse` hooks for context injection are deliberately not part of the design. Two reasons: edits are frequent (8-30 per turn in typical sessions), making per-edit context injection expensive; and Stop coverage at turn end is sufficient — the agent gets the consequences of its edits in time to act on them within the same turn. The deferred PreToolUse pattern can be added later if Stop-only proves insufficient; doing so is incrementally additive.
+`PreToolUse` on `Edit`/`Write`/`MultiEdit` is deliberately not part of the design. Edits are frequent (8-30 per turn in typical sessions); per-edit context injection is expensive and largely redundant with the PreRead-on-Read injection that already primed the agent with the tether description before it decided to edit. Stop coverage at turn end remains the safety net for drift the agent introduced. Other PreToolUse triggers (Bash-mediated reads, prompt `@file` mentions) are tracked in [[Claude-Code-Integration-Open]].
 
 A separate, declarative `permissions.deny` rule covers `.tether/tethers/` — see §"Write-denial mechanism" below.
 
@@ -58,6 +59,47 @@ A separate, declarative `permissions.deny` rule covers `.tether/tethers/` — se
   ```
 
 The output is markdown on stdout, which Claude Code injects as context. The agent reads it as prose. Markdown is preferred over JSON for agent-facing surfaces; JSON is available via `tether status --json` for scripts and CI.
+
+## PreToolUse hook
+
+**Trigger:** every Claude Code Read tool call. Matcher is `"Read"`; the hook subprocess is `tether hook claude-code pre-tool-use`. The same subcommand defensively short-circuits to silent exit 0 on any other `tool_name`, so misconfigured matchers degrade safely.
+
+**Behavior:**
+
+1. Parse `cwd`, `tool_name`, `tool_input.file_path` from stdin. Empty or invalid stdin → exit 2 (fail-loud per current policy).
+2. Resolve `file_path` to a project-relative POSIX path. If outside the project root, or no project root is reachable from `cwd`, exit 0 silent.
+3. Look up tethers whose `a.path` or `b.path` equals the resolved path (`storage.find_by_path`).
+4. If no matches, exit 0 silent with no output.
+5. Otherwise compute per-tether state and emit JSON to stdout:
+
+   ```json
+   {
+     "hookSpecificOutput": {
+       "hookEventName": "PreToolUse",
+       "additionalContext": "<tether-context>…</tether-context>\n"
+     }
+   }
+   ```
+
+Claude Code routes `additionalContext` into the agent's context window alongside the eventual tool result for `PreToolUse` (per the Claude Code hooks reference). The agent sees the file content and the tether context together at decision time, before the next tool call.
+
+**XML format.** One `<tether-context>` wrapper; one `<tether>` child per matching record, severity-ordered (BROKEN → DRIFTED → WEAKENED → HEALTHY, UUIDv7 ascending tiebreaker). Each `<tether>` carries `id` and `aggregate` attributes; `<self path … state…>` and `<peer path … state…>` self-closing children with per-side state (the queried file's state can differ across tethers because each tether records its own fingerprint); `<description>` element text carries the prose verbatim, XML-escaped. Sample:
+
+```xml
+<tether-context>
+  <tether id="019e36df-a270-7653-84a1-6af594d8286a" aggregate="WEAKENED">
+    <self path="src/cli.py" state="DRIFTED" />
+    <peer path="docs/usage.md" state="HEALTHY" />
+    <description>usage.md describes the CLI surface defined in cli.py …</description>
+  </tether>
+</tether-context>
+```
+
+**Partial-failure policy.** Unreadable tether records are skipped — `find_by_path` returns valid matches; the `<tether-context>` payload **does not** include an `<errors>` block at this surface. The same corrupt records are surfaced at SessionStart and inside `tether status` / `tether refs` for the project-wide and per-file diagnostic surfaces respectively. PreRead intentionally stays narrow: "this file you're about to interact with has these tethers" — corruption notices unrelated to the queried file would be noise repeated per Read.
+
+**Why `additionalContext` and not stdout text.** Claude Code's hooks reference is explicit: stdout-to-context routing applies only to `SessionStart`, `UserPromptSubmit`, and `UserPromptExpansion`. PreToolUse stdout goes to the debug log unless wrapped in the JSON shape above. The 10,000-char cap on `additionalContext` is well above the size of any plausible tether's worth of XML.
+
+**Origin.** Empirically motivated by case-study-01, where the same agent on the same task succeeded by reading the tether description before editing (run 2) and only narrowly recovered by post-hoc reasoning when it didn't (run 1). The PreRead injection makes the success path the default — the description is delivered with the file content, every time.
 
 ## Stop hook
 
@@ -183,10 +225,11 @@ These entries merge alongside any user-authored allow entries; the signature pre
 
 ## Hook subcommand implementation
 
-Tether exposes two Claude-Code-specific subcommands, both hidden from the default `tether --help` output:
+Tether exposes three Claude-Code-specific subcommands, all hidden from the default `tether --help` output:
 
 - `tether hook claude-code session-start` — reads hook input JSON on stdin, runs `api.status()`, formats per the SessionStart adaptive schema, emits to stdout.
 - `tether hook claude-code stop` — reads hook input JSON on stdin, runs `api.status()`, emits `{"decision": "block", "reason": "..."}` if any tether is non-HEALTHY, exits 0 with no output otherwise.
+- `tether hook claude-code pre-tool-use` — reads PreToolUse hook input JSON on stdin (`tool_name`, `tool_input.file_path`), short-circuits to silent exit 0 on non-Read tools or files outside the project, looks up matching tethers via `storage.find_by_path`, and emits `{"hookSpecificOutput": {"hookEventName": "PreToolUse", "additionalContext": "<tether-context>…</tether-context>"}}` when at least one tether matches.
 
 **CLI placement:**
 
@@ -198,7 +241,8 @@ tether
 └── hook                # hidden group
     └── claude-code     # hidden subgroup
         ├── session-start   # called from .claude/settings.local.json
-        └── stop            # called from .claude/settings.local.json
+        ├── stop            # called from .claude/settings.local.json
+        └── pre-tool-use    # called from .claude/settings.local.json
 ```
 
 The `hook` group is hidden because hook subcommands are integration-specific, not user-facing. They're invocable for debugging via `tether hook --help`, but they don't clutter the default surface a developer or agent sees when discovering tether's CLI.
@@ -231,6 +275,18 @@ Claude Code resolves each settings key independently from its layered files: hoo
           {
             "type": "command",
             "command": "${CLAUDE_PROJECT_DIR}/.venv/bin/tether hook claude-code stop",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.venv/bin/tether hook claude-code pre-tool-use",
             "timeout": 10
           }
         ]

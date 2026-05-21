@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from pathlib import Path
+from xml.sax.saxutils import escape as _xml_escape
+from xml.sax.saxutils import quoteattr as _xml_quoteattr
 
-from .model import Tether
-from .status import SEVERITY, ArtifactState, TetherCheck
+from .model import Artifact, Tether
+from .status import SEVERITY, ArtifactCheck, ArtifactState, TetherCheck
 
 Row = tuple[Tether, TetherCheck]
 
@@ -61,3 +63,55 @@ def errors_section(errors: list[tuple[Path, str]], root: Path) -> list[str]:
             rel = str(path)
         lines.append(f"- `{rel}`: {msg}")
     return lines
+
+
+def _classify_sides(
+    t: Tether, check: TetherCheck, rel_path: str
+) -> tuple[tuple[Artifact, ArtifactCheck], tuple[Artifact, ArtifactCheck]]:
+    if t.a.path == rel_path:
+        return (t.a, check.a), (t.b, check.b)
+    return (t.b, check.b), (t.a, check.a)
+
+
+def refs_xml(
+    rel_path: str,
+    rows: list[Row],
+    errors: list[tuple[Path, str]],
+    project_root: Path,
+) -> str:
+    """Render a `<tether-context>` block for one queried path.
+
+    The wrapper element is always emitted, even when no tethers match — the
+    empty wrapper is parser-friendly. Callers that want to suppress the
+    `<errors>` child pass an empty `errors` list.
+    """
+    lines = ["<tether-context>"]
+    for t, check in by_severity(rows):
+        (self_art, self_check), (peer, peer_check) = _classify_sides(t, check, rel_path)
+        lines.append(
+            f"  <tether id={_xml_quoteattr(t.id)} "
+            f"aggregate={_xml_quoteattr(check.aggregate.value)}>"
+        )
+        lines.append(
+            f"    <self path={_xml_quoteattr(self_art.path)} "
+            f"state={_xml_quoteattr(self_check.state.value)} />"
+        )
+        lines.append(
+            f"    <peer path={_xml_quoteattr(peer.path)} "
+            f"state={_xml_quoteattr(peer_check.state.value)} />"
+        )
+        lines.append(f"    <description>{_xml_escape(t.description)}</description>")
+        lines.append("  </tether>")
+    if errors:
+        lines.append("  <errors>")
+        for path, msg in errors:
+            try:
+                rel = path.relative_to(project_root).as_posix()
+            except ValueError:
+                rel = str(path)
+            lines.append(
+                f"    <error path={_xml_quoteattr(rel)}>{_xml_escape(msg)}</error>"
+            )
+        lines.append("  </errors>")
+    lines.append("</tether-context>")
+    return "\n".join(lines) + "\n"

@@ -17,7 +17,7 @@ DENY_PATTERNS: list[str] = [
     "NotebookEdit(.tether/**)",
 ]
 
-ALLOW_SUBCOMMANDS: list[str] = ["status", "refresh", "update", "add", "mv"]
+ALLOW_SUBCOMMANDS: list[str] = ["status", "refresh", "update", "add", "mv", "refs"]
 
 ALLOW_INVOCATIONS: list[str] = [
     "tether",
@@ -84,6 +84,19 @@ def build_stop_hook(tether_cmd: str) -> dict[str, Any]:
             {
                 "type": "command",
                 "command": f"{tether_cmd} hook claude-code stop",
+                "timeout": 10,
+            }
+        ],
+    }
+
+
+def build_pre_tool_use_hook(tether_cmd: str) -> dict[str, Any]:
+    return {
+        "matcher": "Read",
+        "hooks": [
+            {
+                "type": "command",
+                "command": f"{tether_cmd} hook claude-code pre-tool-use",
                 "timeout": 10,
             }
         ],
@@ -170,9 +183,14 @@ def merge_local_settings(current: dict[str, Any], tether_cmd: str) -> MergeResul
 
     session_start = build_session_start_hook(tether_cmd)
     stop = build_stop_hook(tether_cmd)
+    pre_tool_use = build_pre_tool_use_hook(tether_cmd)
 
     hooks = dict(out.get("hooks", {}))
-    for key, hook_entry in (("SessionStart", session_start), ("Stop", stop)):
+    for key, hook_entry in (
+        ("SessionStart", session_start),
+        ("Stop", stop),
+        ("PreToolUse", pre_tool_use),
+    ):
         merged, removed = _replace_owned(
             list(hooks.get(key, [])), _is_tether_owned_hook, [hook_entry]
         )
