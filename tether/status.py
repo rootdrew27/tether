@@ -12,7 +12,6 @@ from .git import (
     cat_blob,
     find_paths_for_blob,
     hash_object,
-    hash_object_write,
     run_git,
 )
 from .model import Tether
@@ -106,7 +105,7 @@ def artifact_diff(artifact_path: str, fingerprint: str, project_root: Path) -> s
         return f"[file not present: {artifact_path}]"
     if not blob_exists(fingerprint, project_root):
         return f"[fingerprinted bytes for {fingerprint} unavailable (likely git-gc'd)]"
-    current_oid = hash_object_write(full, project_root)
+    current_oid = hash_object(full, project_root)
     if current_oid == fingerprint:
         return "[no textual diff — encoding-level changes only]"
 
