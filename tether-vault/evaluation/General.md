@@ -3,3 +3,5 @@ See [Demystifying evals for AI agents](https://www.anthropic.com/engineering/dem
 
 ## Useful tools
 - [Harbor](https://www.harborframework.com/docs/getting-started) 
+- [Margin Evals](https://marginlab.ai/#margin-evals)
+- 
