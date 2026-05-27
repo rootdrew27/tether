@@ -218,7 +218,7 @@ __marimo__/
 .streamlit/secrets.toml
 
 # Tether local playground (hand-experimentation, not committed)
-playground/
+playground*/
 
 # Claude Code per-user settings (allowlist, etc.) — personal state, not project state
 .claude/settings.local.json

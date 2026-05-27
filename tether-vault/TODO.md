@@ -17,7 +17,7 @@ status: active
 	-  What are the failure cases? Is a watcher needed for MVP?
 	- Review Case Study 01
 - [ ] Enhanced testing framework for Claude Code integration (resume via `claude --resume testing-framework-enhancement`)
-	- Example scenarios like the one described in Case 01 should be simulated.x   
+	- Example scenarios like the one described in Case 01 should be simulated.   
 	-  Do hooks fire? Does Claude respond appropriately given certain states? Are tethers maintained?
 	- Consider **explicit** vs **implicit** metrics 
 - [ ] Setup CI/CD
@@ -25,8 +25,8 @@ status: active
 	- [ ] Create Claude Skill to create tethers in a new repository
 - [ ] Convert GitHub to public and create package
 ## Dev Tools
-- [ ] Simple Claude Skill for commits (should be callable by claude or user)
-- [ ] Create a precommit hook for formatting, linting, and type checking (and/or include these commands in the claude skill for committing)
+- [x] Simple Claude Skill for commits (should be callable by claude or user)
+- [x] Create a precommit hook for formatting, linting, and type checking (and/or include these commands in the claude skill for committing)
 ## Future
 - [ ] Implement Watcher
 	- [ ] Have the watcher occasionally check the CLAUDE.md, settings.json, settings.local.json, etc. for misconfigurations.

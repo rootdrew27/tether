@@ -60,21 +60,21 @@ The aggregate state is derived from per-artifact states: both HEALTHY → HEALTH
 
 ## Git integration
 
-| Term                       | Definition                                                                                                       | Aliases to avoid              |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------- | ----------------------------- |
-| **Git blob OID**           | A SHA hash naming a git blob object; the content-addressed identity of file bytes in `.git/objects/`.            | Git hash, object ID            |
-| **Fingerprint write**      | The operation that writes artifact bytes into git's object store via `git hash-object -w` so the OID is retrievable. | Anchor write, object pin      |
-| **Audit trail**            | The lifecycle of a tether visible via `git log .tether/tethers/<id>.json`: when created, fingerprinted, refreshed. | History, log                  |
-| **Rename detection**       | Identifying that a file has been moved to a new path. Tether queries `git log --all --find-object=<fingerprint>` and surfaces matching paths as rename candidates on a BROKEN artifact. | Path detection                |
+| Term                  | Definition                                                                                                                                                                              | Aliases to avoid         |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| **Git blob OID**      | A SHA hash naming a git blob object; the content-addressed identity of file bytes in `.git/objects/`.                                                                                   | Git hash, object ID      |
+| **Fingerprint write** | The operation that writes artifact bytes into git's object store via `git hash-object -w` so the OID is retrievable.                                                                    | Anchor write, object pin |
+| **Audit trail**       | The lifecycle of a tether visible via `git log .tether/tethers/<id>.json`: when created, fingerprinted, refreshed.                                                                      | History, log             |
+| **Rename detection**  | Identifying that a file has been moved to a new path. Tether queries `git log --all --find-object=<fingerprint>` and surfaces matching paths as rename candidates on a BROKEN artifact. | Path detection           |
 
 ## Project boundaries
 
-| Term                  | Definition                                                                                                  | Aliases to avoid          |
-| --------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------- |
-| **Content axis**      | What bytes exist in the project and how they evolve. Git's domain.                                            | Storage layer             |
-| **Relationship axis** | Which pieces of content are intentionally related and whether they are still aligned. Tether's domain.         | Link layer                |
-| **Project root**      | The directory containing a `.tether/` folder; tether commands walk upward from cwd to find it.                 | Workspace, repo root      |
-| **State directory**   | The `.tether/` directory holding tether records and (when installed) the Claude Code agent fragment.           | Tether dir                |
+| Term                  | Definition                                                                                             | Aliases to avoid     |
+| --------------------- | ------------------------------------------------------------------------------------------------------ | -------------------- |
+| **Content axis**      | What bytes exist in the project and how they evolve. Git's domain.                                     | Storage layer        |
+| **Relationship axis** | Which pieces of content are intentionally related and whether they are still aligned. Tether's domain. | Link layer           |
+| **Project root**      | The directory containing a `.tether/` folder; tether commands walk upward from cwd to find it.         | Workspace, repo root |
+| **State directory**   | The `.tether/` directory holding tether records and (when installed) the Claude Code agent fragment.   | Tether dir           |
 
 ## Relationships
 
