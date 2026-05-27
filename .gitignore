@@ -222,3 +222,6 @@ playground*/
 
 # Claude Code per-user settings (allowlist, etc.) — personal state, not project state
 .claude/settings.local.json
+
+# Obsidian
+**/.obsidian
