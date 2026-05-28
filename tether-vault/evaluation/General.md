@@ -2,6 +2,6 @@
 See [Demystifying evals for AI agents](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents) for more information and terminology definitions.
 
 ## Useful tools
-- [Harbor](https://www.harborframework.com/docs/getting-started) 
+- [Harbor](https://www.harborframework.com/docs/getting-started) or [Pier](https://github.com/datacurve-ai/pier)
 - [Margin Evals](https://marginlab.ai/#margin-evals)
-- 
+- [DeepSWE](https://deepswe.datacurve.ai/)
