@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import shutil
+import textwrap
 from pathlib import Path
 from xml.sax.saxutils import escape as _xml_escape
 from xml.sax.saxutils import quoteattr as _xml_quoteattr
@@ -63,6 +65,72 @@ def errors_section(errors: list[tuple[Path, str]], root: Path) -> list[str]:
             rel = str(path)
         lines.append(f"- `{rel}`: {msg}")
     return lines
+
+
+def _wrap_description(description: str, width: int) -> list[str]:
+    """Wrap a description to ``width`` with a 2-space hanging indent.
+
+    The author's own line breaks are preserved (each segment is wrapped
+    independently) so paragraph structure survives.
+    """
+    lines: list[str] = []
+    for segment in description.splitlines():
+        if not segment.strip():
+            lines.append("")
+            continue
+        lines.extend(
+            textwrap.wrap(
+                segment,
+                width=width,
+                initial_indent="  ",
+                subsequent_indent="  ",
+            )
+        )
+    return lines
+
+
+def _show_block(t: Tether, width: int) -> str:
+    lines = [t.id]
+    lines.extend(
+        textwrap.wrap(
+            f"{t.a.path} — {t.b.path}",
+            width=width,
+            initial_indent="  ",
+            subsequent_indent="  ",
+            break_on_hyphens=False,
+            break_long_words=False,
+        )
+    )
+    lines.extend(_wrap_description(t.description, width))
+    return "\n".join(lines)
+
+
+def show_text(
+    tethers: list[Tether],
+    errors: list[tuple[Path, str]],
+    root: Path,
+    *,
+    width: int | None = None,
+) -> str:
+    """Render every tether as a structural-only catalog block.
+
+    No drift state and no git access — this lists what is on disk so the
+    relationships and their descriptions can be read at a glance. State and
+    diffs are `tether status`'s job.
+    """
+    if not tethers and not errors:
+        return "No tethers."
+    if width is None:
+        width = shutil.get_terminal_size().columns
+    width = max(width, 20)
+
+    parts: list[str] = []
+    if tethers:
+        parts.append("\n\n".join(_show_block(t, width) for t in tethers))
+    error_lines = errors_section(errors, root)
+    if error_lines:
+        parts.append("\n".join(error_lines).lstrip("\n"))
+    return "\n\n".join(parts)
 
 
 def _classify_sides(

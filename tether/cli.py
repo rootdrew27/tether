@@ -30,6 +30,7 @@ from .render import (
     errors_section,
     item_lines,
     refs_xml,
+    show_text,
     summary_line,
 )
 from .status import (
@@ -534,6 +535,19 @@ def _build_refs_report(
         tethers=[_build_tether_status(t, ck, root, False) for t, ck in rows],
         errors=relativize_errors(errors, root),
     )
+
+
+@main.command()
+@handle_errors
+def show() -> None:
+    """List every tether with its description."""
+    root = _root()
+    result = load_all(root)
+    text = show_text(result.tethers, result.errors, root)
+    if sys.stdout.isatty():
+        click.echo_via_pager(text + "\n")
+    else:
+        click.echo(text)
 
 
 @main.group()

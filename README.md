@@ -56,6 +56,7 @@ uv run tether refresh <id>   # re-fingerprint both artifacts together
 | `tether init claude-code` | Wire up Claude Code hooks and a memory fragment. |
 | `tether add A B --description "..."` | Create a tether. `--description` is required. |
 | `tether status [ID] [--json] [--diff/--no-diff]` | Report tether state; per-artifact for one ID, summary for all. |
+| `tether show` | List every tether with its description, regardless of state. Reads records from disk; no drift check. |
 | `tether refresh ID` | Re-fingerprint both artifacts; asserts they are now aligned. |
 | `tether update ID [--a-path ...] [--b-path ...] [--description ...]` | Modify a tether without touching fingerprints. |
 | `tether mv OLD_PATH NEW_PATH` | Rewrite all tether artifacts pointing at `OLD_PATH` to `NEW_PATH`. |

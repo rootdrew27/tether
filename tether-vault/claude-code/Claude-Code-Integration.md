@@ -188,7 +188,7 @@ Three scoping decisions:
 
 ## Allow-list for tether CLI commands
 
-Declarative `permissions.allow` entries in `.claude/settings.json` pre-approve the tether subcommands the agent will routinely invoke while clearing a Stop block, so the user is not prompted on every refresh:
+Declarative `permissions.allow` entries in `.claude/settings.json` pre-approve the tether subcommands the agent will routinely invoke — read-only inspection (`status`, `refs`, `show`) and the non-destructive mutations used to clear a Stop block (`refresh`, `update`, `add`, `mv`) — so the user is not prompted on every refresh:
 
 ```json
 {
@@ -200,13 +200,13 @@ Declarative `permissions.allow` entries in `.claude/settings.json` pre-approve t
       "Bash(conda run -n * tether status:*)",
       "Bash(.venv/bin/tether status:*)",
       "Bash(${CLAUDE_PROJECT_DIR}/.venv/bin/tether status:*)",
-      "...four more invocation forms × refresh/update/add/mv..."
+      "...the same six invocation forms for refresh/update/add/mv/refs/show..."
     ]
   }
 }
 ```
 
-**Enumerated-prefix rationale.** Six invocation forms are pre-approved per subcommand, giving thirty total patterns:
+**Enumerated-prefix rationale.** Six invocation forms are pre-approved per subcommand; across the seven subcommands (`status`, `refresh`, `update`, `add`, `mv`, `refs`, `show`) that is forty-two total patterns:
 
 1. `tether` — bare, when `tether` is on PATH (pipx, system install, active venv).
 2. `uv run tether` — uv-managed projects.
@@ -351,7 +351,7 @@ Wrote .tether/tether.md
 Created CLAUDE.md with `@.tether/tether.md`
 Updated .claude/settings.json:
   - added 4 deny rule(s)
-  - added 30 allow rule(s)
+  - added 42 allow rule(s)
 Updated .claude/settings.local.json:
   - added SessionStart hook
   - added Stop hook
@@ -368,7 +368,7 @@ Wrote .tether/tether.md
 CLAUDE.md already imports `@.tether/tether.md`
 Updated .claude/settings.json:
   - added 4 deny rule(s)
-  - added 30 allow rule(s)
+  - added 42 allow rule(s)
 Updated .claude/settings.local.json:
   - added SessionStart hook
   - added Stop hook
@@ -379,7 +379,7 @@ Re-runs emit the same change lines because merge is signature-matched and replac
 
 ## Output formats
 
-Tether's agent-facing CLI output is **markdown by default**; JSON is opt-in behind `--json` for programmatic consumers. The two surfaces, by audience:
+Tether's agent-facing CLI output is **markdown by default**; JSON is opt-in behind `--json` for programmatic consumers. (`tether show` is the exception — a plain-text, paged catalog for browsing the whole graph; it is agent-callable but stands outside the markdown/JSON contract.) The two surfaces, by audience:
 
 | Surface | Default format | When |
 |---|---|---|
