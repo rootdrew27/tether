@@ -1,13 +1,4 @@
----
-title: Logging
-tags:
-  - design
-  - observability
-type: design
-status: active
-claude session: logging-system
----
-Tether's logging makes the silent surfaces of the system legible — the work that happens during hook fires, which git history alone cannot see. CLI mutations are not in scope: every state-changing CLI command updates a tether record, and the audit trail is `git log .tether/tethers/<id>.json` (see [[DICTION#Git integration|Git Integration]]).
+Tether's logging makes the silent surfaces of the system legible — the work that happens during hook fires, which git history alone cannot see. CLI mutations are not in scope: every state-changing CLI command updates a tether record, and the audit trail is `git log .tether/tethers/<id>.json` (see [Git Integration](../../tether-vault/DICTION.md#git-integration)).
 
 ## Hook trace
 

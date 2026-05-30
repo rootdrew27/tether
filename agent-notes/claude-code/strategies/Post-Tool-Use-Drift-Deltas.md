@@ -1,14 +1,3 @@
----
-title: "Strategy: PostToolUse drift deltas"
-tags:
-  - integration
-  - claude-code
-  - strategy
-  - hooks
-type: integration
-status: deferred
----
-
 **Strategy.** Wire a PostToolUse hook that fires on every Claude Code tool call. After each invocation, recompute tether status, diff against the last-cached status snapshot on disk, and emit only the per-tether aggregate-state *transitions* since the last check. Pre-existing drift the agent didn't touch stays silent. Drift the agent just introduced surfaces immediately, at the decision point closest to its cause.
 
 By delivering drift signal at the moment of cause rather than at turn boundaries, the agent can incorporate it as ongoing context instead of as a turn-ending obstacle. The goal is better agent decisions (informed by live state) and fewer wasted actions (defensive status checks, post-refresh confirmations, unilateral resolutions of judgment calls).
@@ -124,7 +113,7 @@ Dropping is cleaner; keeping is a low-cost user-side safety net. Defer the choic
 2. **Diff granularity.** Aggregate transitions only, or also per-artifact transitions? Start with aggregate; revisit if practice shows it's too coarse.
 3. **Stop disposition.** Drop entirely vs. keep as non-blocking terminal output. Defer until PostToolUse is observed.
 4. **Cache hygiene.** Cleared when? On `tether init`? On explicit `tether reset-cache`? Stale-entry pruning when tethers are deleted via `tether rm`?
-5. **Empirical validation.** Will the agent actually use transition messages well, or will it default to running `tether status` anyway? The test-project / agent-task-battery harness in [[Claude-Code-Integration-Open]] is what would answer this — this strategy and that harness ship in roughly the same window.
+5. **Empirical validation.** Will the agent actually use transition messages well, or will it default to running `tether status` anyway? The test-project / agent-task-battery harness in [Claude-Code-Integration-Open](../Claude-Code-Integration-Open.md) is what would answer this — this strategy and that harness ship in roughly the same window.
 
 ## Status
 
@@ -136,5 +125,5 @@ Dropping is cleaner; keeping is a low-cost user-side safety net. Defer the choic
 
 ## Related
 
-- [[Claude-Code-Integration]] — current integration spec (SessionStart, Stop, fragment).
-- [[Claude-Code-Integration-Open]] — open items, including the session-stateful Stop refinement this strategy generalizes and the empirical-validation harness this strategy depends on.
+- [Claude-Code-Integration](../Claude-Code-Integration.md) — current integration spec (SessionStart, Stop, fragment).
+- [Claude-Code-Integration-Open](../Claude-Code-Integration-Open.md) — open items, including the session-stateful Stop refinement this strategy generalizes and the empirical-validation harness this strategy depends on.

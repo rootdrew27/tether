@@ -1,12 +1,3 @@
----
-title: Drift cases
-tags:
-  - design
-  - drift
-type: design
-status: active
----
-
 This document enumerates the realistic ways content can move or change and how tether reports them. Tether does not implement its own similarity search, content-hash scan, or move-block detection — git's existing tools are the substrate, and tether is a thin client. The diff-first principle does the rest of the work.
 
 ## Region content changed in place

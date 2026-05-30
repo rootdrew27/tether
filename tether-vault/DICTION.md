@@ -8,7 +8,7 @@ type: meta
 status: active
 ---
 
-The canonical vocabulary for the **MVP** of tether. Terms below match what the code actually does today. The forward-state model (sub-file locators, region hashes, reconcile) is described in [[DICTION-Future]] and is not part of MVP.
+The canonical vocabulary for the **MVP** of tether. Terms below match what the code actually does today.
 
 ## Core concepts
 

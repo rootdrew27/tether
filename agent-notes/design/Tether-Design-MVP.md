@@ -1,12 +1,3 @@
----
-title: Tether design (MVP)
-tags:
-  - design
-  - mvp
-type: design
-status: active
----
-
 This document describes what tether is, the architectural decision to build it as a layer on top of git, and how that shape supports its primary use cases. It is conceptual; specific JSON schemas, CLI surfaces, and implementation details are intentionally omitted and live in companion documents and the source.
 
 ---
@@ -62,7 +53,7 @@ A tether is conceptually a small record:
 - **A required description** — free-form prose, authored by a human or a model, that elaborates *why* the relationship exists (for example: "this function implements step 3 of the algorithm in §2 of the spec; the loop bounds derive from the proof in §2.1"). Descriptions can be as terse or as verbose as the relationship warrants. The data model carries no relationship type and no directionality flag; the description is the sole carrier of the rich, project-specific semantics that make a tether legible to a future reader or agent — and lets an LLM author a tether whose meaning a downstream model can recover without re-deriving it from the artifacts. Required because a tether without a description records the *existence* of a relationship but not its *meaning*; that asymmetry is a trap, not a feature.
 - **Content fingerprints** — each artifact carries a fingerprint, recorded at tether creation and re-recorded on refresh. With the MVP's `WholeFile`-only locator, a fingerprint is a single git blob OID: tether writes the file's bytes to git's object store via `git hash-object -w`, and the OID is stored in the tether record. This single value powers drift detection (compare the file's current OID to the stored one), supports inspection (`git cat-file -p <oid>` retrieves the fingerprinted bytes for diffing), and lets git's rename detection find renamed files (`git log --find-object=<oid>`). When sub-file locators ship, the fingerprint extends to a `{file_blob_oid, region_hash}` pair with no breaking schema change. Fingerprints are mandatory: every tether on disk carries one for each end, and `tether add` requires both files to exist on disk.
 
-The shape is locator-aware from the start. **Tether MVP ships only the `WholeFile` locator** — every tether endpoint is the whole file at its recorded path. Additional locator types — `LineRange` (contiguous start–end line interval), markdown section paths, AST queries via tree-sitter, explicit region markers, language-server-driven symbol references — are additive: they extend the locator vocabulary without changing the rest of the record. Adding a new locator type is a strictly local extension. LineRange and sub-file locators are tracked in [[Future-Work]].
+The shape is locator-aware from the start. **Tether MVP ships only the `WholeFile` locator** — every tether endpoint is the whole file at its recorded path. Additional locator types — `LineRange` (contiguous start–end line interval), markdown section paths, AST queries via tree-sitter, explicit region markers, language-server-driven symbol references — are additive: they extend the locator vocabulary without changing the rest of the record. Adding a new locator type is a strictly local extension. LineRange and sub-file locators are tracked in [Future-Work](Future-Work.md).
 
 Tether records are also binary: each record names exactly two artifacts. Higher-arity relationships (one-to-many, many-to-many) are expressed as multiple binary tethers sharing an endpoint — this keeps the state machine binary and per-tether drift independent, which is more informative than a single aggregate "group drift" state.
 
@@ -143,11 +134,11 @@ This is the only on-disk shape MVP writes. Two siblings are reserved for later, 
 - `.tether/config.json` — project-level configuration (e.g., normalizer tabstop override). MVP uses fixed defaults; this file ships alongside per-project normalizer config in v1.5.
 - `.tether/.gitignore` — gitignored derived state. MVP has none; this file ships alongside `tether reconcile`'s `snapshot.json`.
 
-Both are tracked in [[Future-Work]].
+Both are tracked in [Future-Work](Future-Work.md).
 
 This shape is deliberately unremarkable. Tether files are diffable, mergeable, and reviewable like any other text. Everything below falls out of putting them in git: branching and merging without interference (each tether has a globally unique UUIDv7, so parallel branches usually edit disjoint files); pull-request review on the same surface the team already uses for code; time travel via `git checkout`; provenance via `git blame` and `git log`; distribution alongside content with no separate sync step. The relationship layer rides every operation the team already performs on the content layer.
 
-See [[Git-Integration]] for the per-mechanism elaboration.
+See [Git-Integration](Git-Integration.md) for the per-mechanism elaboration.
 
 ### Merge conflicts
 
@@ -159,7 +150,7 @@ Tether records are diffable text; git's text merge handles most conflicts cleanl
 - **One refreshes, one deletes**: standard git modify-delete conflict.
 - **Both delete the same tether**: clean (no conflict).
 
-If a botched manual resolution leaves invalid JSON, tether's read-side validation catches it on next access. The MVP ships no custom merge driver — git's text merge is the contract. A tether-aware merge driver and an append-only-record model that sidesteps record-level conflicts entirely are tracked in [[Future-Work]].
+If a botched manual resolution leaves invalid JSON, tether's read-side validation catches it on next access. The MVP ships no custom merge driver — git's text merge is the contract. A tether-aware merge driver and an append-only-record model that sidesteps record-level conflicts entirely are tracked in [Future-Work](Future-Work.md).
 
 ---
 
@@ -214,7 +205,7 @@ Two boundaries make the integration safe in practice.
 
 **Refresh integrity is preserved by audit trail.** Every refresh writes new fingerprint values into the tether record, committed alongside the content changes it ratifies. `git log .tether/tethers/<id>.json` shows the lifecycle: when it was created, what it fingerprinted, when it was refreshed and against what content. A reviewer scanning a PR can correlate "fingerprint changed in this commit" with "files fingerprinted to that OID also changed in this commit" — and challenge any refresh that claims alignment without the corresponding content change.
 
-The Claude Code integration spec — hook commands, output schemas, install flow, failure contract — lives in [[Claude-Code-Integration]]. Open items (verifications, deferred features, decisions to revisit) are tracked in [[Claude-Code-Integration-Open]].
+The Claude Code integration spec — hook commands, output schemas, install flow, failure contract — lives in [Claude-Code-Integration](../claude-code/Claude-Code-Integration.md). Open items (verifications, deferred features, decisions to revisit) are tracked in [Claude-Code-Integration-Open](../claude-code/Claude-Code-Integration-Open.md).
 
 ---
 
@@ -226,7 +217,7 @@ Tether resolves this with a **comparison-time normalizer**. Fingerprints stay ra
 
 Two consequences worth naming. First, **normalizer changes are forward-compatible**: when a future version adds an indent-unit detector or a per-language equivalence rule, every existing tether immediately benefits without any fingerprint migration. Second, **the audit trail stays honest**: `git log` on the tether record shows the actual fingerprinted OIDs, not normalized hashes; what the asserter committed to is exactly the bytes that were on disk at refresh time.
 
-The full pipeline, configuration, and v1's deliberate non-goals (indent-width changes, internal whitespace) are specified in [[Normalization]].
+The full pipeline, configuration, and v1's deliberate non-goals (indent-width changes, internal whitespace) are specified in [Normalization](Normalization.md).
 
 ---
 
@@ -252,7 +243,7 @@ The v1 normalizer catches encoding-level changes safely without parsing. A v1.5 
 
 These all sit on the same parser substrate as AST-aware locators and can be staged incrementally. None require changes to the on-disk fingerprint format: every existing tether picks them up the moment they ship.
 
-A broader set of deferred work — `LineRange` and other locator extensions, ref-pinning for fingerprint bytes, the `tether watch` and `tether reconcile` CLI commands, a custom git merge driver, and the event subscription model — is collected in [[Future-Work]].
+A broader set of deferred work — `LineRange` and other locator extensions, ref-pinning for fingerprint bytes, the `tether watch` and `tether reconcile` CLI commands, a custom git merge driver, and the event subscription model — is collected in [Future-Work](Future-Work.md).
 
 ---
 

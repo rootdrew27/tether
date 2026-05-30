@@ -1,13 +1,4 @@
----
-title: Drift normalization
-tags:
-  - design
-  - normalization
-type: design
-status: active
----
-
-This document specifies the comparison-time normalizer that tether applies when raw region hashes disagree. The high-level rationale lives in [[Tether-Design-MVP]] under §"Equivalence and drift normalization"; this doc covers the algorithm, the pipeline, configuration, and v1's deliberate non-goals.
+This document specifies the comparison-time normalizer that tether applies when raw region hashes disagree. The high-level rationale lives in [Tether-Design-MVP](Tether-Design-MVP.md) under §"Equivalence and drift normalization"; this doc covers the algorithm, the pipeline, configuration, and v1's deliberate non-goals.
 
 ## Flow
 
@@ -29,7 +20,7 @@ Applied identically to both sides of the comparison:
 3. **Line endings.** CRLF and lone CR fold to LF.
 4. **Trailing whitespace.** Stripped per line.
 5. **EOF newline.** Trailing blank lines are collapsed; exactly one terminating LF, unless the region was extracted mid-line.
-6. **Leading-tab expansion.** Each leading `\t` becomes N spaces; tabstop is fixed at 8 in MVP (per-project and `.editorconfig` overrides are tracked in [[Future-Work]]). Internal whitespace is left untouched.
+6. **Leading-tab expansion.** Each leading `\t` becomes N spaces; tabstop is fixed at 8 in MVP (per-project and `.editorconfig` overrides are tracked in [Future-Work](Future-Work.md)). Internal whitespace is left untouched.
 
 The pipeline is **per-region and locator-agnostic**: it is applied to whatever bytes the locator extracted, regardless of how the locator identified them. A `WholeFile` artifact normalizes the whole file; a `LineRange` artifact normalizes the extracted line range; a future AST-aware locator will normalize the bytes it identifies. Adding a new locator type does not require teaching the normalizer anything.
 
@@ -40,11 +31,11 @@ The pipeline is conservative. It catches the encoding-level changes that produce
 - **Indent-width changes** (2-space ↔ 4-space). Catching these requires detecting the file's indent unit, which is a language-aware heuristic. v1 leaves them as DRIFTED.
 - **Internal whitespace** (`a+b` ↔ `a + b`). Collapsing internal whitespace silently breaks string-literal semantics (`"hello  world"` is not `"hello world"`); doing this safely requires lexing the file. v1 leaves them as DRIFTED.
 
-Both belong on the language-aware tier; see *Looking forward* in [[Tether-Design-MVP]].
+Both belong on the language-aware tier; see *Looking forward* in [Tether-Design-MVP](Tether-Design-MVP.md).
 
 ## Configuration
 
-MVP uses a fixed tabstop of 8 (compiled-in default). Per-project and per-file configurability are deferred to v1.5; see [[Future-Work]] §"Normalizer extensions" for the planned surface:
+MVP uses a fixed tabstop of 8 (compiled-in default). Per-project and per-file configurability are deferred to v1.5; see [Future-Work](Future-Work.md) §"Normalizer extensions" for the planned surface:
 
 - `normalize.tabstop` (integer, default 8) in `.tether/config.json` — width to expand each leading `\t` to.
 - `.editorconfig` (when present at the file's path) — honored for `tab_width` and `indent_style` / `indent_size`. Per-file overrides take precedence over the project-level tabstop.

@@ -1,13 +1,4 @@
----
-title: Future work
-tags:
-  - design
-  - deferred
-type: design
-status: active
----
-
-Deferred design and CLI work explicitly scoped out of MVP but discussed and shaped during design. Each item has rationale for the deferral and a rough trigger for picking it up. Distinct from [[Claude-Code-Integration-Open]], which tracks items specific to the Claude Code integration.
+Deferred design and CLI work explicitly scoped out of MVP but discussed and shaped during design. Each item has rationale for the deferral and a rough trigger for picking it up. Distinct from [Claude-Code-Integration-Open](../claude-code/Claude-Code-Integration-Open.md), which tracks items specific to the Claude Code integration.
 
 ## Locator extensions
 
@@ -21,11 +12,11 @@ Tether between a region of one file and a region of another (e.g., lines 14-16 o
 - **Resolution semantics under edits.** Three viable models — fixed line numbers (brittle), content-tracking re-locate (heuristic, needs ambiguous-match handling), or hybrid with anchor-context windows.
 - **State machine extension.** A "same content, different lines" condition probably wants its own pseudo-state (e.g., `MOVED`) to distinguish from content drift.
 
-When LineRange lands, the `.tether/tether.md` fragment intro updates to introduce sub-file relationships and the examples gain a line-range case. That fragment update is tracked separately in [[Claude-Code-Integration-Open]].
+When LineRange lands, the `.tether/tether.md` fragment intro updates to introduce sub-file relationships and the examples gain a line-range case. That fragment update is tracked separately in [Claude-Code-Integration-Open](../claude-code/Claude-Code-Integration-Open.md).
 
 ### Language-aware locators
 
-Markdown section paths, AST queries via tree-sitter, explicit region markers, language-server-driven symbol references. Each is a local addition to the locator vocabulary; the data model already supports them. The substantive discussion lives in [[Tether-Design-MVP]] §"Looking forward: language-aware extensions" — this section is the cross-reference.
+Markdown section paths, AST queries via tree-sitter, explicit region markers, language-server-driven symbol references. Each is a local addition to the locator vocabulary; the data model already supports them. The substantive discussion lives in [Tether-Design-MVP](Tether-Design-MVP.md) §"Looking forward: language-aware extensions" — this section is the cross-reference.
 
 ## Project-wide files
 
@@ -93,7 +84,7 @@ No consumer exists yet — the Claude Code integration uses one-shot hook subcom
 
 - Range-aware matching: `tether refs src/auth.py:80-120` should match tethers whose endpoint covers that range.
 - Per-tether locator detail in the markdown / JSON / XML output.
-- Updates to the agent-facing XML schema injected on `PreToolUse` Read (see [[Claude-Code-Integration]]) so the `<self>` element carries the locator the queried file is named by.
+- Updates to the agent-facing XML schema injected on `PreToolUse` Read (see [Claude-Code-Integration](../claude-code/Claude-Code-Integration.md)) so the `<self>` element carries the locator the queried file is named by.
 
 ## Background automation
 
@@ -159,7 +150,7 @@ Journal first (substrate). Then refined BROKEN diagnostics (cheap, read-only). T
 
 The Claude Code integration is one harness. Cursor, Aider, Codex, and others have their own memory/hook/permission conventions. Each gets its own per-harness fragment (`.cursor/tether.md`, `.aider/tether.md`, etc.) and a corresponding `tether init cursor` / `tether init aider` subcommand. Same pattern as `tether init claude-code`, different file paths and vocabulary.
 
-Deferred — MVP is Claude-Code-only. The "Note on scope" in [[Claude-Code-Integration]] acknowledges this is the first harness, not the only one.
+Deferred — MVP is Claude-Code-only. The "Note on scope" in [Claude-Code-Integration](../claude-code/Claude-Code-Integration.md) acknowledges this is the first harness, not the only one.
 
 ## Normalizer extensions
 
@@ -167,7 +158,7 @@ The MVP normalizer pipeline is fixed in code with a hardcoded tabstop of 8. Thre
 
 ### Tabstop configuration (`.tether/config.json` + `.editorconfig`)
 
-The MVP normalizer is locked to `tabstop=8`. Projects using a non-default tab width (2, 4) see false DRIFTED on tab-vs-space reformats. The planned surface, specified in [[Normalization]] §"Configuration":
+The MVP normalizer is locked to `tabstop=8`. Projects using a non-default tab width (2, 4) see false DRIFTED on tab-vs-space reformats. The planned surface, specified in [Normalization](Normalization.md) §"Configuration":
 
 - Read `normalize.tabstop` from `.tether/config.json` (project-level override).
 - Read `.editorconfig` per file for `tab_width` and `indent_style`/`indent_size` (per-file override).
@@ -180,4 +171,4 @@ Per-project overrides in `.tether/config.json` for which passes run (e.g., "disa
 
 ### Language-aware passes (v1.5)
 
-Indent-unit detection, lexical-equivalent normalization, per-language quote/semicolon/import-order canonicalization, AST-equivalent normalization, comment-aware modes. The substantive discussion is in [[Tether-Design-MVP]] §"Looking forward: language-aware extensions"; this section is the cross-reference.
+Indent-unit detection, lexical-equivalent normalization, per-language quote/semicolon/import-order canonicalization, AST-equivalent normalization, comment-aware modes. The substantive discussion is in [Tether-Design-MVP](Tether-Design-MVP.md) §"Looking forward: language-aware extensions"; this section is the cross-reference.

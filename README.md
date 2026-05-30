@@ -9,9 +9,9 @@ under `.tether/tethers/`, so the graph is reviewable in pull requests and
 travels with the repo.
 
 > Status: WIP, no released users. The CLI and on-disk JSON shape may change.
-> Design intent and rationale live in [`tether-vault/`](tether-vault/) (an
-> Obsidian vault); the canonical design doc is
-> [`Tether-Design-MVP.md`](tether-vault/design/Tether-Design-MVP.md).
+> Design intent and rationale live in [`agent-notes/`](agent-notes/); the canonical
+> design doc is [`Tether-Design-MVP.md`](agent-notes/design/Tether-Design-MVP.md). The
+> [`tether-vault/`](tether-vault/) Obsidian vault holds the glossary and case studies.
 
 ## Concepts
 
@@ -23,7 +23,7 @@ travels with the repo.
 | **Drift** | The condition where current content no longer matches the fingerprint. |
 | **HEALTHY / DRIFTED / BROKEN** | Per-artifact state. A tether is **WEAKENED** when one side is HEALTHY and the other DRIFTED. |
 
-Full glossary: [`DICTION.md`](tether-vault/DICTION.md) (MVP vocabulary, matches current code). Forward-state model lives in [`DICTION-Future.md`](tether-vault/design/future/DICTION-Future.md).
+Full glossary: [`DICTION.md`](tether-vault/DICTION.md) (MVP vocabulary, matches current code). Forward-state model lives in [`DICTION-Future.md`](agent-notes/design/future/DICTION-Future.md).
 
 ## Install
 
@@ -82,7 +82,7 @@ language-agnostic normalizer (line endings, BOM, trailing whitespace, EOF
 newlines, leading-tab expansion). If the normalized hashes match, the artifact
 is still HEALTHY and `tether status` notes "encoding-only drift rescued" —
 the drift signal is preserved as a diff but the state is rescued. See
-[`Normalization.md`](tether-vault/design/Normalization.md) for the
+[`Normalization.md`](agent-notes/design/Normalization.md) for the
 pipeline and its deliberate non-goals.
 
 ## Storage layout
@@ -116,7 +116,7 @@ The hooks shell out to `tether hook claude-code session-start` and
 `tether hook claude-code stop`. Both read `cwd` from stdin and emit the
 relevant hook contract (markdown stdout for session-start; a JSON `stop`
 block for stop). See
-[`Claude-Code-Integration.md`](tether-vault/claude-code/Claude-Code-Integration.md).
+[`Claude-Code-Integration.md`](agent-notes/claude-code/Claude-Code-Integration.md).
 
 ## Development
 

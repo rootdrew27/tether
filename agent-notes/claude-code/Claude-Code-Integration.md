@@ -1,14 +1,4 @@
----
-title: Claude Code integration
-tags:
-  - integration
-  - claude-code
-  - hooks
-type: integration
-status: active
----
-
-This document specifies how tether integrates with Claude Code. The conceptual framing — query at action time, refresh as assertion, records mutable only through tether's commands — lives in [[Tether-Design-MVP]] under §"How tether enables coding agents." This doc covers the concrete mechanics: which hooks fire, what they output, how they install, and how failures are handled.
+This document specifies how tether integrates with Claude Code. The conceptual framing — query at action time, refresh as assertion, records mutable only through tether's commands — lives in [Tether-Design-MVP](../design/Tether-Design-MVP.md) under §"How tether enables coding agents." This doc covers the concrete mechanics: which hooks fire, what they output, how they install, and how failures are handled.
 
 ## Event matrix
 
@@ -20,7 +10,7 @@ The integration uses three Claude Code hook events:
 | `PreToolUse` (matcher `"Read"`) | When the agent reads a tethered file, inject a `<tether-context>` block describing every tether involving that file (states, peer path, description). Decision-time steering. |
 | `Stop` | Check tether status before the agent ends its turn. Block the turn (force continuation) if any tether is non-HEALTHY. |
 
-`PreToolUse` on `Edit`/`Write`/`MultiEdit` is deliberately not part of the design. Edits are frequent (8-30 per turn in typical sessions); per-edit context injection is expensive and largely redundant with the PreRead-on-Read injection that already primed the agent with the tether description before it decided to edit. Stop coverage at turn end remains the safety net for drift the agent introduced. Other PreToolUse triggers (Bash-mediated reads, prompt `@file` mentions) are tracked in [[Claude-Code-Integration-Open]].
+`PreToolUse` on `Edit`/`Write`/`MultiEdit` is deliberately not part of the design. Edits are frequent (8-30 per turn in typical sessions); per-edit context injection is expensive and largely redundant with the PreRead-on-Read injection that already primed the agent with the tether description before it decided to edit. Stop coverage at turn end remains the safety net for drift the agent introduced. Other PreToolUse triggers (Bash-mediated reads, prompt `@file` mentions) are tracked in [Claude-Code-Integration-Open](Claude-Code-Integration-Open.md).
 
 A separate, declarative `permissions.deny` rule covers `.tether/tethers/` — see §"Write-denial mechanism" below.
 
@@ -105,7 +95,7 @@ Claude Code routes `additionalContext` into the agent's context window alongside
 
 **Trigger:** every time the agent is about to end a turn.
 
-**Block condition (v1, stateless):** any tether currently non-HEALTHY (WEAKENED / DRIFTED / BROKEN) blocks turn end. Pre-existing drift triggers blocking, just as new drift does. This is deliberately stateless for v1; a session-baseline-stateful variant (block only on tethers that became non-HEALTHY during this session) is a planned refinement — see [[Claude-Code-Integration-Open]].
+**Block condition (v1, stateless):** any tether currently non-HEALTHY (WEAKENED / DRIFTED / BROKEN) blocks turn end. Pre-existing drift triggers blocking, just as new drift does. This is deliberately stateless for v1; a session-baseline-stateful variant (block only on tethers that became non-HEALTHY during this session) is a planned refinement — see [Claude-Code-Integration-Open](Claude-Code-Integration-Open.md).
 
 **Reason format:** markdown list of non-HEALTHY tethers, ordered by severity (BROKEN → DRIFTED → WEAKENED) with UUIDv7 ascending as tiebreaker. Each entry shows the tether ID (backtick-wrapped, full UUID for copy-paste), aggregate state, paths with per-side states inline, and description on a continuation line. No diffs — those are fetched on demand. No per-state action hints — those live in the persistent CLAUDE.md fragment. Sample:
 
@@ -160,7 +150,7 @@ It lives under `.tether/` rather than `.claude/` because it is tether's content,
 
 **Note on scope:** this fragment is Claude-Code-specific. Other harnesses (Cursor, Aider, Codex) will get their own per-harness fragments with appropriate vocabulary when those integrations ship.
 
-**Note on sub-file locators:** the fragment is whole-file-only — MVP ships only the `WholeFile` locator. When the CLI grows `LineRange` (and beyond) locator support, the fragment's intro and example commands update to introduce sub-file relationships. Tracked in [[Future-Work]]; the fragment update itself is tracked as a blocked item in [[Claude-Code-Integration-Open]].
+**Note on sub-file locators:** the fragment is whole-file-only — MVP ships only the `WholeFile` locator. When the CLI grows `LineRange` (and beyond) locator support, the fragment's intro and example commands update to introduce sub-file relationships. Tracked in [Future-Work](../design/Future-Work.md); the fragment update itself is tracked as a blocked item in [Claude-Code-Integration-Open](Claude-Code-Integration-Open.md).
 
 ## Write-denial mechanism
 
@@ -315,7 +305,7 @@ The `${CLAUDE_PROJECT_DIR}/.venv/bin/tether` form shown above is what gets writt
 
 Operational consequence: users must launch Claude Code from the directory containing `.tether/` and `.claude/`. To work in a subdirectory afterward, the right pattern is to launch from the project root with `claude --add-dir <subdir>` (or use `/add-dir` mid-session) — `--add-dir` extends file access without changing project discovery, so the parent's `.claude/settings.json` and `.claude/settings.local.json` still drive hooks. There is no CLI flag to override project-root discovery; the docs explicitly recommend "Launch Claude Code from the directory containing the `.claude/` configuration you want."
 
-Documented under "Additional directories grant file access, not configuration" at <https://code.claude.com/docs/en/permissions>; verified empirically on 2026-05-14. Worth surfacing to users at install time (a final-line tip from `tether init claude-code`) and in the `.tether/tether.md` fragment, but those touchpoints are not yet implemented — tracked in [[Claude-Code-Integration-Open]] under launch-cwd UX.
+Documented under "Additional directories grant file access, not configuration" at <https://code.claude.com/docs/en/permissions>; verified empirically on 2026-05-14. Worth surfacing to users at install time (a final-line tip from `tether init claude-code`) and in the `.tether/tether.md` fragment, but those touchpoints are not yet implemented — tracked in [Claude-Code-Integration-Open](Claude-Code-Integration-Open.md) under launch-cwd UX.
 
 ## `tether init claude-code`
 

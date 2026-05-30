@@ -1,12 +1,3 @@
----
-title: Diction
-tags:
-  - meta
-  - glossary
-type: meta
-status: active
----
-
 ## Core concepts
 
 | Term                  | Definition                                                                                                          | Aliases to avoid                       |
