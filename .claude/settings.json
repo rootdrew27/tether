@@ -28,7 +28,10 @@
       "Bash(rm:*)"
     ],
     "deny": [
-
+      "Edit(/tether-vault/**)",
+      "Write(/tether-vault/**)",
+      "MultiEdit(/tether-vault/**)",
+      "NotebookEdit(/tether-vault/**)"
     ]
   },
   "hooks": {

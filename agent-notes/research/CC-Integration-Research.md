@@ -1,14 +1,5 @@
----
-title: Claude Code integration research
-tags:
-  - research
-  - claude-code
-type: research
-status: pre-mvp-research
----
-
-> [!info]+ Pre-MVP exploration
-> Early-design survey of Claude Code integration surfaces; written before the integration spec was committed. Several recommendations here were not adopted — the implemented integration is documented in [[Claude-Code-Integration]] and uses SessionStart + Stop hooks (not PostToolUse on Edit/Write), goes through `tether status` / `tether refresh` (not a hypothetical `tether list --file`), and installs via `tether init claude-code` (not `tether --init-claude-code`). Kept as reference for revisiting these surfaces post-MVP.
+> [!NOTE]
+> Pre-MVP exploration. Early-design survey of Claude Code integration surfaces; written before the integration spec was committed. Several recommendations here were not adopted — the implemented integration is documented in [Claude-Code-Integration](../claude-code/Claude-Code-Integration.md) and uses SessionStart, Stop, and a PreToolUse-on-Read hook that injects a `<tether-context>` block when a tethered file is read (not PostToolUse on Edit/Write), goes through `tether status` / `tether refresh` (not a hypothetical `tether list --file`), and installs via `tether init claude-code` (not `tether --init-claude-code`). Kept as reference for revisiting these surfaces post-MVP.
 
 ## Executive Recommendation
 

@@ -1,13 +1,4 @@
----
-title: Git integration
-tags:
-  - design
-  - git
-type: design
-status: active
----
-
-This document elaborates on how tether's data shape rides on top of git's working-tree, branch, and history operations. The conceptual point — that putting tether records in `.tether/tethers/*.json` makes the relationship graph branch, merge, and time-travel as one unit with the code — is in [[Tether-Design-MVP]] under §"How tether is version controlled by git". This doc walks through each mechanism.
+This document elaborates on how tether's data shape rides on top of git's working-tree, branch, and history operations. The conceptual point — that putting tether records in `.tether/tethers/*.json` makes the relationship graph branch, merge, and time-travel as one unit with the code — is in [Tether-Design-MVP](Tether-Design-MVP.md) under §"How tether is version controlled by git". This doc walks through each mechanism.
 
 ## Branching
 

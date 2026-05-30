@@ -212,6 +212,14 @@ def test_install_includes_refs_allow_patterns(project: Path):
     assert "Bash(uv run tether refs:*)" in s["permissions"]["allow"]
 
 
+def test_install_includes_show_allow_patterns(project: Path):
+    install(project)
+    s = json.loads((project / ".claude" / "settings.json").read_text())
+    assert any("show:" in p for p in s["permissions"]["allow"])
+    assert "Bash(tether show:*)" in s["permissions"]["allow"]
+    assert "Bash(uv run tether show:*)" in s["permissions"]["allow"]
+
+
 def test_detect_tether_command_anchors_inside_project(
     project: Path, monkeypatch: pytest.MonkeyPatch
 ):

@@ -1,12 +1,3 @@
----
-title: Drift cases
-tags:
-  - design
-  - drift
-type: design
-status: active
----
-
 This document enumerates the realistic ways content can move or change and how tether reports them. Tether does not implement its own similarity search, content-hash scan, or move-block detection — git's existing tools are the substrate, and tether is a thin client. The diff-first principle does the rest of the work.
 
 ## Region content changed in place
@@ -19,7 +10,7 @@ The locator may resolve to different content (the line range now contains someth
 
 ## File moved or renamed
 
-The locator can't resolve at the recorded path; the tether is BROKEN on that artifact. Tether queries `git log --find-object=<file_blob_oid>` against the project's history. If git's rename detection identifies the new path, tether suggests `tether update --path <new>` in its status report. If no rename is found, the file is reported as gone and the user decides between `tether rm` and restoring from history.
+The locator can't resolve at the recorded path; the tether is BROKEN on that artifact. Tether queries `git log --find-object=<file_blob_oid>` against the project's history. If git's rename detection identifies the new path, tether suggests `tether update --a-path/--b-path <new>` in its status report. If no rename is found, the file is reported as gone and the user decides between `tether rm` and restoring from history.
 
 ## Region renamed (e.g., function rename)
 

@@ -17,7 +17,15 @@ DENY_PATTERNS: list[str] = [
     "NotebookEdit(.tether/**)",
 ]
 
-ALLOW_SUBCOMMANDS: list[str] = ["status", "refresh", "update", "add", "mv", "refs"]
+ALLOW_SUBCOMMANDS: list[str] = [
+    "status",
+    "refresh",
+    "update",
+    "add",
+    "mv",
+    "refs",
+    "show",
+]
 
 ALLOW_INVOCATIONS: list[str] = [
     "tether",

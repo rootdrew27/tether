@@ -1,12 +1,3 @@
----
-title: Diction
-tags:
-  - meta
-  - glossary
-type: meta
-status: active
----
-
 ## Core concepts
 
 | Term                  | Definition                                                                                                          | Aliases to avoid                       |
@@ -100,7 +91,7 @@ status: active
 > **Dev:** "Got it -- so I need to update the doc and then `tether refresh`?"
 > **Tether expert:** "Right. **Refresh** re-fingerprints both **Artifacts** together; it's the assertion that they're now aligned. Don't refresh until you've actually updated the doc, or you'll erase the drift signal."
 > **Dev:** "What if I'd renamed `auth.py` to `authentication.py` instead of just editing it?"
-> **Tether expert:** "Then the **Locator** wouldn't resolve at the recorded path -- the code **Artifact** would be **BROKEN**. Tether queries `git log --find-object` against the **File blob OID** to suggest the new path; you'd run `tether update --path` to follow it."
+> **Tether expert:** "Then the **Locator** wouldn't resolve at the recorded path -- the code **Artifact** would be **BROKEN**. Tether queries `git log --find-object` against the **File blob OID** to suggest the new path; you'd run `tether update --b-path authentication.py` to follow it."
 
 ## Flagged ambiguities
 

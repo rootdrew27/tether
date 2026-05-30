@@ -1,20 +1,10 @@
----
-title: "Claude Code integration: open items"
-tags:
-  - integration
-  - claude-code
-  - open-items
-type: integration
-status: active
----
-
-Tracking for the integration spec at [[Claude-Code-Integration]]. Three categories: verifications owed before implementation, decisions to revisit, and deferred features. General (non-Claude-Code-specific) future work — locator extensions, watcher/reconcile, ref-pinning, custom merge driver, etc. — lives in [[Future-Work]].
+Tracking for the integration spec at [Claude-Code-Integration](Claude-Code-Integration.md). Three categories: verifications owed before implementation, decisions to revisit, and deferred features. General (non-Claude-Code-specific) future work — locator extensions, watcher/reconcile, ref-pinning, custom merge driver, etc. — lives in [Future-Work](../design/Future-Work.md).
 
 ## Verifications owed
 
 One-time lookups against current Claude Code docs / behavior before implementing the spec:
 
-- **`Tool(path-glob)` permission matcher syntax.** Confirm that the form `Edit(.tether/tethers/**)` (with `**` for recursive glob) is the current syntax, that it matches paths relative to `cwd`, and that it works for all four tools (`Edit`, `Write`, `MultiEdit`, `NotebookEdit`). If the syntax has changed, update the deny entries in the init flow.
+- **`Tool(path-glob)` permission matcher syntax.** Confirm that the form `Edit(.tether/**)` (with `**` for recursive glob) is the current syntax, that it matches paths relative to `cwd`, and that it works for all four tools (`Edit`, `Write`, `MultiEdit`, `NotebookEdit`). If the syntax has changed, update the deny entries in the init flow.
 - **`@file` import in `./CLAUDE.md`.** Confirm that `@.tether/tether.md` is current, stable (not preview), and not size-limited in a way that would clip the fragment. If imports work differently than expected (e.g., must appear at a specific position in the file, or require a leading slash), adjust the init logic.
 - **Stop hook `{"decision": "block"}` continuation semantics.** The docs are silent on what happens after a Stop block. Empirical test owed: does the agent automatically continue in the same turn given the `reason` text as effective input? Or does it wait for the next user prompt? If the latter, the integration's "continuation" framing needs reworking — possibly toward a UserPromptSubmit hook that re-injects context on the user's next prompt.
 
@@ -27,7 +17,7 @@ These were resolved with a clear "decide now, change later" intent. Both are rev
 
 ## Blocked items
 
-- **Sub-file locator language and examples in `.tether/tether.md`.** The fragment is currently whole-file-only because MVP ships only the `WholeFile` locator. When the CLI grows `LineRange` (and beyond — see [[Future-Work]]), update:
+- **Sub-file locator language and examples in `.tether/tether.md`.** The fragment is currently whole-file-only because MVP ships only the `WholeFile` locator. When the CLI grows `LineRange` (and beyond — see [Future-Work](../design/Future-Work.md)), update:
   - The fragment intro sentence to introduce tethers as connecting files *or regions within files*.
   - The "When to create tethers" examples to include a line-range case.
   - The "Key commands" `tether add` entry to reflect the new positional / option syntax for sub-file endpoints.
@@ -42,7 +32,7 @@ In rough priority order:
 - **Session-baseline cleanup.** Only relevant once Stop becomes stateful. Baseline files at `.tether/.session-baseline-<session_id>.json` would accumulate; need LRU cap or age-based pruning.
 - **`tether init claude-code --dry-run`.** Print what init would do without writing. Easy add when someone wants it.
 - **`tether uninstall claude-code`.** Reverse the init flow — remove tether-owned permission entries from `.claude/settings.json`, remove tether-owned hook entries from `.claude/settings.local.json`, remove the `.claude/settings.local.json` line from `.gitignore` if tether added it, remove the import line from `./CLAUDE.md`, leave `.tether/tether.md` for the user to delete manually. Predicates are symmetric with init.
-- **Launch-cwd UX.** Claude Code only loads project settings (`.claude/settings.json` and `.claude/settings.local.json` — and therefore both tether's permissions and tether's hooks) from the launch cwd's `.claude/` folder. There is no parent-directory walk-up. Documented under "Project-root discovery gotcha" in [[Claude-Code-Integration]]. Two touchpoints worth adding to make this surface to users without their having to read the vault: (1) a final-line tip printed by `tether init claude-code` ("Tip: run `claude` from this directory so tether's hooks fire; for work in subdirs, use `claude --add-dir <subdir>`"), and (2) a short paragraph in `.tether/tether.md` explaining the same. Either alone helps; both together close the gap. Defer until a second user actually hits the footgun.
+- **Launch-cwd UX.** Claude Code only loads project settings (`.claude/settings.json` and `.claude/settings.local.json` — and therefore both tether's permissions and tether's hooks) from the launch cwd's `.claude/` folder. There is no parent-directory walk-up. Documented under "Project-root discovery gotcha" in [Claude-Code-Integration](Claude-Code-Integration.md). Two touchpoints worth adding to make this surface to users without their having to read the vault: (1) a final-line tip printed by `tether init claude-code` ("Tip: run `claude` from this directory so tether's hooks fire; for work in subdirs, use `claude --add-dir <subdir>`"), and (2) a short paragraph in `.tether/tether.md` explaining the same. Either alone helps; both together close the gap. Defer until a second user actually hits the footgun.
 - **PreToolUse on additional triggers.** The MVP injects `<tether-context>` only on `Read`. Other triggers worth exploring as the integration matures:
   - **Edit / Write / MultiEdit.** Belt-and-suspenders for the case where the agent edits a tethered file without reading it first (e.g., the file is already in conversation context from a previous turn). Adds redundancy in the common Read-then-Edit flow; the win is the cold-edit path.
   - **Bash-mediated reads** (`cat`, `head`, `tail`, `less`, `jq` on JSON sources). Requires parsing the Bash command string to extract paths — heuristic, but the existing `if` field in Claude Code hooks v2.1.85+ lets us filter to specific Bash subcommand shapes before spawning.

@@ -67,6 +67,7 @@ The per-side states in `<tether-context>` are current at the moment of the Read;
 
 - `tether status` — show all tethers, severity-ordered.
 - `tether status <uuid>` — show one tether with a unified diff for any DRIFTED artifact.
+- `tether show` — list every tether with its description, regardless of state (including the HEALTHY ones `tether status` collapses into a count). Use for **orientation**: the whole relationship graph and the *why* behind each link, when onboarding to a project or planning a change that spans several files. Not a per-turn check and not a drift diagnostic — use `tether status` for drift and `tether refs <path>` for what touches a specific file.
 - `tether refs <path>` — list tethers referencing a path. Rarely needed during normal work since context is auto-injected on Read; useful for debugging or for inspecting what the agent would see (`--xml`).
 - `tether add <a> <b> --description "..."` — create a tether. `--description` is required.
 - `tether refresh <uuid>` — re-fingerprint both artifacts; the explicit assertion that they are aligned.

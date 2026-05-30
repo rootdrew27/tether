@@ -15,31 +15,14 @@ from .errors import TetherError
 from .git import hash_object_write
 from .model import Artifact, Tether
 from .output import (
-    ArtifactStatus,
-    RefsReport,
-    StatusReport,
-    StatusSummary,
-    TetherStatus,
+    build_refs_report,
+    build_status_report,
+    build_tether_status,
     encode_pretty,
-    relativize_errors,
 )
 from .project import find_project_root, init_project
-from .render import (
-    Row,
-    counts,
-    errors_section,
-    item_lines,
-    refs_xml,
-    summary_line,
-)
-from .status import (
-    AggregateState,
-    ArtifactCheck,
-    ArtifactState,
-    TetherCheck,
-    artifact_diff,
-    check_tether,
-)
+from .render import Row, all_tethers_md, one_tether_md, refs_xml, show_text
+from .status import AggregateState, ArtifactState, check_tether
 from uuid_utils import uuid7
 
 from .storage import delete as storage_delete
@@ -285,209 +268,20 @@ def status(tether_id: str | None, as_json: bool, diff: bool | None) -> None:
             if diff is not None
             else (check.aggregate != AggregateState.HEALTHY or rescued)
         )
-        ts = _build_tether_status(t, check, root, show_diff)
+        ts = build_tether_status(t, check, root, show_diff)
         if as_json:
             click.echo(encode_pretty(ts))
         else:
-            click.echo(_one_tether_md(t, check, root, show_diff))
+            click.echo(one_tether_md(t, check, root, show_diff))
         return
 
     result = load_all(root)
     rows: list[Row] = [(t, check_tether(t, root)) for t in result.tethers]
 
     if as_json:
-        click.echo(encode_pretty(_build_status_report(rows, result.errors, root)))
+        click.echo(encode_pretty(build_status_report(rows, result.errors, root)))
     else:
-        click.echo(_all_tethers_md(rows, result.errors, root))
-
-
-def _is_rescued(check: TetherCheck) -> bool:
-    return check.a.normalization_rescued or check.b.normalization_rescued
-
-
-def _all_tethers_md(
-    rows: list[Row],
-    errors: list[tuple[Path, str]],
-    root: Path,
-) -> str:
-    total = len(rows)
-    if total == 0 and not errors:
-        return "No tethers."
-
-    c = counts(rows)
-    if (
-        c["HEALTHY"] == total
-        and not errors
-        and not any(_is_rescued(ck) for _, ck in rows)
-    ):
-        plural = "s" if total != 1 else ""
-        return f"{total} tether{plural}, all HEALTHY."
-
-    lines: list[str] = [summary_line(rows)]
-    non_healthy = [r for r in rows if r[1].aggregate != AggregateState.HEALTHY]
-    if non_healthy:
-        lines.extend(["", "Needs attention:"])
-        lines.extend(item_lines(non_healthy))
-
-    rescued = [
-        r
-        for r in rows
-        if r[1].aggregate == AggregateState.HEALTHY and _is_rescued(r[1])
-    ]
-    if rescued:
-        lines.extend(
-            ["", "Encoding-only drift (rescued by normalizer; no action required):"]
-        )
-        lines.extend(item_lines(rescued, with_description=False))
-
-    lines.extend(errors_section(errors, root))
-    return "\n".join(lines)
-
-
-def _drift_block(
-    label: str, path: str, fingerprint: str, root: Path, *, rescued: bool
-) -> list[str]:
-    header = (
-        f"## Encoding-only drift on {label}: `{path}`"
-        if rescued
-        else f"## Drift on {label}: `{path}`"
-    )
-    body = [
-        "",
-        header,
-    ]
-    if rescued:
-        body.append(
-            "Bytes differ but normalize to the same value (line endings / trailing whitespace / "
-            "BOM / leading-tab expansion). State is rescued to HEALTHY; `tether refresh <uuid>` "
-            "would re-align the raw fingerprint."
-        )
-    body.extend(
-        [
-            "",
-            "```diff",
-            artifact_diff(path, fingerprint, root).rstrip("\n"),
-            "```",
-        ]
-    )
-    return body
-
-
-def _broken_block(label: str, path: str, candidates: tuple[str, ...]) -> list[str]:
-    lines = [
-        "",
-        f"## Broken {label}: `{path}` (file not present at recorded path)",
-    ]
-    if candidates:
-        lines.append("")
-        lines.append("Rename candidates (matched by fingerprint):")
-        for p in candidates:
-            lines.append(f"- `{p}`")
-        lines.append("")
-        lines.append(
-            f"To follow a rename: `tether update --{label}-path <new>`, "
-            "then `tether refresh <uuid>` once aligned."
-        )
-    return lines
-
-
-def _one_tether_md(
-    t: Tether,
-    check: TetherCheck,
-    root: Path,
-    show_diff: bool,
-) -> str:
-    lines = [
-        f"# Tether `{t.id}`",
-        "",
-        f"- **State:** {check.aggregate.value}",
-        f"- **a:** `{t.a.path}` — {check.a.state.value}"
-        + (" (encoding-only drift rescued)" if check.a.normalization_rescued else ""),
-        f"- **b:** `{t.b.path}` — {check.b.state.value}"
-        + (" (encoding-only drift rescued)" if check.b.normalization_rescued else ""),
-        f"- **Created:** {t.created_at}",
-        f"- **Refreshed:** {t.refreshed_at}",
-        f"- **Description:** {t.description}",
-    ]
-    if show_diff:
-        for label, path, fingerprint, art in (
-            ("a", t.a.path, t.a.fingerprint, check.a),
-            ("b", t.b.path, t.b.fingerprint, check.b),
-        ):
-            if art.state == ArtifactState.DRIFTED:
-                lines.extend(
-                    _drift_block(label, path, fingerprint, root, rescued=False)
-                )
-            elif art.state == ArtifactState.HEALTHY and art.normalization_rescued:
-                lines.extend(_drift_block(label, path, fingerprint, root, rescued=True))
-            elif art.state == ArtifactState.BROKEN:
-                lines.extend(_broken_block(label, path, art.rename_candidates))
-    return "\n".join(lines)
-
-
-def _build_artifact_status(
-    a: Artifact,
-    art_check: ArtifactCheck,
-    root: Path,
-    include_diff: bool,
-) -> ArtifactStatus:
-    diff = None
-    if include_diff and (
-        art_check.state == ArtifactState.DRIFTED
-        or (
-            art_check.state == ArtifactState.HEALTHY and art_check.normalization_rescued
-        )
-    ):
-        diff = artifact_diff(a.path, a.fingerprint, root)
-    return ArtifactStatus(
-        path=a.path,
-        fingerprint=a.fingerprint,
-        state=art_check.state,
-        diff=diff,
-        normalization_rescued=art_check.normalization_rescued,
-        rename_candidates=art_check.rename_candidates,
-    )
-
-
-def _build_tether_status(
-    t: Tether,
-    check: TetherCheck,
-    root: Path,
-    include_diff: bool,
-) -> TetherStatus:
-    return TetherStatus(
-        id=t.id,
-        schema_version=t.schema_version,
-        description=t.description,
-        created_at=t.created_at,
-        refreshed_at=t.refreshed_at,
-        a=_build_artifact_status(t.a, check.a, root, include_diff),
-        b=_build_artifact_status(t.b, check.b, root, include_diff),
-        state=check.aggregate,
-    )
-
-
-def _build_status_summary(rows: list[Row]) -> StatusSummary:
-    c = counts(rows)
-    return StatusSummary(
-        total=len(rows),
-        healthy=c["HEALTHY"],
-        weakened=c["WEAKENED"],
-        drifted=c["DRIFTED"],
-        broken=c["BROKEN"],
-    )
-
-
-def _build_status_report(
-    rows: list[Row],
-    errors: list[tuple[Path, str]],
-    root: Path,
-) -> StatusReport:
-    return StatusReport(
-        summary=_build_status_summary(rows),
-        tethers=[_build_tether_status(t, ck, root, False) for t, ck in rows],
-        errors=relativize_errors(errors, root),
-    )
+        click.echo(all_tethers_md(rows, result.errors, root))
 
 
 @main.command()
@@ -519,24 +313,23 @@ def refs(path: str, as_json: bool, as_xml: bool) -> None:
     if as_xml:
         click.echo(refs_xml(rel, rows, result.errors, root), nl=False)
         return
-    click.echo(encode_pretty(_build_refs_report(rel, rows, result.errors, root)))
+    click.echo(encode_pretty(build_refs_report(rel, rows, result.errors, root)))
 
 
-def _build_refs_report(
-    rel: str,
-    rows: list[Row],
-    errors: list[tuple[Path, str]],
-    root: Path,
-) -> RefsReport:
-    return RefsReport(
-        queried_path=rel,
-        summary=_build_status_summary(rows),
-        tethers=[_build_tether_status(t, ck, root, False) for t, ck in rows],
-        errors=relativize_errors(errors, root),
-    )
+@main.command()
+@handle_errors
+def show() -> None:
+    """List every tether with its description."""
+    root = _root()
+    result = load_all(root)
+    text = show_text(result.tethers, result.errors, root)
+    if sys.stdout.isatty():
+        click.echo_via_pager(text + "\n")
+    else:
+        click.echo(text)
 
 
-@main.group()
+@main.group(hidden=True)
 def hook() -> None:
     """Hook subcommands invoked by external tools (Claude Code, etc.)."""
 

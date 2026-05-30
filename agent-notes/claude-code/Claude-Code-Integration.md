@@ -1,14 +1,4 @@
----
-title: Claude Code integration
-tags:
-  - integration
-  - claude-code
-  - hooks
-type: integration
-status: active
----
-
-This document specifies how tether integrates with Claude Code. The conceptual framing — query at action time, refresh as assertion, records mutable only through tether's commands — lives in [[Tether-Design-MVP]] under §"How tether enables coding agents." This doc covers the concrete mechanics: which hooks fire, what they output, how they install, and how failures are handled.
+This document specifies how tether integrates with Claude Code. The conceptual framing — query at action time, refresh as assertion, records mutable only through tether's commands — lives in [Tether-Design-MVP](../design/Tether-Design-MVP.md) under §"How tether enables coding agents." This doc covers the concrete mechanics: which hooks fire, what they output, how they install, and how failures are handled.
 
 ## Event matrix
 
@@ -20,9 +10,9 @@ The integration uses three Claude Code hook events:
 | `PreToolUse` (matcher `"Read"`) | When the agent reads a tethered file, inject a `<tether-context>` block describing every tether involving that file (states, peer path, description). Decision-time steering. |
 | `Stop` | Check tether status before the agent ends its turn. Block the turn (force continuation) if any tether is non-HEALTHY. |
 
-`PreToolUse` on `Edit`/`Write`/`MultiEdit` is deliberately not part of the design. Edits are frequent (8-30 per turn in typical sessions); per-edit context injection is expensive and largely redundant with the PreRead-on-Read injection that already primed the agent with the tether description before it decided to edit. Stop coverage at turn end remains the safety net for drift the agent introduced. Other PreToolUse triggers (Bash-mediated reads, prompt `@file` mentions) are tracked in [[Claude-Code-Integration-Open]].
+`PreToolUse` on `Edit`/`Write`/`MultiEdit` is deliberately not part of the design. Edits are frequent (8-30 per turn in typical sessions); per-edit context injection is expensive and largely redundant with the PreRead-on-Read injection that already primed the agent with the tether description before it decided to edit. Stop coverage at turn end remains the safety net for drift the agent introduced. Other PreToolUse triggers (Bash-mediated reads, prompt `@file` mentions) are tracked in [Claude-Code-Integration-Open](Claude-Code-Integration-Open.md).
 
-A separate, declarative `permissions.deny` rule covers `.tether/tethers/` — see §"Write-denial mechanism" below.
+A separate, declarative `permissions.deny` rule covers `.tether/` — see §"Write-denial mechanism" below.
 
 ## SessionStart hook
 
@@ -55,7 +45,7 @@ A separate, declarative `permissions.deny` rule covers `.tether/tethers/` — se
   - `0192ghi3-...`: WEAKENED — `docs/billing.md` (HEALTHY) — `src/billing.py` (DRIFTED)
     Description: Stripe integration and webhook handling.
 
-  For diffs: `tether status <uuid>`. To assert alignment after editing both sides: `tether refresh <uuid>`.
+  For diffs: `tether status <uuid>`
   ```
 
 The output is markdown on stdout, which Claude Code injects as context. The agent reads it as prose. Markdown is preferred over JSON for agent-facing surfaces; JSON is available via `tether status --json` for scripts and CI.
@@ -105,7 +95,7 @@ Claude Code routes `additionalContext` into the agent's context window alongside
 
 **Trigger:** every time the agent is about to end a turn.
 
-**Block condition (v1, stateless):** any tether currently non-HEALTHY (WEAKENED / DRIFTED / BROKEN) blocks turn end. Pre-existing drift triggers blocking, just as new drift does. This is deliberately stateless for v1; a session-baseline-stateful variant (block only on tethers that became non-HEALTHY during this session) is a planned refinement — see [[Claude-Code-Integration-Open]].
+**Block condition (v1, stateless):** any tether currently non-HEALTHY (WEAKENED / DRIFTED / BROKEN) blocks turn end. Pre-existing drift triggers blocking, just as new drift does. This is deliberately stateless for v1; a session-baseline-stateful variant (block only on tethers that became non-HEALTHY during this session) is a planned refinement — see [Claude-Code-Integration-Open](Claude-Code-Integration-Open.md).
 
 **Reason format:** markdown list of non-HEALTHY tethers, ordered by severity (BROKEN → DRIFTED → WEAKENED) with UUIDv7 ascending as tiebreaker. Each entry shows the tether ID (backtick-wrapped, full UUID for copy-paste), aggregate state, paths with per-side states inline, and description on a continuation line. No diffs — those are fetched on demand. No per-state action hints — those live in the persistent CLAUDE.md fragment. Sample:
 
@@ -160,7 +150,7 @@ It lives under `.tether/` rather than `.claude/` because it is tether's content,
 
 **Note on scope:** this fragment is Claude-Code-specific. Other harnesses (Cursor, Aider, Codex) will get their own per-harness fragments with appropriate vocabulary when those integrations ship.
 
-**Note on sub-file locators:** the fragment is whole-file-only — MVP ships only the `WholeFile` locator. When the CLI grows `LineRange` (and beyond) locator support, the fragment's intro and example commands update to introduce sub-file relationships. Tracked in [[Future-Work]]; the fragment update itself is tracked as a blocked item in [[Claude-Code-Integration-Open]].
+**Note on sub-file locators:** the fragment is whole-file-only — MVP ships only the `WholeFile` locator. When the CLI grows `LineRange` (and beyond) locator support, the fragment's intro and example commands update to introduce sub-file relationships. Tracked in [Future-Work](../design/Future-Work.md); the fragment update itself is tracked as a blocked item in [Claude-Code-Integration-Open](Claude-Code-Integration-Open.md).
 
 ## Write-denial mechanism
 
@@ -188,7 +178,7 @@ Three scoping decisions:
 
 ## Allow-list for tether CLI commands
 
-Declarative `permissions.allow` entries in `.claude/settings.json` pre-approve the tether subcommands the agent will routinely invoke while clearing a Stop block, so the user is not prompted on every refresh:
+Declarative `permissions.allow` entries in `.claude/settings.json` pre-approve the tether subcommands the agent will routinely invoke — read-only inspection (`status`, `refs`, `show`) and the non-destructive mutations used to clear a Stop block (`refresh`, `update`, `add`, `mv`) — so the user is not prompted on every refresh:
 
 ```json
 {
@@ -200,13 +190,13 @@ Declarative `permissions.allow` entries in `.claude/settings.json` pre-approve t
       "Bash(conda run -n * tether status:*)",
       "Bash(.venv/bin/tether status:*)",
       "Bash(${CLAUDE_PROJECT_DIR}/.venv/bin/tether status:*)",
-      "...four more invocation forms × refresh/update/add/mv..."
+      "...the same six invocation forms for refresh/update/add/mv/refs/show..."
     ]
   }
 }
 ```
 
-**Enumerated-prefix rationale.** Six invocation forms are pre-approved per subcommand, giving thirty total patterns:
+**Enumerated-prefix rationale.** Six invocation forms are pre-approved per subcommand; across the seven subcommands (`status`, `refresh`, `update`, `add`, `mv`, `refs`, `show`) that is forty-two total patterns:
 
 1. `tether` — bare, when `tether` is on PATH (pipx, system install, active venv).
 2. `uv run tether` — uv-managed projects.
@@ -227,8 +217,8 @@ These entries merge alongside any user-authored allow entries; the signature pre
 
 Tether exposes three Claude-Code-specific subcommands, all hidden from the default `tether --help` output:
 
-- `tether hook claude-code session-start` — reads hook input JSON on stdin, runs `api.status()`, formats per the SessionStart adaptive schema, emits to stdout.
-- `tether hook claude-code stop` — reads hook input JSON on stdin, runs `api.status()`, emits `{"decision": "block", "reason": "..."}` if any tether is non-HEALTHY, exits 0 with no output otherwise.
+- `tether hook claude-code session-start` — reads hook input JSON on stdin, loads all tether records and computes each tether's state (`load_all` + `check_tether`), formats per the SessionStart adaptive schema, emits to stdout.
+- `tether hook claude-code stop` — reads hook input JSON on stdin, loads all tether records and computes each tether's state (`load_all` + `check_tether`), emits `{"decision": "block", "reason": "..."}` if any tether is non-HEALTHY, exits 0 with no output otherwise.
 - `tether hook claude-code pre-tool-use` — reads PreToolUse hook input JSON on stdin (`tool_name`, `tool_input.file_path`), short-circuits to silent exit 0 on non-Read tools or files outside the project, looks up matching tethers via `storage.find_by_path`, and emits `{"hookSpecificOutput": {"hookEventName": "PreToolUse", "additionalContext": "<tether-context>…</tether-context>"}}` when at least one tether matches.
 
 **CLI placement:**
@@ -315,7 +305,7 @@ The `${CLAUDE_PROJECT_DIR}/.venv/bin/tether` form shown above is what gets writt
 
 Operational consequence: users must launch Claude Code from the directory containing `.tether/` and `.claude/`. To work in a subdirectory afterward, the right pattern is to launch from the project root with `claude --add-dir <subdir>` (or use `/add-dir` mid-session) — `--add-dir` extends file access without changing project discovery, so the parent's `.claude/settings.json` and `.claude/settings.local.json` still drive hooks. There is no CLI flag to override project-root discovery; the docs explicitly recommend "Launch Claude Code from the directory containing the `.claude/` configuration you want."
 
-Documented under "Additional directories grant file access, not configuration" at <https://code.claude.com/docs/en/permissions>; verified empirically on 2026-05-14. Worth surfacing to users at install time (a final-line tip from `tether init claude-code`) and in the `.tether/tether.md` fragment, but those touchpoints are not yet implemented — tracked in [[Claude-Code-Integration-Open]] under launch-cwd UX.
+Documented under "Additional directories grant file access, not configuration" at <https://code.claude.com/docs/en/permissions>; verified empirically on 2026-05-14. Worth surfacing to users at install time (a final-line tip from `tether init claude-code`) and in the `.tether/tether.md` fragment, but those touchpoints are not yet implemented — tracked in [Claude-Code-Integration-Open](Claude-Code-Integration-Open.md) under launch-cwd UX.
 
 ## `tether init claude-code`
 
@@ -338,7 +328,7 @@ A single all-in-one subcommand that sets up the integration. Idempotent — re-r
 
 - For `hooks.SessionStart` and `hooks.Stop` (in `settings.local.json`): an entry is tether-owned if any of its `hooks[*].command` strings contains the substring `hook claude-code`. This deliberately matches regardless of the binary path prefix (so it catches both `${CLAUDE_PROJECT_DIR}/.venv/bin/tether hook claude-code ...` and `/abs/path/tether hook claude-code ...` and any legacy variants). On re-init, remove every tether-owned entry, then append the current-version entries with the freshly-detected command prefix.
 - For `permissions.deny` (in `settings.json`): an entry is tether-owned if its path glob references `.tether/`. This deliberately matches both the current `.tether/**` form and any narrower legacy forms (e.g. `.tether/tethers/**`) so re-install cleans up stale entries from earlier versions. Same replace-and-append logic.
-- For `permissions.allow` (in `settings.json`): an entry is tether-owned if it appears in the enumerated `ALLOW_PATTERNS` set (six invocation prefixes × five subcommands) or if it matches the shape `Bash(*tether <subcmd>:*)` for one of the pre-approved subcommands. See §"Allow-list for tether CLI commands" for the invocation list. Same replace-and-append logic.
+- For `permissions.allow` (in `settings.json`): an entry is tether-owned if it appears in the enumerated `ALLOW_PATTERNS` set (six invocation prefixes × seven subcommands) or if it matches the shape `Bash(*tether <subcmd>:*)` for one of the pre-approved subcommands. See §"Allow-list for tether CLI commands" for the invocation list. Same replace-and-append logic.
 
 User-authored entries (custom hooks, custom deny rules, custom allow rules, or anything in either file outside the predicates above) are never touched.
 
@@ -351,10 +341,11 @@ Wrote .tether/tether.md
 Created CLAUDE.md with `@.tether/tether.md`
 Updated .claude/settings.json:
   - added 4 deny rule(s)
-  - added 30 allow rule(s)
+  - added 42 allow rule(s)
 Updated .claude/settings.local.json:
   - added SessionStart hook
   - added Stop hook
+  - added PreToolUse hook
   - hook command resolved to `${CLAUDE_PROJECT_DIR}/.venv/bin/tether`
 Created .gitignore with `.claude/settings.local.json`
 ```
@@ -368,10 +359,11 @@ Wrote .tether/tether.md
 CLAUDE.md already imports `@.tether/tether.md`
 Updated .claude/settings.json:
   - added 4 deny rule(s)
-  - added 30 allow rule(s)
+  - added 42 allow rule(s)
 Updated .claude/settings.local.json:
   - added SessionStart hook
   - added Stop hook
+  - added PreToolUse hook
   - hook command resolved to `${CLAUDE_PROJECT_DIR}/.venv/bin/tether`
 ```
 
@@ -379,7 +371,7 @@ Re-runs emit the same change lines because merge is signature-matched and replac
 
 ## Output formats
 
-Tether's agent-facing CLI output is **markdown by default**; JSON is opt-in behind `--json` for programmatic consumers. The two surfaces, by audience:
+Tether's agent-facing CLI output is **markdown by default**; JSON is opt-in behind `--json` for programmatic consumers. (`tether show` is the exception — a plain-text, paged catalog for browsing the whole graph; it is agent-callable but stands outside the markdown/JSON contract.) The two surfaces, by audience:
 
 | Surface | Default format | When |
 |---|---|---|
@@ -392,11 +384,11 @@ Markdown is the default because Claude reads it natively at lower token cost tha
 
 ## Hook input contract
 
-Both hook subcommands read Claude Code's hook event JSON from stdin. Tether uses exactly one field:
+All three hook subcommands read Claude Code's hook event JSON from stdin. `session-start` and `stop` use exactly one field:
 
 - `cwd` — used to anchor the project-root walk (walk upward from `cwd` looking for `.tether/`).
 
-Every other field (`session_id`, `hook_event_name`, `transcript_path`, etc.) is consumed and ignored. This minimizes coupling: if Claude Code's hook input schema evolves around other fields, tether is unaffected. `session_id` will be needed when the stateful-Stop variant ships — at that point it gets added to the contract.
+`pre-tool-use` additionally reads `tool_name` (to short-circuit on non-`Read` tools) and `tool_input.file_path` (the file to look up). Every other field (`session_id`, `hook_event_name`, `transcript_path`, etc.) is consumed and ignored. This minimizes coupling: if Claude Code's hook input schema evolves around other fields, tether is unaffected. `session_id` will be needed when the stateful-Stop variant ships — at that point it gets added to the contract.
 
 Sketch:
 
@@ -406,7 +398,7 @@ def hook_main():
     payload = json.loads(raw) if raw else {}
     cwd = payload.get("cwd") or os.getcwd()
     root = walk_upward_for_tether_dir(Path(cwd))
-    # ... call api.status(root=root), format, emit ...
+    # ... load_all(root) + check_tether per record, format, emit ...
 ```
 
 If `cwd` is missing or no `.tether/` is found in the walk, the hook exits 2 with stderr — the integration is misconfigured (see §"Failure contract").
@@ -418,7 +410,7 @@ A single corrupt tether file (bad merge resolution, hand-edit that escaped `perm
 **Policy: skip and report.** Unreadable tether files are skipped; the rest of the project's tethers load and report normally. Both SessionStart and `tether status` append a notice section listing the affected files:
 
 ```
-12 tethers tracked, 1 unreadable. Counts: 9 HEALTHY, 2 WEAKENED.
+11 tethers tracked. Counts: 9 HEALTHY, 2 WEAKENED.
 
 [... normal "needs attention" section ...]
 
