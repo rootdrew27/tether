@@ -31,12 +31,20 @@ class AggregateState(str, Enum):
     BROKEN = "BROKEN"
 
 
-SEVERITY: dict[AggregateState, int] = {
-    AggregateState.BROKEN: 0,
-    AggregateState.DRIFTED: 1,
-    AggregateState.WEAKENED: 2,
-    AggregateState.HEALTHY: 3,
-}
+# Single source of truth for the four aggregate states' ordering. Listed
+# healthiest-first (the display order), each paired with a severity rank where a
+# lower number is more severe (the worst-first sort key). SEVERITY and
+# STATE_ORDER derive from this table so a new state or reorder lands in one place.
+STATES: tuple[tuple[AggregateState, int], ...] = (
+    (AggregateState.HEALTHY, 3),
+    (AggregateState.WEAKENED, 2),
+    (AggregateState.DRIFTED, 1),
+    (AggregateState.BROKEN, 0),
+)
+
+SEVERITY: dict[AggregateState, int] = {state: rank for state, rank in STATES}
+
+STATE_ORDER: tuple[str, ...] = tuple(state.value for state, _ in STATES)
 
 
 class ArtifactCheck(msgspec.Struct, frozen=True, kw_only=True):
