@@ -18,6 +18,7 @@ The canonical vocabulary for the **MVP** of tether. Terms below match what the c
 | **Artifact**          | One of the two ends of a tether: a path (project-relative POSIX) plus a fingerprint. MVP refers to the whole file at the path. | Knot, endpoint, side, target, node     |
 | **Fingerprint**       | The git blob OID of the artifact file's content, recorded at tether creation and re-recorded on refresh.            | Anchor, snapshot, pin                  |
 | **Description**       | A required free-form sentence (or longer) that captures *why* the relationship exists. Carries the project-specific semantics of the tether; the data model itself is intentionally untyped. | Note, label, comment                   |
+| **Refresh**                   | The act of re-fingerprinting; framed as a positive assertion of alignment that travels with the content changes it ratifies. | Auto-update, sync          |
 | **Drift**             | The condition where current content diverges from what was fingerprinted. The umbrella phenomenon, not a status value. | Drift event                            |
 | **Drift normalization** | Comparison-time pipeline applied to both sides when raw fingerprints disagree. Catches encoding-level changes (line endings, BOM, trailing whitespace, leading-tab expansion at tabstop 8) without altering the stored fingerprint. | Canonicalization, whitespace fix       |
 | **Normalizer**        | The implementation of drift normalization. Language-agnostic in MVP.                                                | Canonicalizer                          |
@@ -48,7 +49,9 @@ The aggregate state is derived from per-artifact states: both HEALTHY → HEALTH
 | **tether update**             | Modify a tether's metadata (path, description) without re-fingerprinting.                                            | Edit, retarget             |
 | **tether mv**                 | Bulk path rewrite: rewrite every artifact pointing at OLD_PATH to NEW_PATH. Structural only; no alignment assertion. | Bulk rename                |
 | **tether rm**                 | Delete a tether record.                                                                                            | Remove, delete, unlink     |
-| **Refresh**                   | The act of re-fingerprinting; framed as a positive assertion of alignment that travels with the content changes it ratifies. | Auto-update, sync          |
+| **tether refs** | List tethers referencing a path (where the artifact's `a.path` or `b.path` matches),
+  severity-ordered. JSON by default; `--xml` emits the `<tether-context>` block injected into Claude Code on
+  PreToolUse Read. | List by file, lookup |
 
 ## Actors
 

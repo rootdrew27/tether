@@ -10,7 +10,8 @@ delete files here.
 Contents:
 
 - `design/` — the MVP design spec (`Tether-Design-MVP.md`) and per-area elaborations;
-  `design/future/` holds the forward-state model and vocabulary.
+  `design/future/` holds forward-looking material — the forward-state model, vocabulary,
+  drift cases, and proposed subsystems (e.g. logging) not yet implemented.
 - `research/` — pre-MVP surveys of comparable systems and Claude Code integration surfaces.
 - `claude-code/` — the Claude Code integration spec, its open items, and a `strategies/`
   subfolder for deferred strategies.

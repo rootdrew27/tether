@@ -56,7 +56,7 @@ Properties on display:
 
 ## Implementation sketch
 
-**Cache file.** `.tether/.tool-state-cache.json` (gitignored, alongside the existing `.tether/snapshot.json` pattern). Stores, per tether, the last-observed aggregate state and per-artifact `(file_oid, region_hash)` pair. The per-artifact hashes support a stat-based fast path: on the next call, files whose mtime is unchanged skip rehashing entirely. For Read/Grep-heavy turns this means most PostToolUse fires resolve in milliseconds.
+**Cache file.** `.tether/.tool-state-cache.json` (gitignored, alongside the planned `.tether/snapshot.json` pattern — tied to the not-yet-shipped `tether reconcile`). Stores, per tether, the last-observed aggregate state and per-artifact `(file_oid, region_hash)` pair. The per-artifact hashes support a stat-based fast path: on the next call, files whose mtime is unchanged skip rehashing entirely. For Read/Grep-heavy turns this means most PostToolUse fires resolve in milliseconds.
 
 **Diff and output.** Per tether, emit one short paragraph when the aggregate state changed since the cached value. Aggregate-only transitions are the v1 reporting threshold; per-artifact transitions (e.g. "the docs side just drifted while the code side is still HEALTHY") may be added later if the aggregate-only signal proves too coarse.
 

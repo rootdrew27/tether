@@ -1,13 +1,16 @@
-Tether's logging makes the silent surfaces of the system legible — the work that happens during hook fires, which git history alone cannot see. CLI mutations are not in scope: every state-changing CLI command updates a tether record, and the audit trail is `git log .tether/tethers/<id>.json` (see [Git Integration](../../tether-vault/DICTION.md#git-integration)).
+> [!NOTE]
+> **Proposed design — not implemented.** Tether has no logging subsystem today; the only log it touches is `git log`. This document specifies a hook-activity log and a `tether log` reader for if/when hook observability becomes a real need — the deferred-feature framing lives in [Claude-Code-Integration-Open](../../claude-code/Claude-Code-Integration-Open.md) under "Observability — `tether.log` for hook activity". Everything below describes the intended design, not current behavior.
+
+Tether's logging would make the silent surfaces of the system legible — the work that happens during hook fires, which git history alone cannot see. CLI mutations are not in scope: every state-changing CLI command updates a tether record, and the audit trail is `git log .tether/tethers/<id>.json` (see [Git Integration](../../../tether-vault/DICTION.md#git-integration)).
 
 ## Hook trace
 
-The hook trace lives at `.tether/hooks.log` and captures every fire of every Claude Code hook tether installs.
+The hook trace would live at `.tether/hooks.log` and capture every fire of every Claude Code hook tether installs.
 
 ### File and format
 
 - Newline-delimited JSON, one record per hook invocation, append-only.
-- Gitignored via `.tether/.gitignore`, which `tether init` writes.
+- Gitignored via `.tether/.gitignore` (which `tether init` would write — it does not today).
 - Rotates at 10 MiB: the current file becomes `hooks.log.1` and a fresh `hooks.log` is opened. One rotation generation is retained; older content is dropped.
 
 ### Per-record fields
@@ -31,7 +34,7 @@ The hook trace lives at `.tether/hooks.log` and captures every fire of every Cla
 
 ## Reading: `tether log`
 
-`tether log` is the user-facing reader. The pretty form prints one line per record: `<ts> <event> matched=<n> elapsed=<ms>ms [flags]`, where flags include `blocked`, `trunc`, and `err` (non-zero `exit_code`).
+`tether log` would be the user-facing reader. The pretty form prints one line per record: `<ts> <event> matched=<n> elapsed=<ms>ms [flags]`, where flags include `blocked`, `trunc`, and `err` (non-zero `exit_code`).
 
 | Invocation | Behaviour |
 | --- | --- |

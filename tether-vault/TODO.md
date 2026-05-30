@@ -11,6 +11,8 @@ status: active
 - [x] Clean documentation
 	- [x] Remove redundancies
 	- [x] Remove out-dated or inaccurate info
+- [ ] Split documentation into **For Claude** and **For Me**
+- [ ] Remove tests, simplify/organize codebase (the rendering in particular) 
 - [ ] Research memory systems, coding agents, evals, etc.
 - [ ] Gain understanding of Tether
 	- How is git used? What other git internals could be used?
@@ -32,4 +34,4 @@ status: active
 	- [ ] Have the watcher occasionally check the CLAUDE.md, settings.json, settings.local.json, etc. for misconfigurations.
 ## Considerations
 - [ ] Use pretool usage hooks or add a `tether show ...` command so that Claude can see info about tethers (i.e. read the descriptions)
-- [ ] Add a `tether` command for displaying tethers regardless of their status, via markdown or perhaps with a visualization.
+- [x] Add a `tether show` command for displaying tethers regardless of their status (structural-only, paged plain-text list; no drift computation).

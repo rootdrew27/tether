@@ -4,7 +4,7 @@ Tracking for the integration spec at [Claude-Code-Integration](Claude-Code-Integ
 
 One-time lookups against current Claude Code docs / behavior before implementing the spec:
 
-- **`Tool(path-glob)` permission matcher syntax.** Confirm that the form `Edit(.tether/tethers/**)` (with `**` for recursive glob) is the current syntax, that it matches paths relative to `cwd`, and that it works for all four tools (`Edit`, `Write`, `MultiEdit`, `NotebookEdit`). If the syntax has changed, update the deny entries in the init flow.
+- **`Tool(path-glob)` permission matcher syntax.** Confirm that the form `Edit(.tether/**)` (with `**` for recursive glob) is the current syntax, that it matches paths relative to `cwd`, and that it works for all four tools (`Edit`, `Write`, `MultiEdit`, `NotebookEdit`). If the syntax has changed, update the deny entries in the init flow.
 - **`@file` import in `./CLAUDE.md`.** Confirm that `@.tether/tether.md` is current, stable (not preview), and not size-limited in a way that would clip the fragment. If imports work differently than expected (e.g., must appear at a specific position in the file, or require a leading slash), adjust the init logic.
 - **Stop hook `{"decision": "block"}` continuation semantics.** The docs are silent on what happens after a Stop block. Empirical test owed: does the agent automatically continue in the same turn given the `reason` text as effective input? Or does it wait for the next user prompt? If the latter, the integration's "continuation" framing needs reworking — possibly toward a UserPromptSubmit hook that re-injects context on the user's next prompt.
 

@@ -2,7 +2,7 @@ Deferred design and CLI work explicitly scoped out of MVP but discussed and shap
 
 ## Locator extensions
 
-The MVP ships only the `WholeFile` locator — every tether endpoint is the whole file at its recorded path. The data model is locator-aware, so additional locator types are strictly local additions.
+The MVP has no locator abstraction — every tether endpoint is implicitly the whole file at its recorded path (an `Artifact` is just a `path` + `fingerprint`). The data model is *designed* to take a `locator` field additively (WholeFile = locator absent), so adding sub-file locator types is a strictly local extension.
 
 ### `LineRange` (contiguous start–end line interval)
 
@@ -83,7 +83,7 @@ No consumer exists yet — the Claude Code integration uses one-shot hook subcom
 `tether refs <path>` ships in MVP listing tethers whose `a.path` or `b.path` matches the queried path. When sub-file locators land (`LineRange` and beyond — see §"Locator extensions" above), the command needs to grow:
 
 - Range-aware matching: `tether refs src/auth.py:80-120` should match tethers whose endpoint covers that range.
-- Per-tether locator detail in the markdown / JSON / XML output.
+- Per-tether locator detail in the JSON / XML output.
 - Updates to the agent-facing XML schema injected on `PreToolUse` Read (see [Claude-Code-Integration](../claude-code/Claude-Code-Integration.md)) so the `<self>` element carries the locator the queried file is named by.
 
 ## Background automation

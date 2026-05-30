@@ -329,7 +329,7 @@ def show() -> None:
         click.echo(text)
 
 
-@main.group()
+@main.group(hidden=True)
 def hook() -> None:
     """Hook subcommands invoked by external tools (Claude Code, etc.)."""
 
