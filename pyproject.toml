@@ -32,3 +32,10 @@ dev = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+norecursedirs = ["*.egg", ".*", "_darcs", "build", "CVS", "dist", "node_modules", "venv", "{arch}", "playground*"]
+
+[tool.ruff]
+extend-exclude = ["playground*"]
+
+[tool.pyright]
+exclude = ["**/node_modules", "**/__pycache__", "**/.*", "playground*"]

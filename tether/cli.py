@@ -25,8 +25,8 @@ from .render import Row, all_tethers_md, one_tether_md, refs_xml, show_text
 from .status import AggregateState, ArtifactState, check_tether
 from uuid_utils import uuid7
 
-from .storage import delete as storage_delete
-from .storage import find_by_path, load, load_all, save
+from .storage import delete_tether, load_all_tethers
+from .storage import find_by_path, load_tether, save_tether
 
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -135,7 +135,7 @@ def add(a_path: str, b_path: str, description: str) -> None:
         created_at=now,
         refreshed_at=now,
     )
-    save(root, t)
+    save_tether(root, t)
     click.echo(f"Created tether {t.id}")
 
 
@@ -144,7 +144,7 @@ def add(a_path: str, b_path: str, description: str) -> None:
 @handle_errors
 def rm(tether_id: str) -> None:
     """Delete a tether record."""
-    storage_delete(_root(), tether_id)
+    delete_tether(_root(), tether_id)
     click.echo(f"Removed tether {tether_id}")
 
 
@@ -154,7 +154,7 @@ def rm(tether_id: str) -> None:
 def refresh(tether_id: str) -> None:
     """Re-fingerprint both artifacts, asserting they are aligned."""
     root = _root()
-    t = load(root, tether_id)
+    t = load_tether(root, tether_id)
     check = check_tether(t, root)
     if ArtifactState.BROKEN in (check.a.state, check.b.state):
         raise TetherError(
@@ -167,7 +167,7 @@ def refresh(tether_id: str) -> None:
         b=replace(t.b, fingerprint=hash_object_write(root / t.b.path, root)),
         refreshed_at=_utcnow_iso(),
     )
-    save(root, new_t)
+    save_tether(root, new_t)
     click.echo(f"Refreshed tether {tether_id}")
 
 
@@ -191,7 +191,7 @@ def update(
     if new_description is not None and not new_description.strip():
         raise TetherError("--description must be non-empty")
     root = _root()
-    t = load(root, tether_id)
+    t = load_tether(root, tether_id)
     changes: dict[str, Any] = {}
     if new_a_path is not None:
         changes["a"] = replace(t.a, path=_resolve_rel(root, new_a_path))
@@ -202,7 +202,7 @@ def update(
     new_t = replace(t, **changes)
     if new_t.a.path == new_t.b.path:
         raise TetherError("a and b must differ after update")
-    save(root, new_t)
+    save_tether(root, new_t)
     click.echo(f"Updated tether {tether_id}")
 
 
@@ -215,7 +215,7 @@ def mv(old_path: str, new_path: str) -> None:
     root = _root()
     old_rel = _resolve_rel(root, old_path)
     new_rel = _resolve_rel(root, new_path)
-    result = load_all(root)
+    result = load_all_tethers(root)
     modified: list[str] = []
     for t in result.tethers:
         a_match = t.a.path == old_rel
@@ -231,7 +231,7 @@ def mv(old_path: str, new_path: str) -> None:
             raise TetherError(
                 f"mv would create self-tether on {t.id}; aborting (no records changed)"
             )
-        save(root, new_t)
+        save_tether(root, new_t)
         modified.append(t.id)
     if not modified:
         click.echo(f"No tethers reference {old_rel}")
@@ -260,7 +260,7 @@ def status(tether_id: str | None, as_json: bool, diff: bool | None) -> None:
     root = _root()
 
     if tether_id is not None:
-        t = load(root, tether_id)
+        t = load_tether(root, tether_id)
         check = check_tether(t, root)
         rescued = check.a.normalization_rescued or check.b.normalization_rescued
         show_diff = (
@@ -275,7 +275,7 @@ def status(tether_id: str | None, as_json: bool, diff: bool | None) -> None:
             click.echo(one_tether_md(t, check, root, show_diff))
         return
 
-    result = load_all(root)
+    result = load_all_tethers(root)
     rows: list[Row] = [(t, check_tether(t, root)) for t in result.tethers]
 
     if as_json:
@@ -321,7 +321,7 @@ def refs(path: str, as_json: bool, as_xml: bool) -> None:
 def show() -> None:
     """List every tether with its description."""
     root = _root()
-    result = load_all(root)
+    result = load_all_tethers(root)
     text = show_text(result.tethers, result.errors, root)
     if sys.stdout.isatty():
         click.echo_via_pager(text + "\n")

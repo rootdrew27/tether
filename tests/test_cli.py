@@ -8,7 +8,7 @@ from click.testing import CliRunner
 
 from tether.cli import main
 from tether.model import Tether
-from tether.storage import load_all
+from tether.storage import load_all_tethers
 
 
 def _seed_files(project: Path) -> None:
@@ -155,7 +155,7 @@ def test_mv_rewrites_paths(in_project: Path):
     result = runner.invoke(main, ["mv", "src/auth.py", "src/authentication.py"])
     assert result.exit_code == 0
     assert "Rewrote 1" in result.output
-    loaded = load_all(in_project).tethers[0]
+    loaded = load_all_tethers(in_project).tethers[0]
     assert loaded.b.path == "src/authentication.py"
 
 
@@ -165,7 +165,7 @@ def test_update_description(in_project: Path):
     tid = _add_tether(runner)
     result = runner.invoke(main, ["update", tid, "--description", "new description"])
     assert result.exit_code == 0
-    loaded = load_all(in_project).tethers[0]
+    loaded = load_all_tethers(in_project).tethers[0]
     assert loaded.description == "new description"
 
 

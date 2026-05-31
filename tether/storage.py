@@ -9,22 +9,22 @@ from .model import Tether, validate
 from .project import tethers_dir
 
 
-def record_path(project_root: Path, tether_id: str) -> Path:
+def _record_tether_path(project_root: Path, tether_id: str) -> Path:
     return tethers_dir(project_root) / f"{tether_id}.json"
 
 
-def save(project_root: Path, t: Tether) -> Path:
+def save_tether(project_root: Path, t: Tether) -> Path:
     validate(t)
     raw = msgspec.json.encode(t, order="sorted")
     pretty = msgspec.json.format(raw, indent=2)
-    path = record_path(project_root, t.id)
+    path = _record_tether_path(project_root, t.id)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(pretty + b"\n")
     return path
 
 
-def load(project_root: Path, tether_id: str) -> Tether:
-    path = record_path(project_root, tether_id)
+def load_tether(project_root: Path, tether_id: str) -> Tether:
+    path = _record_tether_path(project_root, tether_id)
     if not path.exists():
         raise TetherNotFoundError(f"no tether record at {path}")
     try:
@@ -37,24 +37,24 @@ def load(project_root: Path, tether_id: str) -> Tether:
     return t
 
 
-def delete(project_root: Path, tether_id: str) -> None:
-    path = record_path(project_root, tether_id)
+def delete_tether(project_root: Path, tether_id: str) -> None:
+    path = _record_tether_path(project_root, tether_id)
     if not path.exists():
         raise TetherNotFoundError(f"no tether record at {path}")
     path.unlink()
 
 
-class LoadResult(msgspec.Struct, frozen=True, kw_only=True):
+class LoadTethersResult(msgspec.Struct, frozen=True, kw_only=True):
     tethers: list[Tether]
     errors: list[tuple[Path, str]]
 
 
-def load_all(project_root: Path) -> LoadResult:
+def load_all_tethers(project_root: Path) -> LoadTethersResult:
     tethers: list[Tether] = []
     errors: list[tuple[Path, str]] = []
     d = tethers_dir(project_root)
     if not d.is_dir():
-        return LoadResult(tethers=[], errors=[])
+        return LoadTethersResult(tethers=[], errors=[])
     for path in sorted(d.glob("*.json")):
         try:
             t = msgspec.json.decode(path.read_bytes(), type=Tether)
@@ -62,16 +62,16 @@ def load_all(project_root: Path) -> LoadResult:
             tethers.append(t)
         except (msgspec.DecodeError, msgspec.ValidationError, InvalidTetherError) as e:
             errors.append((path, str(e)))
-    return LoadResult(tethers=tethers, errors=errors)
+    return LoadTethersResult(tethers=tethers, errors=errors)
 
 
-def find_by_path(project_root: Path, rel_path: str) -> LoadResult:
+def find_by_path(project_root: Path, rel_path: str) -> LoadTethersResult:
     """Return tethers whose `a.path` or `b.path` equals `rel_path`.
 
     Path comparison is exact string equality on the stored project-relative
-    POSIX form. Load errors are surfaced via the returned `LoadResult` so the
+    POSIX form. Load errors are surfaced via the returned `LoadTethersResult` so the
     caller can decide whether to report them.
     """
-    result = load_all(project_root)
+    result = load_all_tethers(project_root)
     matches = [t for t in result.tethers if rel_path in (t.a.path, t.b.path)]
-    return LoadResult(tethers=matches, errors=result.errors)
+    return LoadTethersResult(tethers=matches, errors=result.errors)

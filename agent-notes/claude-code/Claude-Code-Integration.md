@@ -217,8 +217,8 @@ These entries merge alongside any user-authored allow entries; the signature pre
 
 Tether exposes three Claude-Code-specific subcommands, all hidden from the default `tether --help` output:
 
-- `tether hook claude-code session-start` — reads hook input JSON on stdin, loads all tether records and computes each tether's state (`load_all` + `check_tether`), formats per the SessionStart adaptive schema, emits to stdout.
-- `tether hook claude-code stop` — reads hook input JSON on stdin, loads all tether records and computes each tether's state (`load_all` + `check_tether`), emits `{"decision": "block", "reason": "..."}` if any tether is non-HEALTHY, exits 0 with no output otherwise.
+- `tether hook claude-code session-start` — reads hook input JSON on stdin, loads all tether records and computes each tether's state (`load_all_tethers` + `check_tether`), formats per the SessionStart adaptive schema, emits to stdout.
+- `tether hook claude-code stop` — reads hook input JSON on stdin, loads all tether records and computes each tether's state (`load_all_tethers` + `check_tether`), emits `{"decision": "block", "reason": "..."}` if any tether is non-HEALTHY, exits 0 with no output otherwise.
 - `tether hook claude-code pre-tool-use` — reads PreToolUse hook input JSON on stdin (`tool_name`, `tool_input.file_path`), short-circuits to silent exit 0 on non-Read tools or files outside the project, looks up matching tethers via `storage.find_by_path`, and emits `{"hookSpecificOutput": {"hookEventName": "PreToolUse", "additionalContext": "<tether-context>…</tether-context>"}}` when at least one tether matches.
 
 **CLI placement:**
@@ -398,7 +398,7 @@ def hook_main():
     payload = json.loads(raw) if raw else {}
     cwd = payload.get("cwd") or os.getcwd()
     root = walk_upward_for_tether_dir(Path(cwd))
-    # ... load_all(root) + check_tether per record, format, emit ...
+    # ... load_all_tethers(root) + check_tether per record, format, emit ...
 ```
 
 If `cwd` is missing or no `.tether/` is found in the walk, the hook exits 2 with stderr — the integration is misconfigured (see §"Failure contract").

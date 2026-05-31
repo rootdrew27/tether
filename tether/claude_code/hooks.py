@@ -17,7 +17,7 @@ from ..render import (
     summary_line,
 )
 from ..status import AggregateState, check_tether
-from ..storage import LoadResult, find_by_path, load_all
+from ..storage import LoadTethersResult, find_by_path, load_all_tethers
 
 
 class HookInput(msgspec.Struct, kw_only=True):
@@ -67,8 +67,8 @@ def _resolve_cwd(cwd_str: str) -> Path:
     return cwd
 
 
-def _evaluate(root: Path) -> tuple[LoadResult, list[Row]]:
-    result = load_all(root)
+def _evaluate(root: Path) -> tuple[LoadTethersResult, list[Row]]:
+    result = load_all_tethers(root)
     rows: list[Row] = [(t, check_tether(t, root)) for t in result.tethers]
     return result, rows
 

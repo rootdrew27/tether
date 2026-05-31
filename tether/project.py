@@ -17,12 +17,12 @@ def find_project_root(start: Path) -> Path:
     )
 
 
-def is_inside_git_work_tree(path: Path) -> bool:
+def _is_inside_git_work_tree(path: Path) -> bool:
     result = run_git(["rev-parse", "--is-inside-work-tree"], cwd=path)
     return result.returncode == 0 and result.stdout.strip() == "true"
 
 
-def git_toplevel(path: Path) -> Path:
+def _git_toplevel(path: Path) -> Path:
     result = run_git_or_raise(
         ["rev-parse", "--show-toplevel"],
         cwd=path,
@@ -33,11 +33,11 @@ def git_toplevel(path: Path) -> Path:
 
 
 def init_project(start: Path) -> Path:
-    if not is_inside_git_work_tree(start):
+    if not _is_inside_git_work_tree(start):
         raise NotAGitRepoError(
             f"{start} is not inside a git work tree. Run `git init` first."
         )
-    root = git_toplevel(start)
+    root = _git_toplevel(start)
     tether_dir = root / TETHER_DIR
     tethers_dir = tether_dir / TETHERS_SUBDIR
     already = tether_dir.exists()
