@@ -77,19 +77,27 @@ That is exactly the deletion git's rename detector needs. tether can build a syn
 
 ### How it works (verified plumbing)
 
-All steps run against throwaway index files via `GIT_INDEX_FILE`, so the user's real index and working tree are never modified.
+All steps run against throwaway index files via `GIT_INDEX_FILE`, so the user's real index and working tree are never modified. The index paths must **not already exist**: git reads `GIT_INDEX_FILE` as an existing index, so a `mktemp`-created 0-byte file fails with `index file smaller than expected`. Use a name-only `mktemp -u` (or a path inside a temp dir), and clean up the matching `.lock` afterward.
 
 ```bash
 # Inputs: OLD_PATH (the BROKEN Artifact's recorded path)
 #         FP       (its Fingerprint = the stored git blob OID)
 
+# 0. Precondition: the fingerprint blob must still be in the object store. A rename + edit
+#    needs git to *read* it to score similarity (see Limitations → GC race).
+git cat-file -e "$FP^{blob}" || exit   # surface a GC'd fingerprint with a clear error
+
 # 1. T_old — a tree containing only the old path at the fingerprinted content
-TI_OLD=$(mktemp)
+TI_OLD=$(mktemp -u)                    # name only: the file must not exist yet
 GIT_INDEX_FILE="$TI_OLD" git update-index --add --cacheinfo 100644,"$FP","$OLD_PATH"
 TREE_OLD=$(GIT_INDEX_FILE="$TI_OLD" git write-tree)
 
-# 2. A throwaway index reflecting the current working tree (respects .gitignore)
-TI_NEW=$(mktemp)
+# 2. T_new — current state, SEEDED from the real index. The copy reuses git's stat cache
+#    (only genuinely modified files re-hash) AND carries every tracked file, including
+#    committed-but-clean ones; `git add -A` then folds in working-tree changes
+#    (modifications, new untracked files, deletions).
+TI_NEW=$(mktemp -u)
+cp "$(git rev-parse --git-path index)" "$TI_NEW"
 GIT_INDEX_FILE="$TI_NEW" git add -A
 
 # 3. Let git's rename detector pair the (now-deleted) old path against current files
@@ -97,7 +105,7 @@ GIT_INDEX_FILE="$TI_NEW" git diff-index -M --find-renames -z --name-status "$TRE
 # → among the rows:  R<score>\0<OLD_PATH>\0<new_path>
 ```
 
-Step 2 can be bounded for cost: `T_new` only needs the files `git status` flags as untracked / added / modified, since a rename target can only be a new or changed path; the throwaway index can also be seeded from the real index to reuse its stat cache and avoid re-hashing unchanged files.
+Seed `T_new` from the real index; do not bound it to `git status` candidates. The tempting shortcut — "a rename target can only be a new or changed path, so `T_new` only needs status-flagged files" — holds only relative to `HEAD` at the moment of the rename, not relative to the Fingerprint. Once a rename is **committed**, the working tree is clean and the target is flagged neither added, modified, nor untracked, so a status-bounded `T_new` misses it entirely. Seeding from the index closes that hole for free: the same `cp` that reuses the stat cache also carries the committed-renamed file. Verified against a committed rename on a clean working tree — a status-bounded `T_new` reports only the deletion, while a seeded `T_new` recovers `R100` for a pure rename and `R0xx` for a rename + edit.
 
 ### Empirical evidence
 
@@ -124,6 +132,7 @@ Because tether supplies the "before" side, git's rename detection no longer need
 - An exact content match surfaces as `R100`, so the synthetic diff *subsumes* `find-object` and the content-hash scan — those are the 100%-similarity special case.
 - A renamed-and-edited file surfaces as `R0xx`, the case neither exact-OID approach can reach.
 - It is indifferent to `git mv` vs. plain `mv`, staged or not; it only requires the file to exist somewhere on disk.
+- Committed-rename coverage holds **only when `T_new` is seeded from the index** (or built from the full working tree). A `T_new` bounded to `git status` candidates is blind to committed renames — a committed rename leaves a clean tree with nothing flagged. See the seeding note under *How it works* above.
 
 This keeps faith with the [[Tether-Design-MVP]] principle *"Federate, do not reimplement"* — tether borrows git's `diffcore-rename` similarity engine rather than writing its own heuristic.
 
@@ -133,14 +142,15 @@ This keeps faith with the [[Tether-Design-MVP]] principle *"Federate, do not rei
 > - **Sub-threshold rewrites.** A file edited past the similarity threshold (git default 50%) degrades to add + delete and is not matched. Inherent to similarity matching; the threshold is a tunable knob.
 > - **GC race, edited case only.** An exact rename matches on OID without reading the blob, so it survives garbage collection. A rename + edit needs git to *read* the Fingerprint blob to compute similarity — if that blob was GC'd (uncommitted for git's grace period), similarity cannot be computed. Same exposure the ref-pinning item in [[Future-Work]] §"Storage and fingerprints" addresses.
 > - **Ambiguity.** `diff-index -M` reports a single best match per deletion; surfacing "ambiguous — N near matches" needs an extra inspection pass.
-> - **Cost.** Building `T_new` hashes the candidate set — same O(candidates) order as a content-hash scan, but it buys similarity matching. Bound it to `git status` candidates and seed from the real index's stat cache.
+> - **Cost.** Seeding `T_new` from the real index reuses git's stat cache, so only genuinely modified files are re-hashed — the build stays cheap regardless of repo size. The residual cost is git's similarity scoring; see *Rename limit* below.
+> - **Rename limit.** `T_old` holds a single entry, so every file in `T_new` is an *addition* and git scores the one deletion against the whole candidate set. git's inexact (similarity) pass is gated by `diff.renameLimit` (default ~1000 files); above it only exact (`R100`) matching runs, and an edited rename silently degrades to add + delete. On a very large repo, raise `diff.renameLimit` high enough to cover the candidate set, or bound the set — at the cost of the committed-rename coverage that seeding buys.
 > - **Copies are out of scope.** A copy leaves the old path in place, so the Artifact is never BROKEN. Do not enable `--find-copies`.
 
 ## Recommended direction
 
 A single unified candidate-finder, replacing `find_paths_for_blob`'s exact-OID-only logic:
 
-1. On a BROKEN Artifact, run the synthetic-diff at `tether status` time (and therefore inside the Claude Code SessionStart / Stop hooks — see [[Claude-Code-Integration]]). Surface rename candidates **ranked by similarity score**.
+1. On a BROKEN Artifact, run the synthetic-diff — with `T_new` seeded from the real index — at `tether status` time (and therefore inside the Claude Code SessionStart / Stop hooks — see [[Claude-Code-Integration]]). Surface rename candidates **ranked by similarity score**.
 2. Resolution stays the deliberate `tether update --a-path/--b-path` → `tether refresh`, unchanged. The score informs the human/agent; it does not assert alignment.
 3. A later, separate step can auto-follow high-confidence matches (e.g. `R100` / exact) as a journaled, path-only mutation — never crossing into Refresh. This composes with the journal-and-undo and reconcile-on-status items already sequenced in [[Future-Work]].
 
@@ -152,7 +162,7 @@ This finding also refines the deferred `tether reconcile` design in [[Future-Wor
 
 - **Default similarity threshold** for surfacing a candidate (git's default is 50%; lower catches more edited renames at the cost of more false candidates).
 - **Confidence cutoff for silent auto-follow** vs. surface-as-candidate, once auto-follow is in scope.
-- **How to bound `T_new`** — `git status`-flagged candidates vs. a full working-tree snapshot — and the stat-cache seeding strategy.
+- **Candidate-set size on large repos.** Seeding `T_new` from the real index is the baseline — cheap (stat-cache reuse) and it covers committed renames. Open: whether repos whose candidate set exceeds `diff.renameLimit` should raise the limit or fall back to a bounded set, the latter trading committed-rename coverage for speed.
 
 ## Related
 
