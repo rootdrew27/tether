@@ -10,6 +10,7 @@ from .status import (
     AggregateState,
     ArtifactCheck,
     ArtifactState,
+    RenameCandidate,
     TetherCheck,
     artifact_diff,
 )
@@ -21,7 +22,7 @@ class ArtifactStatus(msgspec.Struct, frozen=True, kw_only=True):
     state: ArtifactState
     diff: str | None = None
     normalization_rescued: bool = False
-    rename_candidates: tuple[str, ...] = ()
+    rename_candidates: tuple[RenameCandidate, ...] = ()
 
 
 class TetherStatus(msgspec.Struct, frozen=True, kw_only=True):

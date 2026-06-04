@@ -12,18 +12,18 @@ The canonical vocabulary for the **MVP** of tether. Terms below match what the c
 
 ## Core concepts
 
-| Term                  | Definition                                                                                                          | Aliases to avoid                       |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
-| **Tether**            | A declaration of connection between two artifacts, with a content fingerprint at each artifact and a required description. Symmetric — neither end is privileged. | Link, connection, edge, relation       |
-| **Artifact**          | One of the two ends of a tether: a path (project-relative POSIX) plus a fingerprint. MVP refers to the whole file at the path. | Knot, endpoint, side, target, node     |
-| **Fingerprint**       | The git blob OID of the artifact file's content, recorded at tether creation and re-recorded on refresh.            | Anchor, snapshot, pin                  |
-| **Description**       | A required free-form sentence (or longer) that captures *why* the relationship exists. Carries the project-specific semantics of the tether; the data model itself is intentionally untyped. | Note, label, comment                   |
-| **Refresh**                   | The act of re-fingerprinting; framed as a positive assertion of alignment that travels with the content changes it ratifies. | Auto-update, sync          |
-| **Drift**             | The condition where current content diverges from what was fingerprinted. The umbrella phenomenon, not a status value. | Drift event                            |
-| **Drift normalization** | Comparison-time pipeline applied to both sides when raw fingerprints disagree. Catches encoding-level changes (line endings, BOM, trailing whitespace, leading-tab expansion at tabstop 8) without altering the stored fingerprint. | Canonicalization, whitespace fix       |
-| **Normalizer**        | The implementation of drift normalization. Language-agnostic in MVP.                                                | Canonicalizer                          |
-| **Tether record**     | The on-disk JSON file under `.tether/tethers/<id>.json` that is the canonical representation of a tether. Pretty-printed with sorted keys. | Tether file, link record               |
-| **Tether graph**      | The full set of tethers in a project, considered as a graph over artifacts.                                         | Link graph, network                    |
+| Term                    | Definition                                                                                                                                                                                                                          | Aliases to avoid                   |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| **Tether**              | A declaration of connection between two artifacts, with a content fingerprint at each artifact and a required description. Symmetric — neither end is privileged.                                                                   | Link, connection, edge, relation   |
+| **Artifact**            | One of the two ends of a tether: a path (project-relative POSIX) plus a fingerprint. MVP refers to the whole file at the path.                                                                                                      | Knot, endpoint, side, target, node |
+| **Fingerprint**         | The git blob OID of the artifact file's content, recorded at tether creation and re-recorded on refresh.                                                                                                                            | Anchor, snapshot, pin              |
+| **Description**         | A required free-form sentence (or longer) that captures *why* the relationship exists. Carries the project-specific semantics of the tether; the data model itself is intentionally untyped.                                        | Note, label, comment               |
+| **Refresh**             | The act of re-fingerprinting; framed as a positive assertion of alignment that travels with the content changes it ratifies.                                                                                                        | Auto-update, sync                  |
+| **Drift**               | The condition where current content diverges from what was fingerprinted. The umbrella phenomenon, not a status value.                                                                                                              | Drift event                        |
+| **Drift normalization** | Comparison-time pipeline applied to both sides when raw fingerprints disagree. Catches encoding-level changes (line endings, BOM, trailing whitespace, leading-tab expansion at tabstop 8) without altering the stored fingerprint. | Canonicalization, whitespace fix   |
+| **Normalizer**          | The implementation of drift normalization. Language-agnostic in MVP.                                                                                                                                                                | Canonicalizer                      |
+| **Tether record**       | The on-disk JSON file under `.tether/tethers/<id>.json` that is the canonical representation of a tether. Pretty-printed with sorted keys.                                                                                          | Tether file, link record           |
+| **Tether graph**        | The full set of tethers in a project, considered as a graph over artifacts.                                                                                                                                                         | Link graph, network                |
 
 ## Tether state
 
@@ -64,12 +64,12 @@ The aggregate state is derived from per-artifact states: both HEALTHY → HEALTH
 
 ## Git integration
 
-| Term                  | Definition                                                                                                                                                                              | Aliases to avoid         |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
-| **Git blob OID**      | A SHA hash naming a git blob object; the content-addressed identity of file bytes in `.git/objects/`.                                                                                   | Git hash, object ID      |
-| **Fingerprint write** | The operation that writes artifact bytes into git's object store via `git hash-object -w` so the OID is retrievable.                                                                    | Anchor write, object pin |
-| **Audit trail**       | The lifecycle of a tether visible via `git log .tether/tethers/<id>.json`: when created, fingerprinted, refreshed.                                                                      | History, log             |
-| **Rename detection**  | Identifying that a file has been moved to a new path. Tether queries `git log --all --find-object=<fingerprint>` and surfaces matching paths as rename candidates on a BROKEN artifact. | Path detection           |
+| Term                  | Definition                                                                                                                                                                               | Aliases to avoid         |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| **Git blob OID**      | A SHA hash naming a git blob object; the content-addressed identity of file bytes in `.git/objects/`.                                                                                    | Git hash, object ID      |
+| **Fingerprint write** | The operation that writes artifact bytes into git's object store via `git hash-object -w` so the OID is retrievable.                                                                     | Anchor write, object pin |
+| **Audit trail**       | The lifecycle of a tether visible via `git log .tether/tethers/<id>.json`: when created, fingerprinted, refreshed.                                                                       | History, log             |
+| **Rename detection**  | Identifying that a file has been moved to a new path. Tether uses git internals (see `git diff-index) to identify renamed files, tracking files even when they are renamed *and* edited. | Path detection           |
 
 ## Project boundaries
 
@@ -89,16 +89,6 @@ The aggregate state is derived from per-artifact states: both HEALTHY → HEALTH
 - **Refresh** refuses on a **BROKEN** tether (alignment cannot be asserted for content that cannot be located).
 - A **Tether record** is one file per tether under `.tether/tethers/`, named by UUIDv7 and committed alongside content.
 - The aggregate state of a **Tether** is derived from its per-artifact states: both HEALTHY → HEALTHY; one DRIFTED → WEAKENED; both DRIFTED → DRIFTED; any BROKEN → BROKEN.
-
-## Example dialogue
-
-> **Dev:** "I added a **Tether** between `docs/auth.md` and `src/auth.py`. After my edits this morning, what's the status?"
-> **Tether expert:** "The doc **Artifact** is **HEALTHY**, but the code **Artifact** is **DRIFTED** — its current git blob OID no longer matches the **Fingerprint**. Aggregate state is **WEAKENED**."
-> **Dev:** "Got it — so I update the doc and then `tether refresh`?"
-> **Tether expert:** "Right. **Refresh** re-fingerprints both **Artifacts** together; it's the assertion that they're now aligned. Don't refresh until you've actually updated the doc, or you'll erase the drift signal."
-> **Dev:** "What if I'd renamed `auth.py` to `authentication.py` instead of just editing it?"
-> **Tether expert:** "Then the file isn't at the recorded path — the code **Artifact** is **BROKEN**. Tether queries `git log --find-object` against the **Fingerprint** and surfaces matching paths as rename candidates. You'd run `tether update --b-path authentication.py` to follow the rename, then `tether refresh` once aligned."
-
 ## Flagged ambiguities
 
 - **"Tether" as system vs. unit.** The word names both the project ("tether") and an individual link ("a tether"). Context disambiguates in practice; prefer "the tether system" or "tether (the tool)" when ambiguity matters in user-facing prose.

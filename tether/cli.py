@@ -22,7 +22,7 @@ from .output import (
 )
 from .project import find_project_root, init_project
 from .render import Row, all_tethers_md, one_tether_md, refs_xml, show_text
-from .status import AggregateState, ArtifactState, check_tether
+from .status import AggregateState, ArtifactState, check_all, check_tether
 from uuid_utils import uuid7
 
 from .storage import delete_tether, load_all_tethers
@@ -261,7 +261,7 @@ def status(tether_id: str | None, as_json: bool, diff: bool | None) -> None:
 
     if tether_id is not None:
         t = load_tether(root, tether_id)
-        check = check_tether(t, root)
+        check = check_all([t], root)[0]
         rescued = check.a.normalization_rescued or check.b.normalization_rescued
         show_diff = (
             diff
@@ -276,7 +276,8 @@ def status(tether_id: str | None, as_json: bool, diff: bool | None) -> None:
         return
 
     result = load_all_tethers(root)
-    rows: list[Row] = [(t, check_tether(t, root)) for t in result.tethers]
+    checks = check_all(result.tethers, root)
+    rows: list[Row] = [(t, ck) for t, ck in zip(result.tethers, checks)]
 
     if as_json:
         click.echo(encode_pretty(build_status_report(rows, result.errors, root)))
@@ -308,7 +309,8 @@ def refs(path: str, as_json: bool, as_xml: bool) -> None:
     root = _root()
     rel = _resolve_rel(root, path)
     result = find_by_path(root, rel)
-    rows: list[Row] = [(t, check_tether(t, root)) for t in result.tethers]
+    checks = check_all(result.tethers, root)
+    rows: list[Row] = [(t, ck) for t, ck in zip(result.tethers, checks)]
 
     if as_xml:
         click.echo(refs_xml(rel, rows, result.errors, root), nl=False)

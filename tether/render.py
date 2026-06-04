@@ -13,6 +13,7 @@ from .status import (
     AggregateState,
     ArtifactCheck,
     ArtifactState,
+    RenameCandidate,
     TetherCheck,
     artifact_diff,
 )
@@ -55,8 +56,10 @@ def item_lines(rows: list[Row], *, with_description: bool = True) -> list[str]:
             lines.append(f"  Description: {t.description}")
         for label, art in (("a", check.a), ("b", check.b)):
             if art.state == ArtifactState.BROKEN and art.rename_candidates:
-                joined = ", ".join(f"`{p}`" for p in art.rename_candidates)
-                lines.append(f"  {label} rename candidates (by fingerprint): {joined}")
+                joined = ", ".join(
+                    f"`{c.path}` (R{c.similarity})" for c in art.rename_candidates
+                )
+                lines.append(f"  {label} best match: {joined}")
     return lines
 
 
@@ -147,6 +150,28 @@ def _classify_sides(
     return (t.b, check.b), (t.a, check.a)
 
 
+def _side_xml(tag: str, art: Artifact, check: ArtifactCheck) -> list[str]:
+    """Render one `<self>`/`<peer>` element, nesting any `<rename-candidate>` children.
+
+    Self-closing when there are no candidates; otherwise opens the element, emits a
+    `<rename-candidate>` per candidate, and closes it.
+    """
+    head = (
+        f"<{tag} path={_xml_quoteattr(art.path)} "
+        f"state={_xml_quoteattr(check.state.value)}"
+    )
+    if check.state == ArtifactState.BROKEN and check.rename_candidates:
+        out = [f"    {head}>"]
+        for c in check.rename_candidates:
+            out.append(
+                f"      <rename-candidate path={_xml_quoteattr(c.path)} "
+                f"similarity={_xml_quoteattr(str(c.similarity))} />"
+            )
+        out.append(f"    </{tag}>")
+        return out
+    return [f"    {head} />"]
+
+
 def refs_xml(
     rel_path: str,
     rows: list[Row],
@@ -166,14 +191,8 @@ def refs_xml(
             f"  <tether id={_xml_quoteattr(t.id)} "
             f"aggregate={_xml_quoteattr(check.aggregate.value)}>"
         )
-        lines.append(
-            f"    <self path={_xml_quoteattr(self_art.path)} "
-            f"state={_xml_quoteattr(self_check.state.value)} />"
-        )
-        lines.append(
-            f"    <peer path={_xml_quoteattr(peer.path)} "
-            f"state={_xml_quoteattr(peer_check.state.value)} />"
-        )
+        lines.extend(_side_xml("self", self_art, self_check))
+        lines.extend(_side_xml("peer", peer, peer_check))
         lines.append(f"    <description>{_xml_escape(t.description)}</description>")
         lines.append("  </tether>")
     if errors:
@@ -263,16 +282,18 @@ def _drift_block(
     return body
 
 
-def _broken_block(label: str, path: str, candidates: tuple[str, ...]) -> list[str]:
+def _broken_block(
+    label: str, path: str, candidates: tuple[RenameCandidate, ...]
+) -> list[str]:
     lines = [
         "",
         f"## Broken {label}: `{path}` (file not present at recorded path)",
     ]
     if candidates:
         lines.append("")
-        lines.append("Rename candidates (matched by fingerprint):")
-        for p in candidates:
-            lines.append(f"- `{p}`")
+        lines.append("Rename candidates (by content similarity):")
+        for c in candidates:
+            lines.append(f"- `{c.path}` (R{c.similarity})")
         lines.append("")
         lines.append(
             f"To follow a rename: `tether update --{label}-path <new>`, "

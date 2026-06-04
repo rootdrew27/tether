@@ -16,7 +16,7 @@ from ..render import (
     refs_xml,
     summary_line,
 )
-from ..status import AggregateState, check_tether
+from ..status import AggregateState, check_all, check_tether
 from ..storage import LoadTethersResult, find_by_path, load_all_tethers
 
 
@@ -69,7 +69,8 @@ def _resolve_cwd(cwd_str: str) -> Path:
 
 def _evaluate(root: Path) -> tuple[LoadTethersResult, list[Row]]:
     result = load_all_tethers(root)
-    rows: list[Row] = [(t, check_tether(t, root)) for t in result.tethers]
+    checks = check_all(result.tethers, root)
+    rows: list[Row] = [(t, ck) for t, ck in zip(result.tethers, checks)]
     return result, rows
 
 

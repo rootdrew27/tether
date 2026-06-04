@@ -73,7 +73,7 @@ The output is markdown on stdout, which Claude Code injects as context. The agen
 
 Claude Code routes `additionalContext` into the agent's context window alongside the eventual tool result for `PreToolUse` (per the Claude Code hooks reference). The agent sees the file content and the tether context together at decision time, before the next tool call.
 
-**XML format.** One `<tether-context>` wrapper; one `<tether>` child per matching record, severity-ordered (BROKEN → DRIFTED → WEAKENED → HEALTHY, UUIDv7 ascending tiebreaker). Each `<tether>` carries `id` and `aggregate` attributes; `<self path … state…>` and `<peer path … state…>` self-closing children with per-side state (the queried file's state can differ across tethers because each tether records its own fingerprint); `<description>` element text carries the prose verbatim, XML-escaped. Sample:
+**XML format.** One `<tether-context>` wrapper; one `<tether>` child per matching record, severity-ordered (BROKEN → DRIFTED → WEAKENED → HEALTHY, UUIDv7 ascending tiebreaker). Each `<tether>` carries `id` and `aggregate` attributes; `<self path … state…>` and `<peer path … state…>` children with per-side state (the queried file's state can differ across tethers because each tether records its own fingerprint); `<description>` element text carries the prose verbatim, XML-escaped. A BROKEN side may nest a `<rename-candidate path … similarity … />` child — git's best content-similarity match for the missing file (see the rename-detection design); otherwise the side is self-closing. Sample:
 
 ```xml
 <tether-context>
@@ -82,8 +82,17 @@ Claude Code routes `additionalContext` into the agent's context window alongside
     <peer path="docs/usage.md" state="HEALTHY" />
     <description>usage.md describes the CLI surface defined in cli.py …</description>
   </tether>
+  <tether id="0192abc1-23ef-7890-abcd-ef0123456789" aggregate="BROKEN">
+    <self path="src/legacy.py" state="BROKEN">
+      <rename-candidate path="src/auth/legacy.py" similarity="96" />
+    </self>
+    <peer path="docs/old.md" state="HEALTHY" />
+    <description>Spec for the legacy auth path …</description>
+  </tether>
 </tether-context>
 ```
+
+**Rename candidates are not emitted at PreRead.** The per-Read injection uses a candidate-free check so a Read never triggers the working-tree scan rename detection requires. The `<rename-candidate>` child is populated by `tether refs --xml` and surfaces in the SessionStart / Stop / `tether status` reports — not in the `PreToolUse` payload above.
 
 **Partial-failure policy.** Unreadable tether records are skipped — `find_by_path` returns valid matches; the `<tether-context>` payload **does not** include an `<errors>` block at this surface. The same corrupt records are surfaced at SessionStart and inside `tether status` / `tether refs` for the project-wide and per-file diagnostic surfaces respectively. PreRead intentionally stays narrow: "this file you're about to interact with has these tethers" — corruption notices unrelated to the queried file would be noise repeated per Read.
 

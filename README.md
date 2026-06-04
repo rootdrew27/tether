@@ -74,8 +74,10 @@ and compares the result's git blob OID against the recorded fingerprint:
 - **HEALTHY** — OID matches the fingerprint.
 - **DRIFTED** — file resolves but content's OID differs.
 - **BROKEN** — file no longer exists at the recorded path. `tether status`
-  queries `git log --find-object` for paths that currently match the recorded
-  blob OID and surfaces them as rename candidates.
+  feeds the recorded path and fingerprint to git's rename detector (a synthetic
+  diff against the working tree) and surfaces the best content-similarity match
+  as a rename candidate, with a score — following the file even if it was
+  renamed *and* edited.
 
 When the raw OIDs disagree, tether re-runs the comparison through a
 language-agnostic normalizer (line endings, BOM, trailing whitespace, EOF

@@ -18,7 +18,26 @@ The candidate-finder is replaced wholesale: git's `diffcore-rename` similarity e
 | 6 | Similarity threshold | `-M30` (30%), as a hardcoded module constant. No CLI flag. | Lower than git's 50% default so heavier edits still surface rather than dead-ending as "BROKEN, no candidate." Cheap to be wrong under notify-only. A constant keeps it a one-line change; per-invocation config is a documented future knob. |
 | 7 | Batching | One T_old holding **every** BROKEN `{old_path → Fingerprint}` entry, one seeded T_new, one `git diff-index` per status run. | `diffcore-rename` pairs all deletions against all current additions in a single similarity pass, so cost is one git diff regardless of tether count. |
 | 8 | Claude Code XML | A `<rename-candidate path="…" similarity="…" />` child nested under the BROKEN `<self>`/`<peer>` in the `<tether-context>` block. | `refs_xml` omits candidates today. A child element is parser-friendly and extends cleanly if N candidates ever land. |
-| 9 | Tests | Deferred — none in this change. | Recorded as a known gap; see *Open* below. |
+| 9 | Tests | Minimal: migrate the breaking test + `find_renames` smoke tests; full matrix deferred. | Covers the model/orchestration change and the core paths; the broader matrix in *Open* stays a known gap. |
+
+## Resolutions applied (post-review)
+
+A review pass before implementation resolved the following on top of the decisions above:
+
+- **PreRead stays candidate-free.** The per-Read `PreToolUse` hook is *not* migrated to the
+  batched checker — a Read never triggers the working-tree scan. Candidates surface in
+  `tether status` / SessionStart / Stop / `tether refs`. The `<rename-candidate>` XML child
+  (decision 8) is therefore exercised via `tether refs --xml`, not the per-Read injection.
+- **R100 exact-duplicate ambiguity deferred** → documented limitation (no `--raw` post-filter;
+  the diff stays `--name-status`).
+- **Hardening folded in:** the diff runs `git -c diff.renameLimit=0 -c core.quotePath=false
+  diff-index -M30% --find-renames -z --name-status`; `find_renames` is keyed by
+  `(old_path, fingerprint)` so same-path/different-fingerprint colliders attach correctly; a
+  fresh/no-commit repo (no `.git/index`) falls back to an empty seeded index; any git failure
+  degrades to a partial/empty mapping (never raises).
+- **Tests: minimal.** The one breaking test was migrated to `check_all` + the `RenameCandidate`
+  shape, plus `find_renames` smoke tests (edited-rename match, sub-threshold miss, missing-blob
+  no-crash). The full matrix in *Open* stays deferred.
 
 ## Mechanism
 
@@ -27,14 +46,14 @@ The plumbing is the verified sequence from the research doc, generalized from on
 1. **Filter** the BROKEN `(old_path, fingerprint)` set to fingerprints whose blob is still in the object store (`git cat-file -e "$FP^{blob}"`). A rename + edit needs git to *read* the blob to score similarity; a GC'd uncommitted Fingerprint cannot be scored and yields no candidate.
 2. **T_old** — one tree containing every surviving BROKEN entry, built with `git update-index --add --cacheinfo 100644,<FP>,<old_path>` then `git write-tree`. De-duplicate by path; on the rare same-path / different-Fingerprint collision, score those colliders in a separate pass.
 3. **T_new** — seeded from the real index (`cp "$(git rev-parse --git-path index)" "$TI_NEW"` then `GIT_INDEX_FILE="$TI_NEW" git add -A`). The copy reuses git's stat cache (only modified files re-hash) and carries committed-but-clean files, so committed renames are covered.
-4. **Diff** — `GIT_INDEX_FILE="$TI_NEW" git diff-index -M30 -z --name-status "$TREE_OLD"`. Every BROKEN `old_path` is a deletion; every current file is an addition; `diffcore-rename` pairs each deletion with its best match, emitting `R<score>\0<old_path>\0<new_path>` rows.
+4. **Diff** — `GIT_INDEX_FILE="$TI_NEW" git -c diff.renameLimit=0 -c core.quotePath=false diff-index -M30% --find-renames -z --name-status "$TREE_OLD"`. Every BROKEN `old_path` is a deletion; every current file is an addition; `diffcore-rename` pairs each deletion with its best match, emitting `R<score>\0<old_path>\0<new_path>` rows. `diff.renameLimit=0` makes detection independent of user gitconfig; `core.quotePath=false` keeps non-ASCII paths literal.
 5. **Map** each row's `old_path` back to its BROKEN artifact(s) and attach the `(new_path, score)` candidate.
 
 ## Code changes
 
 - **`tether/git.py`**
   - Add an `env` keyword to `run_git` so `GIT_INDEX_FILE` can be set per call.
-  - New batch primitive `find_renames(broken: list[tuple[str, str]], root: Path) -> dict[str, tuple[str, int]]` mapping `old_path → (new_path, score)`. It performs the five-step mechanism above and manages temp index lifecycle (creation at non-existent paths, `.lock` cleanup). It returns raw tuples so `git.py` keeps no dependency on the domain structs.
+  - New batch primitive `find_renames(broken: list[tuple[str, str]], root: Path) -> dict[tuple[str, str], tuple[str, int]]` mapping `(old_path, fingerprint) → (new_path, score)`. It performs the five-step mechanism above and manages temp index lifecycle (creation at non-existent paths, `.lock` cleanup). It returns raw tuples so `git.py` keeps no dependency on the domain structs.
   - `find_paths_for_blob` drops out of the status path. (The function may be removed once nothing references it.)
 
 - **`tether/status.py`**
@@ -66,12 +85,15 @@ Carried forward from the research; documented, not fixed:
 
 - **Sub-threshold rewrites.** A file edited past the 30% similarity floor degrades to add + delete and surfaces no candidate.
 - **Decoy outscoring.** Single-best matching can surface a coincidentally-similar decoy over a heavily-edited true target.
-- **`diff.renameLimit`.** On a very large repo the candidate set can exceed git's inexact-rename limit (default ~1000); above it only exact (`R100`) matching runs and an edited rename degrades silently.
-- **GC race.** An uncommitted Fingerprint blob that has been garbage-collected cannot be scored, so the rename + edit case yields no candidate.
+- **R100 exact-duplicate ambiguity.** When several working-tree files share the BROKEN content, git reports an arbitrary one as the rename and the rest as silent additions; tether surfaces that single match and does not flag the ambiguity.
+- **`.gitignore` respected.** `T_new` is built with `git add -A`, so a rename *into* a gitignored path is invisible (deliberate: keeps the candidate set small and excludes build trees).
+- **Object-store side effect.** `git add -A` writes loose blobs for non-ignored untracked files into `.git/objects` (git-gc reclaims them); the real index, working tree, and refs are untouched.
+- **`diff.renameLimit`.** Neutralized with `-c diff.renameLimit=0` so detection is independent of user gitconfig; the limit is on the rename *matrix* (≈ `renameLimit²` pairs), so only a very large BROKEN set against a very large tree could still degrade.
+- **GC race.** An uncommitted Fingerprint blob that has been garbage-collected cannot be scored, so the rename + edit case yields no candidate (pre-filtered; no crash).
 
 ## Open
 
-- **Tests.** Deferred in this change. The recommended core matrix before merge: uncommitted pure rename (`R100`), committed rename, rename + edit above threshold (`R0xx`), sub-threshold (no candidate), GC'd blob (no candidate, no crash), multiple BROKEN artifacts in one run (batched-diff correctness), and non-invasiveness (real index and working tree untouched).
+- **Tests.** Shipped minimal coverage (committed rename `R100` via `check_all`, edited-rename match, sub-threshold miss, missing-blob no-crash). Still deferred from the recommended core matrix: explicit uncommitted pure rename, multiple BROKEN artifacts in one run (batched-diff correctness), and non-invasiveness (real index and working tree untouched).
 - **Threshold tuning** and **per-invocation config** — whether `-M30` is the right floor, and whether to expose a `--rename-threshold` flag.
 - **Candidate-set size on large repos** — raise `diff.renameLimit` vs. fall back to a bounded set, trading committed-rename coverage for speed.
 - **Reverse direction** — detecting that a file being Read *is* the moved target of some BROKEN tether (decision 1's deferred case).
