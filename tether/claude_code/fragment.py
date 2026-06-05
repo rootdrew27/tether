@@ -86,16 +86,19 @@ Run `tether status` as a *diagnostic*, not a verification step:
 
 ## Automatic tether context on Read
 
-When you read a tethered file, tether injects a `<tether-context>` block alongside the file content. Each `<tether>` element carries:
+When you read a tethered file, tether injects a JSON block alongside the file content with the same shape as `tether refs <path>`. Top-level fields:
 
-- `aggregate` — the tether's overall state.
-- `<self path state />` — your side's per-tether state (the file you just read; per-side state can differ across tethers because each tether records its own fingerprint).
-- `<peer path state />` — the other artifact's path and per-tether state.
-- `<description>` — the project-specific reason the relationship exists. Treat it as authoritative for how a coordinated edit should look.
+- `queried_path` — the file you just read. Use it to identify which of `a`/`b` is your side; the other is the peer.
+- `summary` — counts by state across the listed tethers.
+- `tethers` — severity-ordered list. Each entry carries:
+  - `state` — the tether's aggregate state.
+  - `a`, `b` — the two artifacts. Stable labels (whichever was passed first to `tether add` is `a`); neither end is privileged. Each carries `path`, `fingerprint`, and `state`.
+  - `description` — the project-specific reason the relationship exists. Treat it as authoritative for how a coordinated edit should look.
+- `errors` — always empty in this context (corrupt-record errors are reported by SessionStart and Stop, not on every Read).
 
-If the aggregate is **DRIFTED**, plan coordinated edits per the description before ending the turn. If **BROKEN**, the peer file is missing — rename candidates are not included in this context block, so run `tether status <uuid>` to see them, then use `tether update --a-path/--b-path` to follow the rename, or `tether rm` to retire the record.
+If the aggregate `state` is **DRIFTED**, plan coordinated edits per the description before ending the turn. If **BROKEN**, the peer file is missing — rename candidates are not included in this context, so run `tether status <uuid>` to see them, then use `tether update --a-path/--b-path` to follow the rename, or `tether rm` to retire the record.
 
-The per-side states in `<tether-context>` are current at the moment of the Read; you do not need to run `tether status` to verify them.
+The per-side `state` values are current at the moment of the Read; you do not need to run `tether status` to verify them.
 
 ## Key commands
 
@@ -104,7 +107,7 @@ The per-side states in `<tether-context>` are current at the moment of the Read;
 - `tether status` — show all tethers, severity-ordered.
 - `tether status <uuid>` — show one tether with a unified diff for any DRIFTED artifact, and rename candidates for any BROKEN artifact.
 - `tether show` — list every tether with its description, regardless of state (including the HEALTHY ones `tether status` collapses into a count). Use for **orientation**: the whole relationship graph and the *why* behind each link, when onboarding to a project or planning a change that spans several files. Not a per-turn check and not a drift diagnostic — use `tether status` for drift and `tether refs <path>` for what touches a specific file.
-- `tether refs <path>` — list tethers referencing a path. Rarely needed during normal work since context is auto-injected on Read; useful for debugging or for inspecting what the agent would see (`--xml`).
+- `tether refs <path>` — list tethers referencing a path. Rarely needed during normal work since context is auto-injected on Read.
 - `tether add <a> <b> --description "..."` — create a tether. `--description` is required.
 - `tether refresh <uuid>` — re-fingerprint both artifacts; the explicit assertion that they are aligned.
 - `tether update <uuid> [--a-path <p>] [--b-path <p>] [--description "..."]` — structural change, no fingerprint touch.

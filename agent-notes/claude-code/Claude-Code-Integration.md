@@ -7,7 +7,7 @@ The integration uses three Claude Code hook events:
 | Event | Purpose |
 |---|---|
 | `SessionStart` | Inject tether status as context at the start of every session (including `resume`, `clear`, and `compact`). Orientation. |
-| `PreToolUse` (matcher `"Read"`) | When the agent reads a tethered file, inject a `<tether-context>` block describing every tether involving that file (states, peer path, description). Decision-time steering. |
+| `PreToolUse` (matcher `"Read"`) | When the agent reads a tethered file, inject a JSON payload describing every tether involving that file (states, peer path, description). Decision-time steering. |
 | `Stop` | Check tether status before the agent ends its turn. Block the turn (force continuation) if any tether is non-HEALTHY. |
 
 `PreToolUse` on `Edit`/`Write`/`MultiEdit` is deliberately not part of the design. Edits are frequent (8-30 per turn in typical sessions); per-edit context injection is expensive and largely redundant with the PreRead-on-Read injection that already primed the agent with the tether description before it decided to edit. Stop coverage at turn end remains the safety net for drift the agent introduced. Other PreToolUse triggers (Bash-mediated reads, prompt `@file` mentions) are tracked in [Claude-Code-Integration-Open](Claude-Code-Integration-Open.md).
@@ -66,37 +66,44 @@ The output is markdown on stdout, which Claude Code injects as context. The agen
    {
      "hookSpecificOutput": {
        "hookEventName": "PreToolUse",
-       "additionalContext": "<tether-context>…</tether-context>\n"
+       "additionalContext": "{\"queried_path\": \"...\", \"tethers\": [...], ...}"
      }
    }
    ```
 
 Claude Code routes `additionalContext` into the agent's context window alongside the eventual tool result for `PreToolUse` (per the Claude Code hooks reference). The agent sees the file content and the tether context together at decision time, before the next tool call.
 
-**XML format.** One `<tether-context>` wrapper; one `<tether>` child per matching record, severity-ordered (BROKEN → DRIFTED → HEALTHY, UUIDv7 ascending tiebreaker). Each `<tether>` carries `id` and `aggregate` attributes; `<self path … state…>` and `<peer path … state…>` children with per-side state (the queried file's state can differ across tethers because each tether records its own fingerprint); `<description>` element text carries the prose verbatim, XML-escaped. A BROKEN side may nest a `<rename-candidate path … similarity … />` child — git's best content-similarity match for the missing file (see the rename-detection design); otherwise the side is self-closing. Sample:
+**Payload format.** `additionalContext` carries the pretty-printed JSON of a `RefsReport` — the same shape `tether refs <path>` emits by default. Top-level fields:
 
-```xml
-<tether-context>
-  <tether id="019e36df-a270-7653-84a1-6af594d8286a" aggregate="DRIFTED">
-    <self path="src/cli.py" state="DRIFTED" />
-    <peer path="docs/usage.md" state="HEALTHY" />
-    <description>usage.md describes the CLI surface defined in cli.py …</description>
-  </tether>
-  <tether id="0192abc1-23ef-7890-abcd-ef0123456789" aggregate="BROKEN">
-    <self path="src/legacy.py" state="BROKEN">
-      <rename-candidate path="src/auth/legacy.py" similarity="96" />
-    </self>
-    <peer path="docs/old.md" state="HEALTHY" />
-    <description>Spec for the legacy auth path …</description>
-  </tether>
-</tether-context>
+- `queried_path` — the file the agent just read; lets the agent identify which of `a`/`b` is its side.
+- `summary` — counts by state across the listed tethers.
+- `tethers` — severity-ordered list (BROKEN → DRIFTED → HEALTHY, UUIDv7 ascending tiebreaker). Each entry carries `id`, `description`, the aggregate `state`, and two artifacts `a` and `b` (stable labels carrying no direction). Each artifact carries `path`, `fingerprint`, and per-side `state` (the queried file's state can differ across tethers because each tether records its own fingerprint).
+- `errors` — always `[]` at this surface (see partial-failure policy below).
+
+Sample:
+
+```json
+{
+  "queried_path": "src/cli.py",
+  "summary": { "TOTAL": 1, "HEALTHY": 0, "DRIFTED": 1, "BROKEN": 0 },
+  "tethers": [
+    {
+      "id": "019e36df-a270-7653-84a1-6af594d8286a",
+      "state": "DRIFTED",
+      "description": "usage.md describes the CLI surface defined in cli.py …",
+      "a": { "path": "src/cli.py", "fingerprint": "…", "state": "DRIFTED" },
+      "b": { "path": "docs/usage.md", "fingerprint": "…", "state": "HEALTHY" }
+    }
+  ],
+  "errors": []
+}
 ```
 
-**Rename candidates are not emitted at PreRead.** The per-Read injection uses a candidate-free check so a Read never triggers the working-tree scan rename detection requires. The `<rename-candidate>` child is populated by `tether refs --xml` and surfaces in the SessionStart / Stop / `tether status` reports — not in the `PreToolUse` payload above.
+**Rename candidates are not emitted at PreRead.** The per-Read injection uses `check_tether` (the state-only primitive) rather than `check_all`, so the working-tree scan rename detection requires is never run on a Read. Each artifact's `rename_candidates` field is therefore always `[]` here. Candidates surface only in `tether refs <path>` and the SessionStart / Stop / `tether status` reports.
 
-**Partial-failure policy.** Unreadable tether records are skipped — `find_by_path` returns valid matches; the `<tether-context>` payload **does not** include an `<errors>` block at this surface. The same corrupt records are surfaced at SessionStart and inside `tether status` / `tether refs` for the project-wide and per-file diagnostic surfaces respectively. PreRead intentionally stays narrow: "this file you're about to interact with has these tethers" — corruption notices unrelated to the queried file would be noise repeated per Read.
+**Partial-failure policy.** Unreadable tether records are skipped — `find_by_path` returns valid matches; the payload's `errors` field is always `[]` at this surface. The same corrupt records are surfaced at SessionStart and inside `tether status` / `tether refs` for the project-wide and per-file diagnostic surfaces respectively. PreRead intentionally stays narrow: "this file you're about to interact with has these tethers" — corruption notices unrelated to the queried file would be noise repeated per Read.
 
-**Why `additionalContext` and not stdout text.** Claude Code's hooks reference is explicit: stdout-to-context routing applies only to `SessionStart`, `UserPromptSubmit`, and `UserPromptExpansion`. PreToolUse stdout goes to the debug log unless wrapped in the JSON shape above. The 10,000-char cap on `additionalContext` is well above the size of any plausible tether's worth of XML.
+**Why `additionalContext` and not stdout text.** Claude Code's hooks reference is explicit: stdout-to-context routing applies only to `SessionStart`, `UserPromptSubmit`, and `UserPromptExpansion`. PreToolUse stdout goes to the debug log unless wrapped in the JSON shape above. The 10,000-char cap on `additionalContext` is well above the size of any plausible tether's worth of JSON.
 
 **Origin.** Empirically motivated by case-study-01, where the same agent on the same task succeeded by reading the tether description before editing (run 2) and only narrowly recovered by post-hoc reasoning when it didn't (run 1). The PreRead injection makes the success path the default — the description is delivered with the file content, every time.
 
@@ -228,7 +235,7 @@ Tether exposes three Claude-Code-specific subcommands, all hidden from the defau
 
 - `tether hook claude-code session-start` — reads hook input JSON on stdin, loads all tether records and computes each tether's state (`load_all_tethers` + `check_tether`), formats per the SessionStart adaptive schema, emits to stdout.
 - `tether hook claude-code stop` — reads hook input JSON on stdin, loads all tether records and computes each tether's state (`load_all_tethers` + `check_tether`), emits `{"decision": "block", "reason": "..."}` if any tether is non-HEALTHY, exits 0 with no output otherwise.
-- `tether hook claude-code pre-tool-use` — reads PreToolUse hook input JSON on stdin (`tool_name`, `tool_input.file_path`), short-circuits to silent exit 0 on non-Read tools or files outside the project, looks up matching tethers via `storage.find_by_path`, and emits `{"hookSpecificOutput": {"hookEventName": "PreToolUse", "additionalContext": "<tether-context>…</tether-context>"}}` when at least one tether matches.
+- `tether hook claude-code pre-tool-use` — reads PreToolUse hook input JSON on stdin (`tool_name`, `tool_input.file_path`), short-circuits to silent exit 0 on non-Read tools or files outside the project, looks up matching tethers via `storage.find_by_path`, and emits `{"hookSpecificOutput": {"hookEventName": "PreToolUse", "additionalContext": "<RefsReport JSON>"}}` when at least one tether matches.
 
 **CLI placement:**
 
@@ -380,16 +387,19 @@ Re-runs emit the same change lines because merge is signature-matched and replac
 
 ## Output formats
 
-Tether's agent-facing CLI output is **markdown by default**; JSON is opt-in behind `--json` for programmatic consumers. (`tether show` is the exception — a plain-text, paged catalog for browsing the whole graph; it is agent-callable but stands outside the markdown/JSON contract.) The two surfaces, by audience:
+Tether's CLI output mixes defaults by audience: `tether status` is markdown by default (with `--json` opt-in); `tether refs` is JSON by default (with `--markdown` opt-in), matching the format the PreToolUse hook injects so the agent sees the same shape whether it's auto-injected on Read or queried explicitly. (`tether show` is the exception — a plain-text, paged catalog for browsing the whole graph; it is agent-callable but stands outside the markdown/JSON contract.) The surfaces, by audience:
 
 | Surface | Default format | When |
 |---|---|---|
 | `tether status` (no args, no `--json`) | Markdown | Agent runs it; human at a terminal. |
 | `tether status <uuid>` | Markdown (with fenced diff blocks for drifted sides) | Agent fetches details on one tether. |
 | `tether status --json` / `tether status --json <uuid>` | JSON | Scripts, CI, future automation. |
+| `tether refs <path>` | JSON (`RefsReport`) | Default; same shape the PreToolUse hook injects. |
+| `tether refs <path> --markdown` | Markdown | Human-readable summary at a terminal. |
 | Hook subcommands (`tether hook claude-code session-start` / `stop`) | Markdown to stdout (SessionStart); markdown reason inside `{"decision": "block", "reason": "..."}` (Stop) | Claude Code's hook engine consumes. |
+| Hook subcommand `tether hook claude-code pre-tool-use` | JSON (`RefsReport`) inside `additionalContext` | Claude Code routes into the agent's context. |
 
-Markdown is the default because Claude reads it natively at lower token cost than JSON; the SessionStart and Stop reason formats specified above are markdown. The `--json` form's schema is documented separately (see `tether status --json` in the CLI surface) and is the contract for non-agent consumers.
+Markdown is the default for status surfaces because Claude reads it natively at lower token cost than JSON. `tether refs` defaults to JSON because its primary consumer is the PreToolUse hook injection — keeping the CLI and hook on a single schema means `tether refs <path>` shows the agent exactly what it would have seen via auto-injection.
 
 ## Hook input contract
 

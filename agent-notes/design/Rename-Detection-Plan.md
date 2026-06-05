@@ -17,7 +17,7 @@ The candidate-finder is replaced wholesale: git's `diffcore-rename` similarity e
 | 5 | Candidate model | `RenameCandidate(path: str, similarity: int)`, score non-nullable (0–100, git's R-score). | With the scoreless `find-object` source gone, every candidate carries a real similarity score. |
 | 6 | Similarity threshold | `-M30` (30%), as a hardcoded module constant. No CLI flag. | Lower than git's 50% default so heavier edits still surface rather than dead-ending as "BROKEN, no candidate." Cheap to be wrong under notify-only. A constant keeps it a one-line change; per-invocation config is a documented future knob. |
 | 7 | Batching | One T_old holding **every** BROKEN `{old_path → Fingerprint}` entry, one seeded T_new, one `git diff-index` per status run. | `diffcore-rename` pairs all deletions against all current additions in a single similarity pass, so cost is one git diff regardless of tether count. |
-| 8 | Claude Code XML | A `<rename-candidate path="…" similarity="…" />` child nested under the BROKEN `<self>`/`<peer>` in the `<tether-context>` block. | `refs_xml` omits candidates today. A child element is parser-friendly and extends cleanly if N candidates ever land. |
+| 8 | Claude Code surfacing | Candidates ride as the `rename_candidates` array on each artifact in the `RefsReport` JSON. | `tether refs` JSON already carries the field; surfacing in the hook payload is the same struct. Tuple shape extends cleanly if N candidates ever land. |
 | 9 | Tests | Minimal: migrate the breaking test + `find_renames` smoke tests; full matrix deferred. | Covers the model/orchestration change and the core paths; the broader matrix in *Open* stays a known gap. |
 
 ## Resolutions applied (post-review)
@@ -26,8 +26,9 @@ A review pass before implementation resolved the following on top of the decisio
 
 - **PreRead stays candidate-free.** The per-Read `PreToolUse` hook is *not* migrated to the
   batched checker — a Read never triggers the working-tree scan. Candidates surface in
-  `tether status` / SessionStart / Stop / `tether refs`. The `<rename-candidate>` XML child
-  (decision 8) is therefore exercised via `tether refs --xml`, not the per-Read injection.
+  `tether status` / SessionStart / Stop / `tether refs`. The `rename_candidates` field
+  (decision 8) is therefore populated by `tether refs <path>` JSON, never by the per-Read
+  injection (where it stays an empty array).
 - **R100 exact-duplicate ambiguity deferred** → documented limitation (no `--raw` post-filter;
   the diff stays `--name-status`).
 - **Hardening folded in:** the diff runs `git -c diff.renameLimit=0 -c core.quotePath=false
@@ -72,7 +73,6 @@ The plumbing is the verified sequence from the research doc, generalized from on
 
 - **`tether/render.py`**
   - `item_lines` and `_broken_block`: render the candidate as a best-match line with its score, e.g. `best match: \`new.py\` (R96)`.
-  - `refs_xml`: emit the `<rename-candidate>` child on the BROKEN side, closing the current XML gap.
 
 ## Documentation follow-ups
 

@@ -39,11 +39,11 @@ def test_refs_empty_result_json(in_project: Path):
     assert payload["errors"] == []
 
 
-def test_refs_empty_result_xml(in_project: Path):
+def test_refs_empty_result_markdown(in_project: Path):
     _seed_files(in_project)
-    result = CliRunner().invoke(main, ["refs", "src/auth.py", "--xml"])
+    result = CliRunner().invoke(main, ["refs", "src/auth.py", "--markdown"])
     assert result.exit_code == 0, result.output
-    assert result.output.strip() == "<tether-context>\n</tether-context>"
+    assert result.output.strip() == "No tethers reference `src/auth.py`."
 
 
 def test_refs_single_match_a_side(in_project: Path):
@@ -70,7 +70,7 @@ def test_refs_single_match_b_side(in_project: Path):
     assert payload["tethers"][0]["id"] == tid
 
 
-def test_refs_multi_match_severity_order_xml(in_project: Path):
+def test_refs_multi_match_severity_order_json(in_project: Path):
     _seed_files(in_project)
     runner = CliRunner()
     # tether 1: src/auth.py <-> docs/auth.md (will be HEALTHY)
@@ -85,14 +85,11 @@ def test_refs_multi_match_severity_order_xml(in_project: Path):
     # Cause peer-side BROKEN for tether 3
     (in_project / "docs" / "billing.md").unlink()
 
-    result = runner.invoke(main, ["refs", "src/auth.py", "--xml"])
+    result = runner.invoke(main, ["refs", "src/auth.py"])
     assert result.exit_code == 0, result.output
-    out = result.output
-    # Severity order: BROKEN first, then DRIFTED, then HEALTHY
-    broken_pos = out.find('aggregate="BROKEN"')
-    drifted_pos = out.find('aggregate="DRIFTED"')
-    healthy_pos = out.find('aggregate="HEALTHY"')
-    assert 0 <= broken_pos < drifted_pos < healthy_pos
+    payload = json.loads(result.output)
+    states = [t["state"] for t in payload["tethers"]]
+    assert states == ["BROKEN", "DRIFTED", "HEALTHY"]
 
 
 def test_refs_outside_project_raises(in_project: Path):
@@ -117,12 +114,6 @@ def test_refs_path_missing_on_disk_still_resolves(in_project: Path):
     assert payload["tethers"][0]["b"]["state"] == "BROKEN"
 
 
-def test_refs_mutually_exclusive_flags(in_project: Path):
-    result = CliRunner().invoke(main, ["refs", "src/auth.py", "--json", "--xml"])
-    assert result.exit_code == 1
-    assert "mutually exclusive" in result.output
-
-
 def test_refs_corrupt_record_listed_in_errors(in_project: Path):
     _seed_files(in_project)
     runner = CliRunner()
@@ -136,31 +127,33 @@ def test_refs_corrupt_record_listed_in_errors(in_project: Path):
     assert any("garbage.json" in e["path"] for e in payload["errors"])
 
 
-def test_refs_xml_escapes_description(in_project: Path):
-    _seed_files(in_project)
-    runner = CliRunner()
-    _add(
-        runner,
-        "docs/auth.md",
-        "src/auth.py",
-        'uses <token> & "quoted" things',
-    )
-    result = runner.invoke(main, ["refs", "src/auth.py", "--xml"])
-    assert result.exit_code == 0, result.output
-    # Description content must be escaped
-    assert "&lt;token&gt;" in result.output
-    assert "&amp;" in result.output
-    # The raw form must not leak through
-    assert "<token>" not in result.output.replace("<tether-context>", "").replace(
-        "</tether-context>", ""
-    )
-
-
-def test_refs_xml_includes_self_and_peer_paths(in_project: Path):
+def test_refs_markdown_includes_paths_and_description(in_project: Path):
     _seed_files(in_project)
     runner = CliRunner()
     _add(runner, "docs/auth.md", "src/auth.py", "describes auth")
-    result = runner.invoke(main, ["refs", "src/auth.py", "--xml"])
+    result = runner.invoke(main, ["refs", "src/auth.py", "--markdown"])
     assert result.exit_code == 0, result.output
-    assert '<self path="src/auth.py"' in result.output
-    assert '<peer path="docs/auth.md"' in result.output
+    assert "1 tether referencing `src/auth.py`" in result.output
+    assert "`docs/auth.md`" in result.output
+    assert "`src/auth.py`" in result.output
+    assert "describes auth" in result.output
+
+
+def test_refs_markdown_severity_order(in_project: Path):
+    _seed_files(in_project)
+    runner = CliRunner()
+    _add(runner, "src/auth.py", "docs/auth.md", "auth doc")
+    _add(runner, "src/auth.py", "tests/test_auth.py", "auth tests")
+    _add(runner, "src/auth.py", "docs/billing.md", "cross-ref")
+    (in_project / "tests" / "test_auth.py").write_text("def test_auth(token): pass\n")
+    (in_project / "docs" / "billing.md").unlink()
+
+    result = runner.invoke(main, ["refs", "src/auth.py", "--markdown"])
+    assert result.exit_code == 0, result.output
+    # Each tether bullet starts with "- `<id>`: <aggregate>"; extract the aggregate.
+    aggregates = [
+        line.split(": ", 1)[1].split(" ", 1)[0]
+        for line in result.output.splitlines()
+        if line.startswith("- `")
+    ]
+    assert aggregates == ["BROKEN", "DRIFTED", "HEALTHY"]

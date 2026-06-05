@@ -461,11 +461,17 @@ def test_pre_tool_use_emits_additional_context_on_match(in_project: Path):
     assert result.exit_code == 0
     payload = msgspec.json.decode(result.output.encode())
     assert payload["hookSpecificOutput"]["hookEventName"] == "PreToolUse"
-    xml = payload["hookSpecificOutput"]["additionalContext"]
-    assert "<tether-context>" in xml
-    assert '<self path="src/auth.py"' in xml
-    assert '<peer path="docs/auth.md"' in xml
-    assert "describes auth" in xml
+    context = msgspec.json.decode(
+        payload["hookSpecificOutput"]["additionalContext"].encode()
+    )
+    assert context["queried_path"] == "src/auth.py"
+    assert len(context["tethers"]) == 1
+    tether = context["tethers"][0]
+    assert tether["description"] == "describes auth"
+    assert {tether["a"]["path"], tether["b"]["path"]} == {
+        "src/auth.py",
+        "docs/auth.md",
+    }
 
 
 def test_pre_tool_use_drops_load_errors_from_context(in_project: Path):
@@ -486,9 +492,11 @@ def test_pre_tool_use_drops_load_errors_from_context(in_project: Path):
     )
     assert result.exit_code == 0
     payload = msgspec.json.decode(result.output.encode())
-    xml = payload["hookSpecificOutput"]["additionalContext"]
-    assert "<errors>" not in xml
-    assert "garbage.json" not in xml
+    context = msgspec.json.decode(
+        payload["hookSpecificOutput"]["additionalContext"].encode()
+    )
+    assert context["errors"] == []
+    assert "garbage.json" not in payload["hookSpecificOutput"]["additionalContext"]
 
 
 def test_pre_tool_use_silent_for_nonexistent_absolute_path(in_project: Path):

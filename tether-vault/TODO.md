@@ -16,16 +16,13 @@ status: active
 - [x] Look over the name changes (bookkeeping) I recently made (changes in the working tree) and ensure that they are reasonable
   and that there are no negative side-effects.
 - [x] Update `fragment.py` (`claude --resume update-cc-fragment`)
-- [ ] Simplify: Remove XML rendering -- keep light markdown and JSON
+- [x] Simplify: Remove XML rendering -- keep light markdown and JSON
 - [ ] Research memory systems, coding agents, evals, etc.
-- [ ] Gain understanding of Tether
-	- How is git used? What other git internals could be used?
-	-  What are the failure cases? Is a watcher needed for MVP?
-	- Review Case Study 01
 - [ ] Enhanced testing framework for Claude Code integration (resume via `claude --resume testing-framework-enhancement`)
 	- Example scenarios like the one described in Case 01 should be simulated.   
 	-  Do hooks fire? Does Claude respond appropriately given certain states? Are tethers maintained?
 	- Consider **explicit** vs **implicit** metrics 
+	- https://claude.ai/share/77b79a9d-39c4-4d03-8449-ee95129e2e37
 - [ ] Setup CI/CD
 - [ ] Use `tether` to develop `tether`!
 	- [ ] Create Claude Skill to create tethers in a new repository

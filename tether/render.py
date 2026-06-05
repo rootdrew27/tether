@@ -3,15 +3,12 @@ from __future__ import annotations
 import shutil
 import textwrap
 from pathlib import Path
-from xml.sax.saxutils import escape as _xml_escape
-from xml.sax.saxutils import quoteattr as _xml_quoteattr
 
-from .model import Artifact, Tether
+from .model import Tether
 from .status import (
     STATE_ORDER,
     SEVERITY,
     AggregateState,
-    ArtifactCheck,
     ArtifactState,
     RenameCandidate,
     TetherCheck,
@@ -142,72 +139,28 @@ def show_text(
     return "\n\n".join(parts)
 
 
-def _classify_sides(
-    t: Tether, check: TetherCheck, rel_path: str
-) -> tuple[tuple[Artifact, ArtifactCheck], tuple[Artifact, ArtifactCheck]]:
-    if t.a.path == rel_path:
-        return (t.a, check.a), (t.b, check.b)
-    return (t.b, check.b), (t.a, check.a)
-
-
-def _side_xml(tag: str, art: Artifact, check: ArtifactCheck) -> list[str]:
-    """Render one `<self>`/`<peer>` element, nesting any `<rename-candidate>` children.
-
-    Self-closing when there are no candidates; otherwise opens the element, emits a
-    `<rename-candidate>` per candidate, and closes it.
-    """
-    head = (
-        f"<{tag} path={_xml_quoteattr(art.path)} "
-        f"state={_xml_quoteattr(check.state.value)}"
-    )
-    if check.state == ArtifactState.BROKEN and check.rename_candidates:
-        out = [f"    {head}>"]
-        for c in check.rename_candidates:
-            out.append(
-                f"      <rename-candidate path={_xml_quoteattr(c.path)} "
-                f"similarity={_xml_quoteattr(str(c.similarity))} />"
-            )
-        out.append(f"    </{tag}>")
-        return out
-    return [f"    {head} />"]
-
-
-def refs_xml(
+def refs_md(
     rel_path: str,
     rows: list[Row],
     errors: list[tuple[Path, str]],
-    project_root: Path,
+    root: Path,
 ) -> str:
-    """Render a `<tether-context>` block for one queried path.
+    """Render `tether refs <path>` as a human-readable markdown block.
 
-    The wrapper element is always emitted, even when no tethers match — the
-    empty wrapper is parser-friendly. Callers that want to suppress the
-    `<errors>` child pass an empty `errors` list.
+    Severity-ordered list of tethers referencing `rel_path`, with descriptions.
     """
-    lines = ["<tether-context>"]
-    for t, check in by_severity(rows):
-        (self_art, self_check), (peer, peer_check) = _classify_sides(t, check, rel_path)
-        lines.append(
-            f"  <tether id={_xml_quoteattr(t.id)} "
-            f"aggregate={_xml_quoteattr(check.aggregate.value)}>"
-        )
-        lines.extend(_side_xml("self", self_art, self_check))
-        lines.extend(_side_xml("peer", peer, peer_check))
-        lines.append(f"    <description>{_xml_escape(t.description)}</description>")
-        lines.append("  </tether>")
-    if errors:
-        lines.append("  <errors>")
-        for path, msg in errors:
-            try:
-                rel = path.relative_to(project_root).as_posix()
-            except ValueError:
-                rel = str(path)
-            lines.append(
-                f"    <error path={_xml_quoteattr(rel)}>{_xml_escape(msg)}</error>"
-            )
-        lines.append("  </errors>")
-    lines.append("</tether-context>")
-    return "\n".join(lines) + "\n"
+    if not rows and not errors:
+        return f"No tethers reference `{rel_path}`."
+
+    lines: list[str] = []
+    if rows:
+        total = len(rows)
+        plural = "s" if total != 1 else ""
+        lines.append(f"{total} tether{plural} referencing `{rel_path}`.")
+        lines.append("")
+        lines.extend(item_lines(rows, with_description=True))
+    lines.extend(errors_section(errors, root))
+    return "\n".join(lines)
 
 
 def _is_rescued(check: TetherCheck) -> bool:

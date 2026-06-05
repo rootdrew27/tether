@@ -37,20 +37,18 @@ The aggregate state is derived from per-artifact states: both HEALTHY → HEALTH
 
 ## Operations
 
-| Term                          | Definition                                                                                                         | Aliases to avoid           |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------ | -------------------------- |
-| **tether init**               | Initialize tether state in a project (`.tether/` directory). Refuses outside a git repository.                      | Setup, bootstrap           |
-| **tether init claude-code**   | Install the Claude Code integration: hooks, permissions, the agent fragment.                                        | Install                    |
-| **tether add**                | Create a new tether between two existing on-disk artifacts, recording fingerprints for both and a required description. | Create, link, connect      |
-| **tether status**             | Report the current state of tethers (per-artifact and aggregate). With a tether ID, includes a unified diff for any DRIFTED or normalization-rescued side. | Check, query, inspect      |
-| **tether show**               | List every tether with its description, regardless of state. Structural only — reads records from disk without computing drift or touching git; output is paged through `$PAGER` on a TTY. Takes no tether ID; it lists the whole graph. | List, browse, dump, ls     |
-| **tether refresh**            | Re-fingerprint both artifacts of a tether, asserting they are aligned at their current contents. Refuses on a BROKEN tether. | Update fingerprint, re-pin |
-| **tether update**             | Modify a tether's metadata (path, description) without re-fingerprinting.                                            | Edit, retarget             |
-| **tether mv**                 | Bulk path rewrite: rewrite every artifact pointing at OLD_PATH to NEW_PATH. Structural only; no alignment assertion. | Bulk rename                |
-| **tether rm**                 | Delete a tether record.                                                                                            | Remove, delete, unlink     |
-| **tether refs** | List tethers referencing a path (where the artifact's `a.path` or `b.path` matches),
-  severity-ordered. JSON by default; `--xml` emits the `<tether-context>` block injected into Claude Code on
-  PreToolUse Read. | List by file, lookup |
+| Term                        | Definition                                                                                                                                                                                                                               | Aliases to avoid           |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
+| **tether init**             | Initialize tether state in a project (`.tether/` directory). Refuses outside a git repository.                                                                                                                                           | Setup, bootstrap           |
+| **tether init claude-code** | Install the Claude Code integration: hooks, permissions, the agent fragment.                                                                                                                                                             | Install                    |
+| **tether add**              | Create a new tether between two existing on-disk artifacts, recording fingerprints for both and a required description.                                                                                                                  | Create, link, connect      |
+| **tether status**           | Report the current state of tethers (per-artifact and aggregate). With a tether ID, includes a unified diff for any DRIFTED or normalization-rescued side.                                                                               | Check, query, inspect      |
+| **tether show**             | List every tether with its description, regardless of state. Structural only — reads records from disk without computing drift or touching git; output is paged through `$PAGER` on a TTY. Takes no tether ID; it lists the whole graph. | List, browse, dump, ls     |
+| **tether refresh**          | Re-fingerprint both artifacts of a tether, asserting they are aligned at their current contents. Refuses on a BROKEN tether.                                                                                                             | Update fingerprint, re-pin |
+| **tether update**           | Modify a tether's metadata (path, description) without re-fingerprinting.                                                                                                                                                                | Edit, retarget             |
+| **tether mv**               | Bulk path rewrite: rewrite every artifact pointing at OLD_PATH to NEW_PATH. Structural only; no alignment assertion.                                                                                                                     | Bulk rename                |
+| **tether rm**               | Delete a tether record.                                                                                                                                                                                                                  | Remove, delete, unlink     |
+| **tether refs**             | List tethers referencing a path (where the artifact's `a.path` or `b.path` matches),                                                                                                                                                     |                            |
 
 ## Actors
 

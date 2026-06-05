@@ -21,7 +21,7 @@ from .output import (
     encode_pretty,
 )
 from .project import find_project_root, init_project
-from .render import Row, all_tethers_md, one_tether_md, refs_xml, show_text
+from .render import Row, all_tethers_md, one_tether_md, refs_md, show_text
 from .status import AggregateState, ArtifactState, check_all, check_tether
 from uuid_utils import uuid7
 
@@ -288,32 +288,23 @@ def status(tether_id: str | None, as_json: bool, diff: bool | None) -> None:
 @main.command()
 @click.argument("path")
 @click.option(
-    "--json",
-    "as_json",
+    "--markdown",
+    "as_markdown",
     is_flag=True,
     default=False,
-    help="Emit JSON (default when no format flag is given).",
-)
-@click.option(
-    "--xml",
-    "as_xml",
-    is_flag=True,
-    default=False,
-    help="Emit XML (the format injected into Claude Code on PreToolUse Read).",
+    help="Emit human-readable markdown instead of JSON.",
 )
 @handle_errors
-def refs(path: str, as_json: bool, as_xml: bool) -> None:
+def refs(path: str, as_markdown: bool) -> None:
     """List tethers referencing PATH (severity-ordered)."""
-    if as_json and as_xml:
-        raise TetherError("--json and --xml are mutually exclusive")
     root = _root()
     rel = _resolve_rel(root, path)
     result = find_by_path(root, rel)
     checks = check_all(result.tethers, root)
     rows: list[Row] = [(t, ck) for t, ck in zip(result.tethers, checks)]
 
-    if as_xml:
-        click.echo(refs_xml(rel, rows, result.errors, root), nl=False)
+    if as_markdown:
+        click.echo(refs_md(rel, rows, result.errors, root))
         return
     click.echo(encode_pretty(build_refs_report(rel, rows, result.errors, root)))
 

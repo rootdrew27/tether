@@ -5,7 +5,7 @@ from pathlib import Path
 import msgspec
 
 from .model import Artifact, Tether
-from .render import Row, counts
+from .render import Row, by_severity, counts
 from .status import (
     AggregateState,
     ArtifactCheck,
@@ -164,6 +164,8 @@ def build_refs_report(
     return RefsReport(
         queried_path=rel,
         summary=build_status_summary(rows),
-        tethers=[build_tether_status(t, ck, root, False) for t, ck in rows],
+        tethers=[
+            build_tether_status(t, ck, root, False) for t, ck in by_severity(rows)
+        ],
         errors=relativize_errors(errors, root),
     )

@@ -7,13 +7,13 @@ from typing import Any, TypeVar
 import msgspec
 
 from ..errors import TetherError
+from ..output import build_refs_report, encode_pretty
 from ..project import find_project_root
 from ..render import (
     Row,
     counts,
     errors_section,
     item_lines,
-    refs_xml,
     summary_line,
 )
 from ..status import AggregateState, check_all, check_tether
@@ -159,11 +159,11 @@ def pre_tool_use() -> None:
         return
 
     rows: list[Row] = [(t, check_tether(t, root)) for t in result.tethers]
-    xml = refs_xml(rel, rows, [], root)
+    payload = encode_pretty(build_refs_report(rel, rows, [], root))
     output = PreToolUseOutput(
         hookSpecificOutput=PreToolUseHookSpecificOutput(
             hookEventName="PreToolUse",
-            additionalContext=xml,
+            additionalContext=payload,
         )
     )
     sys.stdout.write(msgspec.json.encode(output).decode("utf-8"))
