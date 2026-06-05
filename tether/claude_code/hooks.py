@@ -121,12 +121,11 @@ def stop() -> None:
     lines.extend(
         [
             "",
-            "For each entry above, either:",
-            "- resolve and `tether refresh <uuid>` once both artifacts reflect the intended state, OR",
-            "- if the resolution is a judgment call, surface the choice to the user with the options as you see them and end the turn awaiting direction.",
+            "For each entry above:",
+            '- DRIFTED: align the file(s) to the description, OR run `tether update <uuid> --description "..."` to align the description to the files. Then `tether refresh <uuid>` to re-fingerprint.',
+            "- BROKEN: run `tether status <uuid>` for the rename candidate, then `tether update --a-path/--b-path <new>` to follow it. If the file is truly gone, `tether rm <uuid>`.",
             "",
-            "Do not refresh until alignment is real — refresh erases the drift signal. "
-            "For renames, use `tether update --a-path/--b-path <new>` before refresh.",
+            "Do not refresh until alignment is real — refresh erases the drift signal.",
         ]
     )
 

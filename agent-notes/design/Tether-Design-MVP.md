@@ -166,7 +166,7 @@ They tether the two with a description like *"these two belong together — the 
 
 Tether records both files' current content as fingerprints. Time passes. The developer edits `src/auth.py` to add a new password parameter. They forget to update the doc.
 
-Later, before another edit, they ask tether for status. Tether reports: *the code changed since the tether was created; the doc did not. The relationship is WEAKENED — the doc may be out of date.* The developer reads the diff, updates the doc, and refreshes the tether. The relationship is HEALTHY again.
+Later, before another edit, they ask tether for status. Tether reports: *the code changed since the tether was created; the doc did not. The relationship is DRIFTED — the doc may be out of date.* The developer reads the diff, updates the doc, and refreshes the tether. The relationship is HEALTHY again.
 
 ### Workflow 2: A team reviewing tether changes in pull requests
 

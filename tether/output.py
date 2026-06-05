@@ -49,7 +49,6 @@ class StatusSummary(
 ):
     total: int
     healthy: int
-    weakened: int
     drifted: int
     broken: int
 
@@ -139,7 +138,6 @@ def build_status_summary(rows: list[Row]) -> StatusSummary:
     return StatusSummary(
         total=len(rows),
         healthy=c["HEALTHY"],
-        weakened=c["WEAKENED"],
         drifted=c["DRIFTED"],
         broken=c["BROKEN"],
     )

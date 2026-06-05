@@ -19,7 +19,7 @@ Push the drift signal to decision time. Fire a PostToolUse hook on every tool ca
 1. Recompute current tether status (full evaluation).
 2. Load the last-cached status snapshot from disk.
 3. Diff current vs. cached.
-4. Emit only the per-tether aggregate-state transitions (e.g. `HEALTHY → WEAKENED`).
+4. Emit only the per-tether aggregate-state transitions (e.g. `HEALTHY → DRIFTED`).
 5. Update the cache.
 
 If no transitions occurred, the hook produces no output.
@@ -34,10 +34,10 @@ Session timeline for an agent editing a tethered code file:
 | --------- | --------------------------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1         | `Read docs/auth.md`               | HEALTHY               | (silent)                                                                                                                                                              |
 | 2         | `Read src/auth.py`                | HEALTHY               | (silent)                                                                                                                                                              |
-| 3         | `Edit src/auth.py`                | HEALTHY → WEAKENED    | `Tether X (docs/auth.md — src/auth.py) just became WEAKENED — docs/auth.md unchanged. Decide: align the doc, surface to user, or update the description.` |
-| 4         | `Read docs/auth.md`               | WEAKENED              | (silent — no transition)                                                                                                                                              |
-| 5         | `Edit docs/auth.md`               | WEAKENED              | (silent — still WEAKENED, the aggregate didn't transition)                                                                                                            |
-| 6         | `Bash uv run tether refresh X`    | WEAKENED → HEALTHY    | `Tether X resolved.`                                                                                                                                                  |
+| 3         | `Edit src/auth.py`                | HEALTHY → DRIFTED    | `Tether X (docs/auth.md — src/auth.py) just became DRIFTED — docs/auth.md unchanged. Decide: align the doc, or update the description.` |
+| 4         | `Read docs/auth.md`               | DRIFTED              | (silent — no transition)                                                                                                                                              |
+| 5         | `Edit docs/auth.md`               | DRIFTED              | (silent — still DRIFTED, the aggregate didn't transition)                                                                                                            |
+| 6         | `Bash uv run tether refresh X`    | DRIFTED → HEALTHY    | `Tether X resolved.`                                                                                                                                                  |
 
 Properties on display:
 

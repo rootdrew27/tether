@@ -27,14 +27,13 @@ The canonical vocabulary for the **MVP** of tether. Terms below match what the c
 
 ## Tether state
 
-| Term         | Definition                                                                                                         | Aliases to avoid                |
-| ------------ | ------------------------------------------------------------------------------------------------------------------ | ------------------------------- |
-| **HEALTHY**  | The artifact's current blob OID matches the fingerprint (or normalization rescues equivalence). For a whole tether, both artifacts are HEALTHY. | FRESH, OK, valid, clean         |
-| **WEAKENED** | Aggregate-only state: one artifact is HEALTHY, the other is DRIFTED. The relationship may be out of date.          | Stale, partial, half-drifted    |
-| **DRIFTED**  | The file exists at the recorded path but its content's blob OID no longer matches the fingerprint (and normalization does not rescue). | Changed, modified, dirty        |
-| **BROKEN**   | The file is not present at the recorded path; the artifact cannot be located. Any BROKEN artifact makes the aggregate BROKEN. | Missing, invalid, gone          |
+| Term         | Definition                                                                                                                                      | Aliases to avoid             |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| **HEALTHY**  | The artifact's current blob OID matches the fingerprint (or normalization rescues equivalence). For a whole tether, both artifacts are HEALTHY. | FRESH, OK, valid, clean      |
+| **DRIFTED**  | The file exists at the recorded path but its content's blob OID no longer matches the fingerprint (and normalization does not rescue).          | Changed, modified, dirty     |
+| **BROKEN**   | The file is not present at the recorded path; the artifact cannot be located. Any BROKEN artifact makes the aggregate BROKEN.                   | Missing, invalid, gone       |
 
-The aggregate state is derived from per-artifact states: both HEALTHY → HEALTHY; one HEALTHY + one DRIFTED → WEAKENED; both DRIFTED → DRIFTED; any BROKEN → BROKEN.
+The aggregate state is derived from per-artifact states: both HEALTHY → HEALTHY; one HEALTHY + one DRIFTED → DRIFTED; both DRIFTED → DRIFTED; any BROKEN → BROKEN.
 
 ## Operations
 
@@ -88,12 +87,12 @@ The aggregate state is derived from per-artifact states: both HEALTHY → HEALTH
 - **Refresh** updates both artifacts' fingerprints atomically; it is never partial.
 - **Refresh** refuses on a **BROKEN** tether (alignment cannot be asserted for content that cannot be located).
 - A **Tether record** is one file per tether under `.tether/tethers/`, named by UUIDv7 and committed alongside content.
-- The aggregate state of a **Tether** is derived from its per-artifact states: both HEALTHY → HEALTHY; one DRIFTED → WEAKENED; both DRIFTED → DRIFTED; any BROKEN → BROKEN.
+- The aggregate state of a **Tether** is the most severe of its per-artifact states (HEALTHY < DRIFTED < BROKEN).
 ## Flagged ambiguities
 
 - **"Tether" as system vs. unit.** The word names both the project ("tether") and an individual link ("a tether"). Context disambiguates in practice; prefer "the tether system" or "tether (the tool)" when ambiguity matters in user-facing prose.
 - **"Fingerprint" as noun vs. verb.** "A fingerprint" is the recorded git blob OID; "to fingerprint" is the act of recording it. Recommend keeping the noun as primary and using "re-fingerprint" / "record a fingerprint" for the verb forms.
-- **"Drift" vs. "DRIFTED".** "Drift" is the umbrella phenomenon (content diverging from fingerprint); **DRIFTED** is a specific per-artifact state value. **WEAKENED** is also a form of drift but is aggregate-only. When discussing state, use the all-caps state name; when discussing the phenomenon, use lowercase "drift".
+- **"Drift" vs. "DRIFTED".** "Drift" is the umbrella phenomenon (content diverging from fingerprint); **DRIFTED** is a specific state value (per-artifact or aggregate). When discussing state, use the all-caps state name; when discussing the phenomenon, use lowercase "drift".
 - **"Artifact" vs. "tethered file".** The README and casual conversation say "tethered file"; technical writing should use **Artifact**. Acceptable as shorthand since MVP's artifacts are always whole files.
 - **`a` and `b` are not "source" and "destination".** They are stable labels for the two ends of a symmetric relationship — the order in which the user passed them to `tether add`. Avoid "source"/"destination" or "src"/"dst" phrasing in prose; it implies an asymmetry the data model does not carry.
 - **"Refresh" as command vs. concept.** `tether refresh` is the command; **Refresh** (the concept) is the deliberate assertion of alignment. The concept is the more important framing — refresh is an *assertion*, not a side effect of editing.

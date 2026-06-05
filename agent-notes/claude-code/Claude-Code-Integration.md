@@ -32,17 +32,17 @@ A separate, declarative `permissions.deny` rule covers `.tether/` — see §"Wri
   ```markdown
   ## Tether status
 
-  12 tethers tracked. Counts: 9 HEALTHY, 2 WEAKENED, 1 BROKEN.
+  12 tethers tracked. Counts: 9 HEALTHY, 2 DRIFTED, 1 BROKEN.
 
   Needs attention:
 
   - `0192abc1-23ef-7890-abcd-ef0123456789`: BROKEN — `docs/auth.md` (HEALTHY) — `src/auth_old.py` (BROKEN)
     Description: Auth flow spec.
 
-  - `0192def2-...`: WEAKENED — `docs/api.md` (DRIFTED) — `src/api.py` (HEALTHY)
+  - `0192def2-...`: DRIFTED — `docs/api.md` (DRIFTED) — `src/api.py` (HEALTHY)
     Description: REST endpoints; impl uses FastAPI.
 
-  - `0192ghi3-...`: WEAKENED — `docs/billing.md` (HEALTHY) — `src/billing.py` (DRIFTED)
+  - `0192ghi3-...`: DRIFTED — `docs/billing.md` (HEALTHY) — `src/billing.py` (DRIFTED)
     Description: Stripe integration and webhook handling.
 
   For diffs: `tether status <uuid>`
@@ -73,11 +73,11 @@ The output is markdown on stdout, which Claude Code injects as context. The agen
 
 Claude Code routes `additionalContext` into the agent's context window alongside the eventual tool result for `PreToolUse` (per the Claude Code hooks reference). The agent sees the file content and the tether context together at decision time, before the next tool call.
 
-**XML format.** One `<tether-context>` wrapper; one `<tether>` child per matching record, severity-ordered (BROKEN → DRIFTED → WEAKENED → HEALTHY, UUIDv7 ascending tiebreaker). Each `<tether>` carries `id` and `aggregate` attributes; `<self path … state…>` and `<peer path … state…>` children with per-side state (the queried file's state can differ across tethers because each tether records its own fingerprint); `<description>` element text carries the prose verbatim, XML-escaped. A BROKEN side may nest a `<rename-candidate path … similarity … />` child — git's best content-similarity match for the missing file (see the rename-detection design); otherwise the side is self-closing. Sample:
+**XML format.** One `<tether-context>` wrapper; one `<tether>` child per matching record, severity-ordered (BROKEN → DRIFTED → HEALTHY, UUIDv7 ascending tiebreaker). Each `<tether>` carries `id` and `aggregate` attributes; `<self path … state…>` and `<peer path … state…>` children with per-side state (the queried file's state can differ across tethers because each tether records its own fingerprint); `<description>` element text carries the prose verbatim, XML-escaped. A BROKEN side may nest a `<rename-candidate path … similarity … />` child — git's best content-similarity match for the missing file (see the rename-detection design); otherwise the side is self-closing. Sample:
 
 ```xml
 <tether-context>
-  <tether id="019e36df-a270-7653-84a1-6af594d8286a" aggregate="WEAKENED">
+  <tether id="019e36df-a270-7653-84a1-6af594d8286a" aggregate="DRIFTED">
     <self path="src/cli.py" state="DRIFTED" />
     <peer path="docs/usage.md" state="HEALTHY" />
     <description>usage.md describes the CLI surface defined in cli.py …</description>
@@ -104,9 +104,9 @@ Claude Code routes `additionalContext` into the agent's context window alongside
 
 **Trigger:** every time the agent is about to end a turn.
 
-**Block condition (v1, stateless):** any tether currently non-HEALTHY (WEAKENED / DRIFTED / BROKEN) blocks turn end. Pre-existing drift triggers blocking, just as new drift does. This is deliberately stateless for v1; a session-baseline-stateful variant (block only on tethers that became non-HEALTHY during this session) is a planned refinement — see [Claude-Code-Integration-Open](Claude-Code-Integration-Open.md).
+**Block condition (v1, stateless):** any tether currently non-HEALTHY (DRIFTED / BROKEN) blocks turn end. Pre-existing drift triggers blocking, just as new drift does. This is deliberately stateless for v1; a session-baseline-stateful variant (block only on tethers that became non-HEALTHY during this session) is a planned refinement — see [Claude-Code-Integration-Open](Claude-Code-Integration-Open.md).
 
-**Reason format:** markdown list of non-HEALTHY tethers, ordered by severity (BROKEN → DRIFTED → WEAKENED) with UUIDv7 ascending as tiebreaker. Each entry shows the tether ID (backtick-wrapped, full UUID for copy-paste), aggregate state, paths with per-side states inline, and description on a continuation line. No diffs — those are fetched on demand. No per-state action hints — those live in the persistent CLAUDE.md fragment. Sample:
+**Reason format:** markdown list of non-HEALTHY tethers, ordered by severity (BROKEN → DRIFTED) with UUIDv7 ascending as tiebreaker. Each entry shows the tether ID (backtick-wrapped, full UUID for copy-paste), aggregate state, paths with per-side states inline, and description on a continuation line. No diffs — those are fetched on demand. No per-state action hints — those live in the persistent CLAUDE.md fragment. Sample:
 
 ```
 ## Stop blocked: tethers need attention
@@ -114,22 +114,22 @@ Claude Code routes `additionalContext` into the agent's context window alongside
 - `0192abc1-23ef-7890-abcd-ef0123456789`: BROKEN — `docs/old.md` (HEALTHY) — `src/legacy.py` (BROKEN)
   Description: Spec for the legacy auth path; src/legacy.py may have been renamed.
 
-- `0192def2-...`: WEAKENED — `docs/auth.md` (DRIFTED) — `src/auth.py` (HEALTHY)
+- `0192def2-...`: DRIFTED — `docs/auth.md` (DRIFTED) — `src/auth.py` (HEALTHY)
   Description: Covers password reset and 2FA enrollment; impl uses argon2.
 
 - `0192ghi3-...`: DRIFTED — `docs/api.md` (DRIFTED) — `src/api.py` (DRIFTED)
   Description: Public REST surface; impl handles auth and rate-limiting middleware.
 
-For each entry above, either:
-- resolve and `tether refresh <uuid>` once both artifacts reflect the intended state, OR
-- if the resolution is a judgment call, surface the choice to the user with the options as you see them and end the turn awaiting direction.
+For each entry above:
+- DRIFTED: align the file(s) to the description, OR run `tether update <uuid> --description "..."` to align the description to the files. Then `tether refresh <uuid>` to re-fingerprint.
+- BROKEN: run `tether status <uuid>` for the rename candidate, then `tether update --a-path/--b-path <new>` to follow it. If the file is truly gone, `tether rm <uuid>`.
 
-Do not refresh until alignment is real — refresh erases the drift signal. For renames, use `tether update --a-path/--b-path <new>` before refresh.
+Do not refresh until alignment is real — refresh erases the drift signal.
 ```
 
 A tether is symmetric, so paths are separated by an em dash with no directional arrow. Descriptions are always present (required at `tether add` time, validated on read). UUIDs are shown in full (not truncated) so the agent can copy-paste them as command arguments. No truncation of the list for MVP, regardless of count.
 
-The "surface to user as a first-class resolution" path is deliberate: it preserves the agent's ability to defer a judgment call to the user rather than forcing a unilateral fix. When the resolution is mechanical (align two files that should match), the agent resolves and refreshes; when the resolution involves intent the agent shouldn't infer (a description that may or may not still apply, an edit that may or may not be a regression), the agent surfaces options and ends the turn. The Stop hook re-fires on the next turn end if drift remains, so deferring is safe.
+**Resolution model.** Two paths for DRIFTED (align files to the description, or update the description) plus rename/remove for BROKEN — both encoded per-state in the Stop reason and in the persistent CLAUDE.md fragment. The agent acts unilaterally; if its first attempt is wrong, the Stop block re-fires on the next turn end, so a flawed pass is corrected on the next pass rather than escalated mid-turn. There is no defer-to-user path.
 
 **User-visible surface.** Claude Code displays the block `reason` to the user verbatim, prefixed with `Stop hook error:`. The same text is fed back into the agent's context, and the agent generates a continuation turn that acts on the instruction without requiring the user to re-prompt. Tether's `reason` is written for the agent as the primary audience; users see it as a side effect. The `Stop hook error:` prefix is Claude-Code-imposed and not configurable, so the reason text should read coherently underneath it (e.g. don't open with phrasing that contradicts the "error" framing).
 
@@ -152,8 +152,8 @@ It lives under `.tether/` rather than `.claude/` because it is tether's content,
 - Introduce tether (what it is, what a tether records, what drift means).
 - State that tethers are symmetric (no direction, no type) and that `--description` is required at `tether add` time.
 - State that `.tether/` is tether-owned and read-only to the agent; mutations go through the CLI.
-- Define the per-artifact (`HEALTHY` / `DRIFTED` / `BROKEN`) and aggregate (`HEALTHY` / `WEAKENED` / `DRIFTED` / `BROKEN`) states.
-- Describe resolution paths for each non-HEALTHY aggregate, including the "surface to user" option for judgment calls and the two-step `update` → `refresh` for `BROKEN`.
+- Define the per-artifact states (`HEALTHY` / `DRIFTED` / `BROKEN`), and the aggregate as the most severe of the two.
+- Describe resolution paths for each non-HEALTHY aggregate: the two DRIFTED paths (align files to the description, or `tether update <uuid> --description "..."` to align the description to the files), and the rename/remove flow for BROKEN.
 - Set expectations around `tether status` (diagnostic, not verification) and `tether refresh` (assertion, not auto-action).
 - List the key commands with their signatures.
 
@@ -419,7 +419,7 @@ A single corrupt tether file (bad merge resolution, hand-edit that escaped `perm
 **Policy: skip and report.** Unreadable tether files are skipped; the rest of the project's tethers load and report normally. Both SessionStart and `tether status` append a notice section listing the affected files:
 
 ```
-11 tethers tracked. Counts: 9 HEALTHY, 2 WEAKENED.
+11 tethers tracked. Counts: 9 HEALTHY, 2 DRIFTED.
 
 [... normal "needs attention" section ...]
 

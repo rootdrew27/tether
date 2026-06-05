@@ -296,7 +296,7 @@ def test_session_start_emits_markdown_on_drift(in_project: Path):
     )
     assert result.exit_code == 0
     assert "## Tether status" in result.output
-    assert "WEAKENED" in result.output
+    assert "DRIFTED" in result.output
 
 
 def test_stop_silent_when_all_healthy(in_project: Path):
@@ -331,7 +331,7 @@ def test_stop_emits_block_json_on_non_healthy(in_project: Path):
     assert result.exit_code == 0
     payload = msgspec.json.decode(result.output.encode())
     assert payload["decision"] == "block"
-    assert "WEAKENED" in payload["reason"]
+    assert "DRIFTED" in payload["reason"]
 
 
 def test_hook_empty_stdin_exits_2(in_project: Path):

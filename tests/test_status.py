@@ -102,18 +102,15 @@ def test_aggregate_both_healthy_is_healthy():
     )
 
 
-def test_aggregate_one_drifted_is_weakened():
+def test_aggregate_any_drifted_is_drifted():
     assert (
         aggregate(ArtifactState.HEALTHY, ArtifactState.DRIFTED)
-        == AggregateState.WEAKENED
+        == AggregateState.DRIFTED
     )
     assert (
         aggregate(ArtifactState.DRIFTED, ArtifactState.HEALTHY)
-        == AggregateState.WEAKENED
+        == AggregateState.DRIFTED
     )
-
-
-def test_aggregate_both_drifted_is_drifted():
     assert (
         aggregate(ArtifactState.DRIFTED, ArtifactState.DRIFTED)
         == AggregateState.DRIFTED

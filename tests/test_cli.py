@@ -99,14 +99,14 @@ def test_status_all_healthy(in_project: Path):
     assert "all HEALTHY" in result.output
 
 
-def test_status_weakened_after_drift(in_project: Path):
+def test_status_drifted_after_one_sided_drift(in_project: Path):
     _seed_files(in_project)
     runner = CliRunner()
     _add_tether(runner)
     (in_project / "src" / "auth.py").write_text("def auth(token): pass\n")
     result = runner.invoke(main, ["status"])
     assert result.exit_code == 0
-    assert "WEAKENED" in result.output
+    assert "DRIFTED" in result.output
     assert "(DRIFTED)" in result.output
 
 

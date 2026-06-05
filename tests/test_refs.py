@@ -75,7 +75,7 @@ def test_refs_multi_match_severity_order_xml(in_project: Path):
     runner = CliRunner()
     # tether 1: src/auth.py <-> docs/auth.md (will be HEALTHY)
     _add(runner, "src/auth.py", "docs/auth.md", "auth doc")
-    # tether 2: src/auth.py <-> tests/test_auth.py (will be WEAKENED — peer drifts)
+    # tether 2: src/auth.py <-> tests/test_auth.py (will be DRIFTED — peer drifts)
     _add(runner, "src/auth.py", "tests/test_auth.py", "auth tests")
     # tether 3: src/auth.py <-> docs/billing.md (will be BROKEN — peer removed)
     _add(runner, "src/auth.py", "docs/billing.md", "cross-ref")
@@ -88,11 +88,11 @@ def test_refs_multi_match_severity_order_xml(in_project: Path):
     result = runner.invoke(main, ["refs", "src/auth.py", "--xml"])
     assert result.exit_code == 0, result.output
     out = result.output
-    # Severity order: BROKEN first, then WEAKENED, then HEALTHY
+    # Severity order: BROKEN first, then DRIFTED, then HEALTHY
     broken_pos = out.find('aggregate="BROKEN"')
-    weakened_pos = out.find('aggregate="WEAKENED"')
+    drifted_pos = out.find('aggregate="DRIFTED"')
     healthy_pos = out.find('aggregate="HEALTHY"')
-    assert 0 <= broken_pos < weakened_pos < healthy_pos
+    assert 0 <= broken_pos < drifted_pos < healthy_pos
 
 
 def test_refs_outside_project_raises(in_project: Path):

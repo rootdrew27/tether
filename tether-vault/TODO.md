@@ -11,8 +11,12 @@ status: active
 - [x] Clean documentation
 	- [x] Remove redundancies
 	- [x] Remove out-dated or inaccurate info
-- [ ] Split documentation into **For Claude** and **For Me**
-- [ ] Remove tests, simplify/organize codebase (the rendering in particular) 
+- [x] Split documentation into **For Claude** and **For Me**
+- [x] Remove tests, simplify/organize codebase (the rendering in particular) 
+- [x] Look over the name changes (bookkeeping) I recently made (changes in the working tree) and ensure that they are reasonable
+  and that there are no negative side-effects.
+- [x] Update `fragment.py` (`claude --resume update-cc-fragment`)
+- [ ] Simplify: Remove XML rendering -- keep light markdown and JSON
 - [ ] Research memory systems, coding agents, evals, etc.
 - [ ] Gain understanding of Tether
 	- How is git used? What other git internals could be used?
@@ -29,6 +33,8 @@ status: active
 ## Dev Tools
 - [x] Simple Claude Skill for commits (should be callable by claude or user)
 - [x] Create a precommit hook for formatting, linting, and type checking (and/or include these commands in the claude skill for committing)
+- [ ] Convert `mk-commit-msg` to `prepare-for-commit`
+	- It will focus heavily on finalizing the feature, fix, refactor relevant to the current changes, rather than making a commit msg; though, a commit message will still be the final output.
 ## Future
 - [ ] Implement Watcher
 	- [ ] Have the watcher occasionally check the CLAUDE.md, settings.json, settings.local.json, etc. for misconfigurations.

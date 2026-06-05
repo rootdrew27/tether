@@ -21,7 +21,7 @@ The hook trace would live at `.tether/hooks.log` and capture every fire of every
 | `event` | string | `hook.session_start`, `hook.stop`, or `hook.pre_tool_use`. |
 | `cwd` | string | The cwd reported on hook stdin. |
 | `matched` | list[string] | UUIDs of tethers the fire touched. Empty when nothing matched. |
-| `aggregate` | object | State counts (`healthy`, `weakened`, `drifted`, `broken`) at fire time. Present for `session_start` and `stop` only. |
+| `aggregate` | object | State counts (`healthy`, `drifted`, `broken`) at fire time. Present for `session_start` and `stop` only. |
 | `file_path` | string | Project-relative POSIX path the hook reacted to. `pre_tool_use` only. |
 | `tool_name` | string | Claude Code tool name (`Read`, etc.). `pre_tool_use` only. |
 | `blocked` | bool | Whether `stop` returned a block decision. `stop` only. |

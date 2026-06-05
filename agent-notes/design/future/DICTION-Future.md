@@ -28,7 +28,6 @@
 | Term         | Definition                                                                                                         | Aliases to avoid                |
 | ------------ | ------------------------------------------------------------------------------------------------------------------ | ------------------------------- |
 | **HEALTHY**  | The artifact (or whole tether) is aligned with its fingerprint; located region matches recorded region hash.       | FRESH, OK, valid, clean         |
-| **WEAKENED** | Aggregate-only state: one artifact is HEALTHY, the other is DRIFTED. The relationship may be out of date.          | Stale, partial, half-drifted    |
 | **DRIFTED**  | The locator resolves but the located content's hash no longer matches the fingerprint; the content has changed.    | Changed, modified, dirty        |
 | **BROKEN**   | The locator cannot resolve at the recorded path or position; the file or region has moved or been removed.         | Missing, invalid, gone          |
 
@@ -82,12 +81,12 @@
 - **Refresh** updates both artifacts' fingerprints atomically; it is never partial.
 - **Refresh** refuses on a **BROKEN** tether (alignment cannot be asserted for content that cannot be located).
 - A **Tether record** is one file per tether under `.tether/tethers/`, named by UUIDv7 and committed alongside content.
-- The aggregate state of a **Tether** is derived from its per-artifact states: both **HEALTHY** -> HEALTHY; one DRIFTED -> WEAKENED; both DRIFTED -> DRIFTED; any BROKEN -> BROKEN.
+- The aggregate state of a **Tether** is the most severe of its per-artifact states (HEALTHY < DRIFTED < BROKEN); any BROKEN artifact yields BROKEN.
 
 ## Example dialogue
 
 > **Dev:** "I added a `describes` **Tether** from `docs/auth.md` to `src/auth.py`. After my edits this morning, what's the **Tether status**?"
-> **Tether expert:** "The doc **Artifact** is **HEALTHY**, but the code **Artifact** is **DRIFTED** -- its **Region hash** no longer matches the **Fingerprint**. Aggregate state is **WEAKENED**."
+> **Tether expert:** "The doc **Artifact** is **HEALTHY**, but the code **Artifact** is **DRIFTED** -- its **Region hash** no longer matches the **Fingerprint**. Aggregate state is **DRIFTED**."
 > **Dev:** "Got it -- so I need to update the doc and then `tether refresh`?"
 > **Tether expert:** "Right. **Refresh** re-fingerprints both **Artifacts** together; it's the assertion that they're now aligned. Don't refresh until you've actually updated the doc, or you'll erase the drift signal."
 > **Dev:** "What if I'd renamed `auth.py` to `authentication.py` instead of just editing it?"
@@ -97,7 +96,7 @@
 
 - **"Tether" as system vs. unit.** The word names both the project ("tether") and an individual link ("a tether"). Context disambiguates in practice; prefer "the tether system" or "tether (the tool)" when ambiguity matters in user-facing prose.
 - **"Fingerprint" as noun vs. verb.** "A fingerprint" is the recorded `(file blob OID, region hash)` pair; "to fingerprint" is the act of recording it. The doc uses both. Recommend keeping the noun as primary and using "re-fingerprint" / "record a fingerprint" for the verb forms.
-- **"Drift" vs. "DRIFTED".** "Drift" is the umbrella phenomenon (content diverging from fingerprint); **DRIFTED** is a specific per-artifact state value. **WEAKENED** is also a form of drift but is aggregate-only. When discussing state, use the all-caps state name; when discussing the phenomenon, use lowercase "drift".
+- **"Drift" vs. "DRIFTED".** "Drift" is the umbrella phenomenon (content diverging from fingerprint); **DRIFTED** is a specific state value. When discussing state, use the all-caps state name; when discussing the phenomenon, use lowercase "drift".
 - **"Artifact" vs. "tethered file".** The README and casual conversation say "tethered file"; technical writing should use **Artifact**. An **Artifact** is more precise (path + locator), since a single file can host multiple artifacts with different locators. "Tethered file" is acceptable shorthand only when the locator is `WholeFile`.
 - **"Refresh" as command vs. concept.** `tether refresh` is the command; **Refresh** (the concept) is the deliberate assertion of alignment. The concept is the more important framing -- refresh is an *assertion*, not a side effect of editing.
 - **"Chunk" vs. "region".** The README uses "chunk" for sub-file selections; the design doc uses "region". Recommend **region** as canonical, since "chunk" suggests fixed-size partitioning (as in chunked encoding) which isn't the model here.

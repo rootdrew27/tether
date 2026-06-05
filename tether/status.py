@@ -27,18 +27,16 @@ class ArtifactState(str, Enum):
 
 class AggregateState(str, Enum):
     HEALTHY = "HEALTHY"
-    WEAKENED = "WEAKENED"
     DRIFTED = "DRIFTED"
     BROKEN = "BROKEN"
 
 
-# Single source of truth for the four aggregate states' ordering. Listed
+# Single source of truth for the three aggregate states' ordering. Listed
 # healthiest-first (the display order), each paired with a severity rank where a
 # lower number is more severe (the worst-first sort key). SEVERITY and
 # STATE_ORDER derive from this table so a new state or reorder lands in one place.
 STATES: tuple[tuple[AggregateState, int], ...] = (
-    (AggregateState.HEALTHY, 3),
-    (AggregateState.WEAKENED, 2),
+    (AggregateState.HEALTHY, 2),
     (AggregateState.DRIFTED, 1),
     (AggregateState.BROKEN, 0),
 )
@@ -68,10 +66,8 @@ class TetherCheck(msgspec.Struct, frozen=True, kw_only=True):
 def aggregate(a: ArtifactState, b: ArtifactState) -> AggregateState:
     if ArtifactState.BROKEN in (a, b):
         return AggregateState.BROKEN
-    if a == ArtifactState.DRIFTED and b == ArtifactState.DRIFTED:
-        return AggregateState.DRIFTED
     if ArtifactState.DRIFTED in (a, b):
-        return AggregateState.WEAKENED
+        return AggregateState.DRIFTED
     return AggregateState.HEALTHY
 
 

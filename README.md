@@ -21,7 +21,7 @@ travels with the repo.
 | **Artifact** | One end of a tether: a path plus a locator. In MVP the locator is always `WholeFile`. |
 | **Fingerprint** | The git blob OID of the artifact's content, captured at tether creation or refresh. |
 | **Drift** | The condition where current content no longer matches the fingerprint. |
-| **HEALTHY / DRIFTED / BROKEN** | Per-artifact state. A tether is **WEAKENED** when one side is HEALTHY and the other DRIFTED. |
+| **HEALTHY / DRIFTED / BROKEN** | Per-artifact state. A tether's aggregate is the most severe of its two artifacts. |
 
 Full glossary: [`DICTION.md`](tether-vault/DICTION.md) (MVP vocabulary, matches current code). Forward-state model lives in [`DICTION-Future.md`](agent-notes/design/future/DICTION-Future.md).
 
@@ -42,7 +42,7 @@ uv run tether init
 uv run tether add docs/auth.md src/auth.py --description "Covers password reset and 2FA enrollment."
 uv run tether status
 # edit src/auth.py ...
-uv run tether status         # src/auth.py now reports DRIFTED, aggregate WEAKENED
+uv run tether status         # src/auth.py now reports DRIFTED; aggregate DRIFTED
 uv run tether status <id>    # full per-artifact view with unified diff
 # bring the doc in line, then:
 uv run tether refresh <id>   # re-fingerprint both artifacts together
