@@ -25,18 +25,30 @@ def save_tether(project_root: Path, t: Tether) -> Path:
     return path
 
 
+def _decode_tether(path: Path) -> Tether:
+    """Decode and validate one record; raises InvalidTetherError without path context.
+
+    Callers that report per-file errors (`load_all_tethers`) already carry the
+    path alongside the message, so it is left out here; `load_tether` adds it.
+    """
+    try:
+        t = msgspec.json.decode(path.read_bytes(), type=Tether)
+    except msgspec.ValidationError as e:
+        raise InvalidTetherError(f"schema error: {e}") from e
+    except msgspec.DecodeError as e:
+        raise InvalidTetherError(f"invalid JSON: {e}") from e
+    validate(t)
+    return t
+
+
 def load_tether(project_root: Path, tether_id: str) -> Tether:
     path = _record_tether_path(project_root, tether_id)
     if not path.exists():
         raise TetherNotFoundError(f"no tether record at {path}")
     try:
-        t = msgspec.json.decode(path.read_bytes(), type=Tether)
-    except msgspec.ValidationError as e:
-        raise InvalidTetherError(f"{path}: schema error: {e}") from e
-    except msgspec.DecodeError as e:
-        raise InvalidTetherError(f"{path}: invalid JSON: {e}") from e
-    validate(t)
-    return t
+        return _decode_tether(path)
+    except InvalidTetherError as e:
+        raise InvalidTetherError(f"{path}: {e}") from e
 
 
 def delete_tether(project_root: Path, tether_id: str) -> None:
@@ -59,10 +71,8 @@ def load_all_tethers(project_root: Path) -> LoadTethersResult:
         return LoadTethersResult(tethers=[], errors=[])
     for path in sorted(d.glob("*.json")):
         try:
-            t = msgspec.json.decode(path.read_bytes(), type=Tether)
-            validate(t)
-            tethers.append(t)
-        except (msgspec.DecodeError, msgspec.ValidationError, InvalidTetherError) as e:
+            tethers.append(_decode_tether(path))
+        except InvalidTetherError as e:
             errors.append((path, str(e)))
     return LoadTethersResult(tethers=tethers, errors=errors)
 

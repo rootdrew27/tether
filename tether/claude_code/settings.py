@@ -71,39 +71,22 @@ def detect_tether_command(project_root: Path) -> str:
         return str(candidate)
 
 
-def build_session_start_hook(tether_cmd: str) -> dict[str, Any]:
+# (settings key, `tether hook claude-code` subcommand, tool matcher) for each
+# tether-owned hook.
+HOOK_EVENTS: tuple[tuple[str, str, str], ...] = (
+    ("SessionStart", "session-start", "*"),
+    ("Stop", "stop", "*"),
+    ("PreToolUse", "pre-tool-use", "Read"),
+)
+
+
+def build_hook_entry(tether_cmd: str, subcommand: str, matcher: str) -> dict[str, Any]:
     return {
-        "matcher": "*",
+        "matcher": matcher,
         "hooks": [
             {
                 "type": "command",
-                "command": f"{tether_cmd} hook claude-code session-start",
-                "timeout": 10,
-            }
-        ],
-    }
-
-
-def build_stop_hook(tether_cmd: str) -> dict[str, Any]:
-    return {
-        "matcher": "*",
-        "hooks": [
-            {
-                "type": "command",
-                "command": f"{tether_cmd} hook claude-code stop",
-                "timeout": 10,
-            }
-        ],
-    }
-
-
-def build_pre_tool_use_hook(tether_cmd: str) -> dict[str, Any]:
-    return {
-        "matcher": "Read",
-        "hooks": [
-            {
-                "type": "command",
-                "command": f"{tether_cmd} hook claude-code pre-tool-use",
+                "command": f"{tether_cmd} hook claude-code {subcommand}",
                 "timeout": 10,
             }
         ],
@@ -119,13 +102,7 @@ def _is_tether_owned_deny(s: str) -> bool:
 
 
 def _is_tether_owned_allow(s: str) -> bool:
-    if s in _ALLOW_PATTERN_SET:
-        return True
-    if s.startswith("Bash(*tether ") and any(
-        f"*tether {sub}:*" in s for sub in ALLOW_SUBCOMMANDS
-    ):
-        return True
-    return False
+    return s in _ALLOW_PATTERN_SET
 
 
 def _is_tether_owned_hook(entry: dict[str, Any]) -> bool:
@@ -192,16 +169,9 @@ def merge_local_settings(current: dict[str, Any], tether_cmd: str) -> MergeResul
     out = dict(current)
     changes: list[str] = []
 
-    session_start = build_session_start_hook(tether_cmd)
-    stop = build_stop_hook(tether_cmd)
-    pre_tool_use = build_pre_tool_use_hook(tether_cmd)
-
     hooks = dict(out.get("hooks", {}))
-    for key, hook_entry in (
-        ("SessionStart", session_start),
-        ("Stop", stop),
-        ("PreToolUse", pre_tool_use),
-    ):
+    for key, subcommand, matcher in HOOK_EVENTS:
+        hook_entry = build_hook_entry(tether_cmd, subcommand, matcher)
         merged, removed = _replace_owned(
             list(hooks.get(key, [])), _is_tether_owned_hook, [hook_entry]
         )

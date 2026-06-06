@@ -12,9 +12,8 @@ from tether.claude_code.install import install
 from tether.claude_code.settings import (
     ALLOW_PATTERNS,
     DENY_PATTERNS,
-    build_pre_tool_use_hook,
-    build_session_start_hook,
-    build_stop_hook,
+    HOOK_EVENTS,
+    build_hook_entry,
     detect_tether_command,
     merge_local_settings,
     merge_project_settings,
@@ -219,19 +218,22 @@ def test_merge_local_settings_embeds_command():
     assert "permissions" not in result.settings
 
 
-def test_build_hook_shape():
-    h = build_session_start_hook("/x/tether")
+def test_build_hook_entry_shape():
+    h = build_hook_entry("/x/tether", "session-start", "*")
     assert h["matcher"] == "*"
     assert h["hooks"][0]["timeout"] == 10
     assert h["hooks"][0]["type"] == "command"
+    assert h["hooks"][0]["command"] == "/x/tether hook claude-code session-start"
 
-    s = build_stop_hook("/x/tether")
-    assert s["hooks"][0]["command"].endswith(" hook claude-code stop")
 
-    p = build_pre_tool_use_hook("/x/tether")
-    assert p["matcher"] == "Read"
-    assert p["hooks"][0]["timeout"] == 10
-    assert p["hooks"][0]["command"].endswith(" hook claude-code pre-tool-use")
+def test_hook_events_cover_all_hook_points():
+    # PreToolUse scopes to Read (the context-injection hook); the rest fire
+    # for every matcher.
+    assert [(key, matcher) for key, _, matcher in HOOK_EVENTS] == [
+        ("SessionStart", "*"),
+        ("Stop", "*"),
+        ("PreToolUse", "Read"),
+    ]
 
 
 def test_install_includes_refs_allow_patterns(project: Path):
