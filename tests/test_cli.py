@@ -50,6 +50,17 @@ def test_init_refuses_outside_git(tmp_path: Path, monkeypatch):
     assert "git work tree" in result.output
 
 
+def test_init_errors_cleanly_when_tether_dir_is_a_file(tmp_path: Path, monkeypatch):
+    import subprocess
+
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    (tmp_path / ".tether").write_text("not a directory\n")
+    monkeypatch.chdir(tmp_path)
+    result = CliRunner().invoke(main, ["init"])
+    assert result.exit_code == 1
+    assert "Unable to create" in result.output
+
+
 def test_add_creates_record(in_project: Path):
     _seed_files(in_project)
     runner = CliRunner()
@@ -157,6 +168,33 @@ def test_mv_rewrites_paths(in_project: Path):
     assert "Rewrote 1" in result.output
     loaded = load_all_tethers(in_project).tethers[0]
     assert loaded.b.path == "src/authentication.py"
+
+
+def test_rm_rejects_traversal_id(in_project: Path):
+    secret = in_project / "secret.json"
+    secret.write_text("{}\n")
+    result = CliRunner().invoke(main, ["rm", "../../secret"])
+    assert result.exit_code == 1
+    assert "UUID" in result.output
+    assert secret.exists()
+
+
+def test_mv_abort_leaves_no_records_changed(in_project: Path):
+    # t1 = (x.md, y.md) rewrites cleanly; t2 = (z.md, y.md) would become a
+    # self-tether. The abort must leave every record untouched, including t1.
+    for name in ("x.md", "y.md", "z.md"):
+        (in_project / name).write_text(f"{name}\n")
+    runner = CliRunner()
+    for a, b in (("x.md", "y.md"), ("z.md", "y.md")):
+        r = runner.invoke(main, ["add", a, b, "--description", "d"])
+        assert r.exit_code == 0, r.output
+
+    result = runner.invoke(main, ["mv", "y.md", "z.md"])
+    assert result.exit_code == 1
+    assert "self-tether" in result.output
+    assert "no records changed" in result.output
+    paths = sorted((t.a.path, t.b.path) for t in load_all_tethers(in_project).tethers)
+    assert paths == [("x.md", "y.md"), ("z.md", "y.md")]
 
 
 def test_update_description(in_project: Path):

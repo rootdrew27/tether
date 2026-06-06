@@ -7,6 +7,7 @@ from tether.status import (
     AggregateState,
     ArtifactState,
     aggregate,
+    artifact_diff,
     check_all,
     check_artifact,
 )
@@ -164,6 +165,34 @@ def test_find_renames_below_threshold_returns_nothing(project: Path):
     (project / "renamed.py").write_text("".join(rewritten))
 
     assert find_renames([("mod.py", fp)], project) == {}
+
+
+def test_artifact_diff_rewrites_headers_to_relative_paths(project: Path):
+    f = project / "x.md"
+    f.write_text("old\n")
+    fp = hash_object_write(f, project)
+    f.write_text("new\n")
+
+    out = artifact_diff("x.md", fp, project)
+    assert "--- a/x.md (fingerprinted)\n" in out
+    assert "+++ b/x.md\n" in out
+    assert str(project) not in out  # no absolute paths leak into the diff
+
+
+def test_artifact_diff_preserves_content_containing_own_path(project: Path):
+    # A file whose content embeds its own absolute path (generated configs,
+    # fixtures using __file__) must render verbatim — the header path rewrite
+    # must not touch hunk content.
+    f = project / "x.md"
+    own_path = str(f)
+    f.write_text(f'BASE = "{own_path}"\nold\n')
+    fp = hash_object_write(f, project)
+    f.write_text(f'BASE = "{own_path}"\nnew\n')
+
+    out = artifact_diff("x.md", fp, project)
+    assert f' BASE = "{own_path}"\n' in out  # context line untouched
+    assert "-old\n" in out
+    assert "+new\n" in out
 
 
 def test_find_renames_missing_blob_does_not_crash(project: Path):

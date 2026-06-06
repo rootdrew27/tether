@@ -40,12 +40,12 @@ def init_project(start: Path) -> Path:
     root = _git_toplevel(start)
     tether_dir = root / TETHER_DIR
     tethers_dir = tether_dir / TETHERS_SUBDIR
-    already = tether_dir.exists()
-    tethers_dir.mkdir(parents=True, exist_ok=True)
-    if already and not tethers_dir.is_dir():
+    try:
+        tethers_dir.mkdir(parents=True, exist_ok=True)
+    except OSError as e:
         raise AlreadyInitializedError(
-            f"{tether_dir} exists but {TETHERS_SUBDIR} is not a directory"
-        )
+            f"Unable to create {tethers_dir} directory: {e}"
+        ) from e
     return root
 
 

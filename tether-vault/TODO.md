@@ -17,12 +17,12 @@ status: active
   and that there are no negative side-effects.
 - [x] Update `fragment.py` (`claude --resume update-cc-fragment`)
 - [x] Simplify: Remove XML rendering -- keep light markdown and JSON
-- [ ] Research memory systems, coding agents, evals, etc.
 - [ ] Enhanced testing framework for Claude Code integration (resume via `claude --resume testing-framework-enhancement`)
 	- Example scenarios like the one described in Case 01 should be simulated.   
 	-  Do hooks fire? Does Claude respond appropriately given certain states? Are tethers maintained?
 	- Consider **explicit** vs **implicit** metrics 
 	- https://claude.ai/share/77b79a9d-39c4-4d03-8449-ee95129e2e37
+- [ ] Implement "reconcile" feature (e.g. a Claude Code Skill) to create tethers for an existing project 
 - [ ] Setup CI/CD
 - [ ] Use `tether` to develop `tether`!
 	- [ ] Create Claude Skill to create tethers in a new repository

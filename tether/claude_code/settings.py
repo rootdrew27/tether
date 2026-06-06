@@ -10,12 +10,11 @@ import msgspec
 
 from ..errors import TetherError
 
-DENY_PATTERNS: list[str] = [
-    "Edit(.tether/**)",
-    "Write(.tether/**)",
-    "MultiEdit(.tether/**)",
-    "NotebookEdit(.tether/**)",
-]
+# The editing tools tether denies on its state directory. Both the canonical
+# deny patterns and the ownership predicate derive from this tuple.
+_DENY_TOOLS: tuple[str, ...] = ("Edit", "Write", "MultiEdit", "NotebookEdit")
+
+DENY_PATTERNS: list[str] = [f"{tool}(.tether/**)" for tool in _DENY_TOOLS]
 
 ALLOW_SUBCOMMANDS: list[str] = [
     "status",
@@ -112,7 +111,11 @@ def build_pre_tool_use_hook(tether_cmd: str) -> dict[str, Any]:
 
 
 def _is_tether_owned_deny(s: str) -> bool:
-    return ".tether/" in s
+    # Owned iff the rule is one of tether's editing tools targeting a .tether/
+    # path — catches the canonical patterns plus stale narrower forms (e.g.
+    # Edit(.tether/tethers/**)) without touching user rules for other tools
+    # (e.g. Read(.tether/secrets/**), Bash(rm .tether/**)).
+    return any(s.startswith(f"{tool}(.tether/") for tool in _DENY_TOOLS)
 
 
 def _is_tether_owned_allow(s: str) -> bool:

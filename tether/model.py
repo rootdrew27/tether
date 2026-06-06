@@ -22,13 +22,19 @@ class Tether(msgspec.Struct, frozen=True, kw_only=True):
     refreshed_at: str
 
 
-def validate(t: Tether) -> None:
+def validate_tether_id(tether_id: str) -> str:
+    """Validate a tether id and return its canonical hyphenated lowercase form."""
     try:
-        u = uuid.UUID(t.id)
+        u = uuid.UUID(tether_id)
     except ValueError as e:
-        raise InvalidTetherError(f"invalid UUID {t.id!r}: {e}") from e
+        raise InvalidTetherError(f"invalid UUID {tether_id!r}: {e}") from e
     if u.version != 7:
-        raise InvalidTetherError(f"UUID {t.id} is not version 7")
+        raise InvalidTetherError(f"UUID {tether_id} is not version 7")
+    return str(u)
+
+
+def validate(t: Tether) -> None:
+    validate_tether_id(t.id)
 
     if t.schema_version != 1:
         raise InvalidTetherError(

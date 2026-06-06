@@ -5,12 +5,14 @@ from pathlib import Path
 import msgspec
 
 from .errors import InvalidTetherError, TetherNotFoundError
-from .model import Tether, validate
+from .model import Tether, validate, validate_tether_id
 from .project import tethers_dir
 
 
 def _record_tether_path(project_root: Path, tether_id: str) -> Path:
-    return tethers_dir(project_root) / f"{tether_id}.json"
+    # The id becomes a filename component; validating (and canonicalizing) it
+    # here keeps caller-supplied ids from escaping the tethers directory.
+    return tethers_dir(project_root) / f"{validate_tether_id(tether_id)}.json"
 
 
 def save_tether(project_root: Path, t: Tether) -> Path:

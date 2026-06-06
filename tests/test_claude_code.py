@@ -176,6 +176,37 @@ def test_merge_project_settings_empty():
     assert result.changes
 
 
+def test_merge_preserves_user_deny_rules_mentioning_tether_dir():
+    # User-authored deny rules referencing .tether/ via other tools are not
+    # tether-owned and must survive the merge.
+    result = merge_project_settings(
+        {
+            "permissions": {
+                "deny": [
+                    "Read(.tether/secrets/**)",
+                    "Bash(rm .tether/**)",
+                ]
+            }
+        }
+    )
+    deny = result.settings["permissions"]["deny"]
+    assert "Read(.tether/secrets/**)" in deny
+    assert "Bash(rm .tether/**)" in deny
+    for p in DENY_PATTERNS:
+        assert p in deny
+
+
+def test_merge_replaces_stale_tether_owned_deny_forms():
+    # Narrower forms of tether's own editing-tool denies are stale and get
+    # replaced by the canonical patterns.
+    result = merge_project_settings(
+        {"permissions": {"deny": ["Edit(.tether/tethers/**)"]}}
+    )
+    deny = result.settings["permissions"]["deny"]
+    assert "Edit(.tether/tethers/**)" not in deny
+    assert deny == DENY_PATTERNS
+
+
 def test_merge_local_settings_embeds_command():
     result = merge_local_settings({}, "/abs/path/tether")
     sessionstart = result.settings["hooks"]["SessionStart"][0]

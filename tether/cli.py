@@ -216,7 +216,7 @@ def mv(old_path: str, new_path: str) -> None:
     old_rel = _resolve_rel(root, old_path)
     new_rel = _resolve_rel(root, new_path)
     result = load_all_tethers(root)
-    modified: list[str] = []
+    rewritten: list[Tether] = []
     for t in result.tethers:
         a_match = t.a.path == old_rel
         b_match = t.b.path == old_rel
@@ -231,14 +231,15 @@ def mv(old_path: str, new_path: str) -> None:
             raise TetherError(
                 f"mv would create self-tether on {t.id}; aborting (no records changed)"
             )
+        rewritten.append(new_t)
+    for new_t in rewritten:
         save_tether(root, new_t)
-        modified.append(t.id)
-    if not modified:
+    if not rewritten:
         click.echo(f"No tethers reference {old_rel}")
     else:
-        click.echo(f"Rewrote {len(modified)} tether(s)")
-        for tid in modified:
-            click.echo(f"  {tid}")
+        click.echo(f"Rewrote {len(rewritten)} tether(s)")
+        for new_t in rewritten:
+            click.echo(f"  {new_t.id}")
     if result.errors:
         click.echo(f"(skipped {len(result.errors)} unreadable record(s))", err=True)
 

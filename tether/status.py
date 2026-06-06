@@ -194,12 +194,17 @@ def artifact_diff(artifact_path: str, fingerprint: str, project_root: Path) -> s
         return f"[git diff failed: {result.stderr.strip()}]"
     if not result.stdout.strip():
         return "[no textual diff — encoding-level changes only]"
-    output = result.stdout
     # git renders absolute paths after a/b prefixes with the leading slash stripped
-    # (so an absolute /tmp/foo becomes a/tmp/foo); replace both stripped and
-    # non-stripped variants with the project-relative artifact path.
+    # (so an absolute /tmp/foo becomes a/tmp/foo); replace them with the
+    # project-relative artifact path. Paths only appear in the header lines before
+    # the first hunk — content lines may legitimately contain the file's own path
+    # and must pass through verbatim.
     old_stripped = old_path_str.lstrip("/")
     full_stripped = full_str.lstrip("/")
-    output = output.replace(old_stripped, f"{artifact_path} (fingerprinted)")
-    output = output.replace(full_stripped, artifact_path)
-    return output
+    lines = result.stdout.splitlines(keepends=True)
+    for i, line in enumerate(lines):
+        if line.startswith("@@"):
+            break
+        line = line.replace(old_stripped, f"{artifact_path} (fingerprinted)")
+        lines[i] = line.replace(full_stripped, artifact_path)
+    return "".join(lines)

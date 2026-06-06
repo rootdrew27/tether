@@ -52,6 +52,21 @@ def test_delete_tether_missing_raises(project: Path):
         delete_tether(project, "0192abc1-23ef-7890-abcd-ef0123456789")
 
 
+def test_load_tether_rejects_non_uuid_id(project: Path):
+    with pytest.raises(InvalidTetherError, match="UUID"):
+        load_tether(project, "../../secret")
+
+
+def test_delete_tether_rejects_traversal_id(project: Path):
+    # "../../" from .tether/tethers/ lands at the project root; a crafted id
+    # must not reach files outside the tethers directory.
+    secret = project / "secret.json"
+    secret.write_text("{}\n")
+    with pytest.raises(InvalidTetherError, match="UUID"):
+        delete_tether(project, "../../secret")
+    assert secret.exists()
+
+
 def test_load_all_tethers_returns_sorted_uuid_order(project: Path):
     ts = [_make_tether() for _ in range(3)]
     for t in ts:
