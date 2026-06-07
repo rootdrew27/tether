@@ -220,6 +220,9 @@ __marimo__/
 # Tether local playground (hand-experimentation, not committed)
 playground*/
 
+# Margin eval run output
+evals/margin/runs/
+
 # Claude Code per-user settings (allowlist, etc.) — personal state, not project state
 .claude/settings.local.json
 

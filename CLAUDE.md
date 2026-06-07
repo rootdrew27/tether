@@ -45,6 +45,10 @@ uv run tether --help                            # exercise the CLI locally
 - `tests/conftest.py` provides a `project` fixture that returns an initialized project root. Prefer it over manually constructing `.tether/` directories.
 - No `pytest-timeout` plugin installed — don't add `@pytest.mark.timeout` decorators.
 
+## Evaluations
+
+Efficacy measurement lives in `evals/margin/` — a [Margin](https://github.com/Margin-Lab/evals) harness that runs Claude Code over the swe-minimal suite with tether installed and initialized (treatment arm) versus stock Claude Code (control arm). Like `agent-notes/`, it is Claude-maintained infrastructure for working *on* tether; it is not a feature of the tether package and is never installed into a user's project. The directory is self-contained: read its own `README.md` (human-facing overview) and `CLAUDE.md` (operational internals — the tether install path, the pinning rules, and the verifier) before changing anything there. Run output under `evals/margin/runs/` is gitignored.
+
 ## Documentation
 
 Project documentation is split by ownership (see **Vault access** above):

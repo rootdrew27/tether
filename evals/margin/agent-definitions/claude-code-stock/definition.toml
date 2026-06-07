@@ -1,0 +1,51 @@
+kind = "agent_definition"
+name = "claude-code-stock"
+description = "Stock Claude Code agent definition, committed verbatim as the reproducible baseline (control arm). Snapshot of Margin's repo-owned claude-code definition; only name/description differ from upstream — hooks, schema, auth, and toolchains are byte-identical."
+
+[auth]
+required_env = ["ANTHROPIC_API_KEY"]
+
+[[auth.local_credentials]]
+required_env = "ANTHROPIC_API_KEY"
+run_home_rel_path = ".claude/.credentials.json"
+validate_json_path = "claudeAiOauth.accessToken"
+
+  [[auth.local_credentials.sources]]
+  kind = "macos_keychain"
+  service = "Claude Code-credentials"
+  platforms = ["darwin"]
+
+  [[auth.local_credentials.sources]]
+  kind = "home_file"
+  home_rel_path = ".claude/.credentials.json"
+
+[toolchains.node]
+minimum = "18"
+preferred = "24"
+
+[config]
+schema = "schema.json"
+
+[skills]
+home_rel_dir = ".claude/skills"
+
+[agents_md]
+filename = "CLAUDE.md"
+
+[config.unified]
+translate = "hooks/translate-unified.js"
+allowed_models = ["opus", "sonnet", "haiku", "sonnet[1m]"]
+allowed_reasoning_levels = ["low", "medium", "high"]
+
+[install]
+check = "hooks/install-check.js"
+run = "hooks/install-run.js"
+
+[run]
+prepare = "hooks/run-prepare.js"
+
+[snapshot]
+prepare = "hooks/snapshot-prepare.js"
+
+[trajectory]
+collect = "hooks/trajectory-collect.js"

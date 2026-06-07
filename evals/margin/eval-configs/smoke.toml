@@ -1,0 +1,8 @@
+kind = "eval_config"
+name = "tether-smoke"
+description = "Plumbing smoke test: swe-minimal (3 cases) with tether installed in each case container"
+max_concurrency = 3
+fail_fast = false
+retry_count = 1
+samples_per_case = 1
+instance_timeout_seconds = 1800

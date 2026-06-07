@@ -1,0 +1,16 @@
+kind = "agent_config"
+name = "baseline-sonnet"
+description = "Stock Claude Code (sonnet) without tether — control arm for A/B comparison"
+definition = "../../agent-definitions/claude-code-stock"
+mode = "direct"
+
+[input]
+claude_version = "2.1.167"
+startup_args = ["--model", "claude-sonnet-4-6", "--effort", "medium"]
+run_args = []
+settings_json = """
+{
+  "model": "claude-sonnet-4-6",
+  "permissionMode": "acceptEdits"
+}
+"""

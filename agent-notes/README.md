@@ -16,6 +16,10 @@ Contents:
 - `claude-code/` — the Claude Code integration spec, its open items, and a `strategies/`
   subfolder for deferred strategies.
 
+The Margin evaluation harness is a sibling directory, `evals/margin/` — not part of this
+space, but likewise Claude-maintained. It documents itself (`README.md` + `CLAUDE.md`); the
+root `CLAUDE.md` has the entry pointer.
+
 ## Format
 
 This space sits at the repo root, outside the Obsidian vault, so its docs are read in
