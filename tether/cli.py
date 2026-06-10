@@ -14,14 +14,16 @@ from . import __version__
 from .errors import TetherError
 from .git import hash_object_write
 from .model import Artifact, Tether
+from .coverage import compute_coverage
 from .output import (
+    build_coverage_report,
     build_refs_report,
     build_status_report,
     build_tether_status,
     encode_pretty,
 )
 from .project import find_project_root, init_project
-from .render import Row, all_tethers_md, one_tether_md, refs_md, show_text
+from .render import Row, all_tethers_md, coverage_md, one_tether_md, refs_md, show_text
 from .status import AggregateState, ArtifactState, check_all, check_tether
 from uuid_utils import uuid7
 
@@ -321,6 +323,40 @@ def show() -> None:
         click.echo_via_pager(text + "\n")
     else:
         click.echo(text)
+
+
+@main.command()
+@click.option(
+    "--list-untethered-files",
+    "list_untethered",
+    is_flag=True,
+    default=False,
+    help="List the tracked files no tether references.",
+)
+@click.option(
+    "--list-tethered-files",
+    "list_tethered",
+    is_flag=True,
+    default=False,
+    help="List the tracked files referenced by at least one tether.",
+)
+@click.option("--json", "as_json", is_flag=True, default=False, help="Emit JSON.")
+@handle_errors
+def coverage(list_untethered: bool, list_tethered: bool, as_json: bool) -> None:
+    """Report what fraction of git-tracked files participate in a tether."""
+    root = _root()
+    cov = compute_coverage(root)
+    if as_json:
+        report = build_coverage_report(
+            cov, root, list_tethered=list_tethered, list_untethered=list_untethered
+        )
+        click.echo(encode_pretty(report))
+    else:
+        click.echo(
+            coverage_md(
+                cov, root, list_tethered=list_tethered, list_untethered=list_untethered
+            )
+        )
 
 
 @main.group(hidden=True)

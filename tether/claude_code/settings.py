@@ -24,6 +24,7 @@ ALLOW_SUBCOMMANDS: list[str] = [
     "mv",
     "refs",
     "show",
+    "coverage",
 ]
 
 ALLOW_INVOCATIONS: list[str] = [

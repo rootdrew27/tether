@@ -7,6 +7,7 @@ from typing import Any
 from ..errors import TetherError
 from ..project import init_project
 from .fragment import FRAGMENT
+from .skill import ONBOARD_SKILL
 from .settings import (
     detect_tether_command,
     merge_local_settings,
@@ -16,6 +17,9 @@ from .settings import (
 CLAUDE_DIR = ".claude"
 TETHER_DIR = ".tether"
 FRAGMENT_NAME = "tether.md"
+SKILLS_DIR = "skills"
+ONBOARD_SKILL_DIR = "tether-onboard"
+SKILL_NAME = "SKILL.md"
 SETTINGS_NAME = "settings.json"
 SETTINGS_LOCAL_NAME = "settings.local.json"
 CLAUDE_MD = "CLAUDE.md"
@@ -35,6 +39,11 @@ def install(start: Path) -> list[str]:
     fragment_path = root / TETHER_DIR / FRAGMENT_NAME
     fragment_path.write_text(FRAGMENT)
     report.append(f"Wrote {fragment_path.relative_to(root)}")
+
+    skill_path = claude_dir / SKILLS_DIR / ONBOARD_SKILL_DIR / SKILL_NAME
+    skill_path.parent.mkdir(parents=True, exist_ok=True)
+    skill_path.write_text(ONBOARD_SKILL)
+    report.append(f"Wrote {skill_path.relative_to(root)}")
 
     claude_md = root / CLAUDE_MD
     if claude_md.exists():

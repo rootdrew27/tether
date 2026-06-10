@@ -43,6 +43,9 @@
 | **tether rm**         | Delete a tether record.                                                                                            | Remove, delete, unlink     |
 | **Refresh**           | The act of re-fingerprinting; framed as a positive assertion of alignment that travels with the content changes it ratifies. | Auto-update, sync          |
 | **Reconcile**         | Offline rename detection that compares a content-hash snapshot at `.tether/snapshot.json` to current disk state.    | Sync, repair               |
+| **tether coverage**   | Report what fraction of git-tracked files participate in at least one tether; flags list the (un)tethered files. Structural-only. | Stats, audit               |
+| **Coverage**          | The fraction of tracked files referenced by ≥1 tether. A progress signal for onboarding, not a target — many files have no drift-sensitive partner. | Completeness, score        |
+| **Onboard**           | Create the initial tether graph for an existing project: survey, judge candidate relationships, `tether add` with quality descriptions. Implemented as a coding-agent skill (`/tether-onboard`), not a CLI command. Distinct from **Reconcile** (repairing existing tethers). | Bootstrap, import, scan    |
 
 ## Actors
 

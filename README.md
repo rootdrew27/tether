@@ -57,6 +57,7 @@ uv run tether refresh <id>   # re-fingerprint both artifacts together
 | `tether add A B --description "..."` | Create a tether. `--description` is required. |
 | `tether status [ID] [--json] [--diff/--no-diff]` | Report tether state; per-artifact for one ID, summary for all. |
 | `tether show` | List every tether with its description, regardless of state. Reads records from disk; no drift check. |
+| `tether coverage [--list-untethered-files] [--list-tethered-files] [--json]` | Report what fraction of git-tracked files participate in a tether. Structural-only; a progress signal for onboarding, not a target. |
 | `tether refresh ID` | Re-fingerprint both artifacts; asserts they are now aligned. |
 | `tether update ID [--a-path ...] [--b-path ...] [--description ...]` | Modify a tether without touching fingerprints. |
 | `tether mv OLD_PATH NEW_PATH` | Rewrite all tether artifacts pointing at `OLD_PATH` to `NEW_PATH`. |
@@ -113,6 +114,12 @@ audit trail for a tether (created, refreshed, retargeted).
   edits anywhere under `.tether/` so Claude goes through the CLI rather than
   rewriting fingerprints by hand, plus `permissions.allow` entries
   pre-approving the tether subcommands the agent will routinely invoke.
+- A `/tether-onboard` skill (in `.claude/skills/tether-onboard/`) that surveys
+  an existing project and creates its initial tether graph: candidate
+  relationships are proposed by heuristics, judged by the agent with
+  precision-over-recall, recorded via `tether add` with quality descriptions,
+  and measured with `tether coverage`. Invoked explicitly; it never triggers
+  on its own.
 
 The hooks shell out to `tether hook claude-code session-start` and
 `tether hook claude-code stop`. Both read `cwd` from stdin and emit the

@@ -168,6 +168,18 @@ It lives under `.tether/` rather than `.claude/` because it is tether's content,
 
 **Note on sub-file locators:** the fragment is whole-file-only — MVP ships only the `WholeFile` locator. When the CLI grows `LineRange` (and beyond) locator support, the fragment's intro and example commands update to introduce sub-file relationships. Tracked in [Future-Work](../design/Future-Work.md); the fragment update itself is tracked as a blocked item in [Claude-Code-Integration-Open](Claude-Code-Integration-Open.md).
 
+## Onboard skill
+
+A project-level Claude Code Skill at `.claude/skills/tether-onboard/SKILL.md`, invoked as `/tether-onboard`, that surveys an existing project and creates its initial tether graph: survey candidate relationships (fan-out to per-subsystem subagents on larger repos), judge them with precision-over-recall, `tether add` each accepted pair with a quality description, measure progress via `tether coverage`, and report what was created and what was deliberately left untethered. Design background: [Onboard-Skill-Plan](../design/Onboard-Skill-Plan.md) and [Onboard-Skill-Research](../research/Onboard-Skill-Research.md).
+
+**Source of truth: `tether/claude_code/skill.py`** (`ONBOARD_SKILL` constant) — what `tether init claude-code` writes on every run, same ownership rule as the fragment (fully tether-owned, overwritten unconditionally). Unlike the fragment it lives under `.claude/` because skills must; it is committed and team-shared (no machine-specific content).
+
+Key frontmatter decisions:
+
+- **`disable-model-invocation: true`** — onboarding is heavyweight and deliberate; only the explicit `/tether-onboard` command triggers it, and the skill costs zero session context until invoked.
+- **No `context: fork`** — Claude Code caps subagent nesting at one level, so a forked skill (which runs *as* a subagent) could not dispatch the per-subsystem survey subagents. The skill runs in the main conversation context instead.
+- **No load-time `!` shell injection** — the committed SKILL.md cannot embed a machine-specific tether binary path (the same portability boundary that puts hooks in `settings.local.json`), so the skill's first instructed action is running `tether coverage --list-untethered-files --list-tethered-files` through the allow-list rather than injecting its output at load time.
+
 ## Write-denial mechanism
 
 Declarative `permissions.deny` entries in `.claude/settings.json` block mutating tool calls anywhere under `.tether/`:
@@ -194,7 +206,7 @@ Three scoping decisions:
 
 ## Allow-list for tether CLI commands
 
-Declarative `permissions.allow` entries in `.claude/settings.json` pre-approve the tether subcommands the agent will routinely invoke — read-only inspection (`status`, `refs`, `show`) and the non-destructive mutations used to clear a Stop block (`refresh`, `update`, `add`, `mv`) — so the user is not prompted on every refresh:
+Declarative `permissions.allow` entries in `.claude/settings.json` pre-approve the tether subcommands the agent will routinely invoke — read-only inspection (`status`, `refs`, `show`, `coverage`) and the non-destructive mutations used to clear a Stop block (`refresh`, `update`, `add`, `mv`) — so the user is not prompted on every refresh:
 
 ```json
 {
@@ -206,13 +218,13 @@ Declarative `permissions.allow` entries in `.claude/settings.json` pre-approve t
       "Bash(conda run -n * tether status:*)",
       "Bash(.venv/bin/tether status:*)",
       "Bash(${CLAUDE_PROJECT_DIR}/.venv/bin/tether status:*)",
-      "...the same six invocation forms for refresh/update/add/mv/refs/show..."
+      "...the same six invocation forms for refresh/update/add/mv/refs/show/coverage..."
     ]
   }
 }
 ```
 
-**Enumerated-prefix rationale.** Six invocation forms are pre-approved per subcommand; across the seven subcommands (`status`, `refresh`, `update`, `add`, `mv`, `refs`, `show`) that is forty-two total patterns:
+**Enumerated-prefix rationale.** Six invocation forms are pre-approved per subcommand; across the eight subcommands (`status`, `refresh`, `update`, `add`, `mv`, `refs`, `show`, `coverage`) that is forty-eight total patterns:
 
 1. `tether` — bare, when `tether` is on PATH (pipx, system install, active venv).
 2. `uv run tether` — uv-managed projects.
@@ -333,6 +345,7 @@ A single all-in-one subcommand that sets up the integration. Idempotent — re-r
 |---|---|
 | `.tether/` | Project init (skipped if already initialized) |
 | `.tether/tether.md` | Fully tether-owned; overwritten on every run |
+| `.claude/skills/tether-onboard/SKILL.md` | Fully tether-owned; overwritten on every run. Committed (team-shared); see §"Onboard skill" |
 | `./CLAUDE.md` | `@.tether/tether.md` import appended once if not present; otherwise untouched; created with just the import line if file doesn't exist |
 | `.claude/settings.json` | Tether-owned **permissions** merged in via signature-matched replacement (see below); everything else preserved. Committed to git; portable across machines. |
 | `.claude/settings.local.json` | Tether-owned **hooks** merged in via signature-matched replacement, with the machine-specific tether binary path embedded. Gitignored; per-user-per-project. |
@@ -357,7 +370,7 @@ Wrote .tether/tether.md
 Created CLAUDE.md with `@.tether/tether.md`
 Updated .claude/settings.json:
   - added 4 deny rule(s)
-  - added 42 allow rule(s)
+  - added 48 allow rule(s)
 Updated .claude/settings.local.json:
   - added SessionStart hook
   - added Stop hook
@@ -375,7 +388,7 @@ Wrote .tether/tether.md
 CLAUDE.md already imports `@.tether/tether.md`
 Updated .claude/settings.json:
   - added 4 deny rule(s)
-  - added 42 allow rule(s)
+  - added 48 allow rule(s)
 Updated .claude/settings.local.json:
   - added SessionStart hook
   - added Stop hook
@@ -396,6 +409,7 @@ Tether's CLI output mixes defaults by audience: `tether status` is markdown by d
 | `tether status --json` / `tether status --json <uuid>` | JSON | Scripts, CI, future automation. |
 | `tether refs <path>` | JSON (`RefsReport`) | Default; same shape the PreToolUse hook injects. |
 | `tether refs <path> --markdown` | Markdown | Human-readable summary at a terminal. |
+| `tether coverage` | Markdown (with `--json` opt-in, `CoverageReport`) | Agent measuring onboarding progress; human auditing what's untethered. `--list-untethered-files` / `--list-tethered-files` append the file lists. |
 | Hook subcommands (`tether hook claude-code session-start` / `stop`) | Markdown to stdout (SessionStart); markdown reason inside `{"decision": "block", "reason": "..."}` (Stop) | Claude Code's hook engine consumes. |
 | Hook subcommand `tether hook claude-code pre-tool-use` | JSON (`RefsReport`) inside `additionalContext` | Claude Code routes into the agent's context. |
 

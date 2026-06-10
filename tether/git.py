@@ -50,6 +50,16 @@ def run_git_or_raise(
     return result
 
 
+def ls_files(root: Path) -> list[str]:
+    """Return the project-relative POSIX paths of all git-tracked files."""
+    result = run_git_or_raise(
+        ["-c", "core.quotePath=false", "ls-files", "-z"],
+        cwd=root,
+        error_prefix="git ls-files failed",
+    )
+    return [p for p in result.stdout.split("\0") if p]
+
+
 def hash_object_write(file_path: Path, root: Path) -> str:
     result = run_git_or_raise(
         ["hash-object", "-w", "--", str(file_path)],

@@ -108,6 +108,7 @@ The per-side `state` values are current at the moment of the Read; you do not ne
 - `tether status <uuid>` — show one tether with a unified diff for any DRIFTED artifact, and rename candidates for any BROKEN artifact.
 - `tether show` — list every tether with its description, regardless of state (including the HEALTHY ones `tether status` collapses into a count). Use for **orientation**: the whole relationship graph and the *why* behind each link, when onboarding to a project or planning a change that spans several files. Not a per-turn check and not a drift diagnostic — use `tether status` for drift and `tether refs <path>` for what touches a specific file.
 - `tether refs <path>` — list tethers referencing a path. Rarely needed during normal work since context is auto-injected on Read.
+- `tether coverage [--list-untethered-files] [--list-tethered-files]` — report what fraction of git-tracked files participate in a tether; the flags append the corresponding file lists. Structural-only. Use when surveying what still lacks tethers (e.g. during project onboarding), not as a per-turn check — many files legitimately have no drift-sensitive partner.
 - `tether add <a> <b> --description "..."` — create a tether. `--description` is required.
 - `tether refresh <uuid>` — re-fingerprint both artifacts; the explicit assertion that they are aligned.
 - `tether update <uuid> [--a-path <p>] [--b-path <p>] [--description "..."]` — structural change, no fingerprint touch.

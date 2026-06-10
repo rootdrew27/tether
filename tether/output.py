@@ -4,6 +4,7 @@ from pathlib import Path
 
 import msgspec
 
+from .coverage import Coverage
 from .model import Artifact, Tether
 from .render import Row, by_severity, counts
 from .status import (
@@ -68,6 +69,16 @@ class RefsReport(msgspec.Struct, frozen=True, kw_only=True):
     queried_path: str
     summary: StatusSummary
     tethers: list[TetherStatus]
+    errors: list[LoadError]
+
+
+class CoverageReport(msgspec.Struct, frozen=True, kw_only=True):
+    tracked: int
+    tethered_count: int
+    untethered_count: int
+    percent: float | None
+    tethered_files: list[str]
+    untethered_files: list[str]
     errors: list[LoadError]
 
 
@@ -152,6 +163,25 @@ def build_status_report(
         summary=build_status_summary(rows),
         tethers=[build_tether_status(t, ck, root, False) for t, ck in rows],
         errors=relativize_errors(errors, root),
+    )
+
+
+def build_coverage_report(
+    cov: Coverage,
+    root: Path,
+    *,
+    list_tethered: bool,
+    list_untethered: bool,
+) -> CoverageReport:
+    percent = round(100 * len(cov.tethered) / cov.tracked, 1) if cov.tracked else None
+    return CoverageReport(
+        tracked=cov.tracked,
+        tethered_count=len(cov.tethered),
+        untethered_count=len(cov.untethered),
+        percent=percent,
+        tethered_files=cov.tethered if list_tethered else [],
+        untethered_files=cov.untethered if list_untethered else [],
+        errors=relativize_errors(cov.errors, root),
     )
 
 

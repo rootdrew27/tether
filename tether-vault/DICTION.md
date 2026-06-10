@@ -49,6 +49,7 @@ The aggregate state is derived from per-artifact states: both HEALTHY → HEALTH
 | **tether mv**               | Bulk path rewrite: rewrite every artifact pointing at OLD_PATH to NEW_PATH. Structural only; no alignment assertion.                                                                                                                     | Bulk rename                |
 | **tether rm**               | Delete a tether record.                                                                                                                                                                                                                  | Remove, delete, unlink     |
 | **tether refs**             | List tethers referencing a path (where the artifact's `a.path` or `b.path` matches),                                                                                                                                                     |                            |
+| **tether coverage**         | Report what fraction of git-tracked files participate in at least one tether; `--list-untethered-files` / `--list-tethered-files` append the file lists. A progress signal for onboarding, not a target.                                 | Stats, audit, completeness |
 
 ## Actors
 

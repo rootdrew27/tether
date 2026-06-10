@@ -4,6 +4,7 @@ import shutil
 import textwrap
 from pathlib import Path
 
+from .coverage import Coverage
 from .model import Tether
 from .status import (
     STATE_ORDER,
@@ -137,6 +138,49 @@ def show_text(
     if error_lines:
         parts.append("\n".join(error_lines).lstrip("\n"))
     return "\n\n".join(parts)
+
+
+def _file_list_section(title: str, files: list[str]) -> list[str]:
+    lines = ["", f"### {title}", ""]
+    if files:
+        lines.extend(f"- `{p}`" for p in files)
+    else:
+        lines.append("(none)")
+    return lines
+
+
+def coverage_md(
+    cov: Coverage,
+    root: Path,
+    *,
+    list_tethered: bool,
+    list_untethered: bool,
+) -> str:
+    """Render `tether coverage` as a markdown summary with optional file lists."""
+    lines = ["## Tether coverage", ""]
+    if cov.tracked == 0:
+        lines.append("No tracked files outside `.tether/`.")
+    else:
+        pct = f"{100 * len(cov.tethered) / cov.tracked:.0f}%"
+        plural = "s" if cov.tracked != 1 else ""
+        lines.append(
+            f"{len(cov.tethered)} of {cov.tracked} tracked file{plural} "
+            f"tethered ({pct}). {len(cov.untethered)} untethered."
+        )
+    if list_untethered:
+        lines.extend(_file_list_section("Untethered files", cov.untethered))
+    if list_tethered:
+        lines.extend(_file_list_section("Tethered files", cov.tethered))
+    if not (list_tethered or list_untethered) and cov.tracked:
+        lines.extend(
+            [
+                "",
+                "For file lists: `tether coverage --list-untethered-files` / "
+                "`--list-tethered-files`",
+            ]
+        )
+    lines.extend(errors_section(cov.errors, root))
+    return "\n".join(lines)
 
 
 def refs_md(

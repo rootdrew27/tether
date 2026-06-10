@@ -42,6 +42,25 @@ def test_install_writes_fragment_and_claude_md(project: Path):
     assert (project / "CLAUDE.md").read_text().strip() == "@.tether/tether.md"
 
 
+def test_install_writes_onboard_skill(project: Path):
+    install(project)
+    skill = project / ".claude" / "skills" / "tether-onboard" / "SKILL.md"
+    assert skill.is_file()
+    content = skill.read_text()
+    assert content.startswith("---\n")
+    assert "name: tether-onboard" in content
+    assert "disable-model-invocation: true" in content
+
+
+def test_install_overwrites_user_modified_skill(project: Path):
+    install(project)
+    skill = project / ".claude" / "skills" / "tether-onboard" / "SKILL.md"
+    original = skill.read_text()
+    skill.write_text("user edits\n")
+    install(project)
+    assert skill.read_text() == original
+
+
 def test_install_perms_in_settings_hooks_in_local(project: Path):
     install(project)
     s = json.loads((project / ".claude" / "settings.json").read_text())
@@ -251,6 +270,13 @@ def test_install_includes_show_allow_patterns(project: Path):
     assert any("show:" in p for p in s["permissions"]["allow"])
     assert "Bash(tether show:*)" in s["permissions"]["allow"]
     assert "Bash(uv run tether show:*)" in s["permissions"]["allow"]
+
+
+def test_install_includes_coverage_allow_patterns(project: Path):
+    install(project)
+    s = json.loads((project / ".claude" / "settings.json").read_text())
+    assert "Bash(tether coverage:*)" in s["permissions"]["allow"]
+    assert "Bash(uv run tether coverage:*)" in s["permissions"]["allow"]
 
 
 def test_detect_tether_command_anchors_inside_project(
