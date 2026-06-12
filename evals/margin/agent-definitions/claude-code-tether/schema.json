@@ -27,6 +27,9 @@
     },
     "mcp_json": {
       "type": "string"
+    },
+    "onboard": {
+      "type": "boolean"
     }
   }
 }

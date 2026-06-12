@@ -98,9 +98,46 @@ const tetherSetup = [
   "} >&2",
 ].join("\n");
 
+// Optional onboarding pass, gated on `onboard = true` in the agent config's
+// [input] table: invoke the /tether-onboard skill headless to seed a tether
+// graph in the case workspace before the SWE task starts. Fail-fast: on
+// timeout or nonzero exit the record count and coverage are still logged
+// for the post-mortem, then the instance fails — the SWE task never runs
+// on a partial graph. Markers use a `tether-onboard:` prefix — distinct
+// from the `tether-setup:` strings verify-smoke.py requires.
+const onboardTimeoutSeconds = 2400;
+const onboardCommand = [
+  "timeout",
+  "--kill-after=60",
+  String(onboardTimeoutSeconds),
+  shellQuote(binPath),
+  "--dangerously-skip-permissions",
+  ...(cfg.startup_args || []).map(shellQuote),
+  "-p",
+  shellQuote("/tether-onboard"),
+].join(" ");
+const onboardSetup = cfg.onboard
+  ? [
+      "{",
+      'echo "tether-onboard: begin"',
+      "onboard_status=0",
+      `${onboardCommand} || onboard_status=$?`,
+      'echo "tether-onboard: $(ls .tether/tethers | wc -l) tether record(s)"',
+      "tether coverage | sed 's/^/tether-onboard: /' || true",
+      'if [ "$onboard_status" -eq 0 ]; then',
+      '  echo "tether-onboard: done"',
+      "else",
+      `  echo "tether-onboard: FAILED (exit $onboard_status, 124 = timed out after ${onboardTimeoutSeconds}s); failing the instance"`,
+      "  exit 1",
+      "fi",
+      "} >&2",
+    ].join("\n")
+  : "";
+
 const shellCommand = [
   "set -euo pipefail",
   tetherSetup,
+  ...(onboardSetup ? [onboardSetup] : []),
   `mkdir -p ${shellQuote(path.dirname(stderrPath))}`,
   `${command} 2> >(tee ${shellQuote(stderrPath)} >&2)`,
 ].join("\n");

@@ -36,6 +36,19 @@ SETUP_MARKERS = {
     "setup completed": "tether-setup: done",
 }
 
+# Onboard markers appear only when the agent config sets `onboard = true`
+# (the tether-onboard-sonnet arm): run-prepare.js invokes /tether-onboard
+# headless between tether setup and the agent launch. Absent markers are not
+# a failure — plain smoke runs never emit them. Onboarding is fail-fast:
+# when it began, it must have reached a terminal marker (done or FAILED).
+# On FAILED the hook logs record count and coverage for the post-mortem,
+# then exits before the agent launches — the instance never runs the SWE
+# task on a partial graph.
+ONBOARD_RECORDS_RE = re.compile(r"tether-onboard: (\d+) tether record\(s\)")
+ONBOARD_COVERAGE_RE = re.compile(
+    r"tether-onboard: (\d+ of \d+ tracked files? tethered.*)"
+)
+
 
 # tether registers SessionStart, Stop, and PreToolUse hooks in
 # .claude/settings.local.json. Claude Code's stream-json (with --verbose) emits
@@ -108,6 +121,29 @@ def main() -> int:
                     failures += 1
             else:
                 print(f"  tether version: {version}")
+
+        if "tether-onboard: begin" in log_text:
+            if "tether-onboard: done" in log_text:
+                print("  onboard: done")
+            else:
+                failed_line = next(
+                    (
+                        ln
+                        for ln in log_text.splitlines()
+                        if "tether-onboard: FAILED" in ln
+                    ),
+                    None,
+                )
+                print(
+                    f"  onboard: {failed_line.strip() if failed_line else 'began but never finished'}"
+                )
+                failures += 1
+            records_match = ONBOARD_RECORDS_RE.search(log_text)
+            if records_match:
+                print(f"  onboard / records: {records_match.group(1)}")
+            coverage_match = ONBOARD_COVERAGE_RE.search(log_text)
+            if coverage_match:
+                print(f"  onboard / coverage: {coverage_match.group(1)}")
 
         # Report every hook event that surfaced in the stream, validating its
         # outcome. On an empty graph only SessionStart appears (Stop/PreToolUse

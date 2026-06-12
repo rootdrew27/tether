@@ -1,0 +1,17 @@
+kind = "agent_config"
+name = "tether-onboard-sonnet"
+description = "Claude Code (sonnet) with tether installed and the /tether-onboard skill run headless to seed a tether graph before the SWE task"
+definition = "../../agent-definitions/claude-code-tether"
+mode = "direct"
+
+[input]
+claude_version = "2.1.167"
+startup_args = ["--model", "claude-sonnet-4-6", "--effort", "medium"]
+run_args = []
+onboard = true
+settings_json = """
+{
+  "model": "claude-sonnet-4-6",
+  "permissionMode": "acceptEdits"
+}
+"""

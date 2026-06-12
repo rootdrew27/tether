@@ -1,0 +1,8 @@
+kind = "eval_config"
+name = "tether-onboard-smoke"
+description = "Onboard smoke: swe-minimal (3 cases) with /tether-onboard seeding a graph in each case container before the SWE task"
+max_concurrency = 3
+fail_fast = false
+retry_count = 0
+instance_timeout_seconds = 5400
+samples_per_case = 1

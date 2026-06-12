@@ -8,9 +8,10 @@ overview is in `README.md`.
 Both are derived from Margin's repo-owned `claude-code` definition (cached at
 `~/.margin/configs/agent-definitions/claude-code`):
 
-- **`claude-code-tether/`** — the *only* change from upstream is the
-  `tether-setup` block in `hooks/run-prepare.js` (plus `name`/`description` in
-  `definition.toml`). Everything else is verbatim.
+- **`claude-code-tether/`** — changes from upstream: the `tether-setup` and
+  gated `onboard` blocks in `hooks/run-prepare.js`, the optional `onboard`
+  boolean in `schema.json`, and `name`/`description` in `definition.toml`.
+  Everything else is verbatim.
 - **`claude-code-stock/`** — byte-identical to upstream except `name`/
   `description`. It exists so the control arm references committed state instead
   of machine-local `~/.margin`.
@@ -33,6 +34,28 @@ The `tetherSetup` block runs before the agent launches:
   instance's `run/agent_server_pty.log`. **`verify-smoke.py` matches these exact
   strings** — keep the marker text and the verifier in sync.
 
+### Onboard block (gated)
+
+Agent configs whose `[input]` sets `onboard = true` (currently
+`tether-onboard-sonnet`) get a second setup block after `tether init
+claude-code`: a headless `claude -p "/tether-onboard"` run (same binary,
+model, and effort as the main agent; fresh session) that seeds a tether
+graph in the case workspace before the SWE task starts.
+
+- Capped at 2400s via `timeout --kill-after=60`. **Fail-fast:** on timeout or
+  nonzero exit the hook logs the record count and coverage for the
+  post-mortem, emits the FAILED marker, and exits nonzero before the agent
+  launches — an instance never runs the SWE task on a partial graph. Pair
+  the arm with `eval-configs/onboard-smoke.toml`
+  (`instance_timeout_seconds = 5400`) so the cap leaves the SWE task room.
+- Markers use the `tether-onboard:` prefix (`begin`, `done`/`FAILED`, record
+  count, coverage summary) — deliberately distinct from the `tether-setup:`
+  strings the verifier *requires*. `verify-smoke.py` reports onboard markers
+  only when present, so plain smoke runs are unaffected; keep marker text and
+  verifier regexes in sync here too.
+- The skill itself ships in the wheel (`tether init claude-code` writes
+  `.claude/skills/tether-onboard/`), so the wheel ref must contain it.
+
 ### Pre-trust block — keep it
 
 `claudeState.projects[run.cwd]` pre-accepts the trust dialog so project-level
@@ -42,12 +65,13 @@ margin context (isolated HOME, `bypassPermissions`). Removing it is unvalidated
 risk — only drop it after a tether-arm smoke run confirms SessionStart still
 fires.
 
-## Pins live in BOTH configs — change them together
+## Pins live in ALL the agent configs — change them together
 
-`tether-sonnet/config.toml` and `baseline-sonnet/config.toml` each pin the model
-(`--model` arg *and* `settings_json`) and `claude_version`. Bump both arms in
-lockstep or the A/B diverges on something other than tether. Current pins:
-`claude-sonnet-4-6` / Claude Code `2.1.167`.
+`tether-sonnet/`, `tether-onboard-sonnet/`, and `baseline-sonnet/` each pin
+the model (`--model` arg *and* `settings_json`) and `claude_version`. Bump
+all arms in lockstep or the A/B diverges on something other than tether.
+Current pins: `claude-sonnet-4-6` / Claude Code `2.1.167`. The onboard pass
+reuses `startup_args`, so it runs the same pinned model as the agent.
 
 ## Wheel build + recording (`scripts/run-smoke.sh`)
 

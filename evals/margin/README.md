@@ -14,10 +14,12 @@ evals/margin/
     claude-code-tether/    Margin's claude-code definition + tether install
     claude-code-stock/     committed snapshot of stock claude-code (control)
   agent-configs/
-    tether-sonnet/         treatment arm  → claude-code-tether
+    tether-sonnet/         treatment arm  → claude-code-tether (empty graph)
+    tether-onboard-sonnet/ treatment arm  → claude-code-tether + /tether-onboard seeding
     baseline-sonnet/       control arm    → claude-code-stock
   eval-configs/
     smoke.toml             3-case swe-minimal, the plumbing check
+    onboard-smoke.toml     same 3 cases, longer timeout for the onboarding pass
   scripts/
     run-smoke.sh           build a pinned wheel + run the treatment arm
     verify-smoke.py        assert install/init/hooks + summarize a run
@@ -37,6 +39,20 @@ Build from a specific commit/branch/tag instead of `HEAD`:
 
 ```bash
 evals/margin/scripts/run-smoke.sh <ref> --non-interactive --exit-on-complete
+```
+
+Onboard arm (treatment plus a headless `/tether-onboard` pass that seeds a
+tether graph in each case workspace before the SWE task; if onboarding times
+out or fails, the instance fails — the SWE task never runs on a partial
+graph). `margin run` takes the last occurrence of a repeated flag, so these
+pass-through args override the script's defaults. The script `cd`s into
+`evals/margin/` before invoking `margin run`, so pass-through paths must be
+absolute or relative to `evals/margin/`:
+
+```bash
+evals/margin/scripts/run-smoke.sh --non-interactive --exit-on-complete \
+  --agent-config agent-configs/tether-onboard-sonnet \
+  --eval eval-configs/onboard-smoke.toml
 ```
 
 Control arm (no tether; run directly, no wheel needed):
@@ -62,6 +78,7 @@ pinned (forced to a version) or recorded (captured for attribution):
 | **Baseline harness** | Pinned: control arm uses the committed `claude-code-stock` definition. |
 | **Suite** | Recorded, not pinned: margin records the resolved commit in `internal/bundle.json`. |
 | **uv + Python** | Not pinned (tether arm only); low impact. |
+| **Onboarded graph** | Neither pinned nor reproducible (onboard arm only): the graph is model-generated per instance, so it varies run to run. Recorded in the pty log (`tether-onboard:` markers + the skill's report). Onboard-arm results measure skill + graph + hooks together; for a graph-pinned A/B, seed from committed `tether add` scripts instead. |
 
 ---
 
