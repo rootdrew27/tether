@@ -1,0 +1,15 @@
+{
+  "a": {
+    "fingerprint": "1105151a4a3e45f8fa188d7fac860d510470bd9d",
+    "path": "tether/output.py"
+  },
+  "b": {
+    "fingerprint": "0e3c4e27b01b3bdd0bdde7e032fe8d5220773d64",
+    "path": "tether/status.py"
+  },
+  "created_at": "2026-06-14T20:01:53Z",
+  "description": "tether/output.py defines the serializable report structs (ArtifactStatus, TetherStatus, StatusSummary, StatusReport, RefsReport, CoverageReport) and the build_* functions that translate tether/status.py check results (ArtifactCheck/TetherCheck and the aggregate/artifact state enums) plus Tether model metadata into JSON. Adding a field to ArtifactCheck/TetherCheck, or a new state, must be propagated into the matching output struct and builder or it silently never reaches the JSON and PreToolUse-hook consumers.",
+  "id": "019ec7b9-f5d1-7ba0-9d8e-083f6f5b5cd1",
+  "refreshed_at": "2026-06-14T20:01:53Z",
+  "schema_version": 1
+}

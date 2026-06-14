@@ -1,0 +1,15 @@
+{
+  "a": {
+    "fingerprint": "cd8cb9a8e33c3f92a742a32b81e0a407a25285c2",
+    "path": "pyproject.toml"
+  },
+  "b": {
+    "fingerprint": "3dc1f76bc69e3f559bee6253b24fc93acee9e1f9",
+    "path": "tether/__init__.py"
+  },
+  "created_at": "2026-06-14T19:52:07Z",
+  "description": "The package version is duplicated: pyproject.toml [project].version and tether/__init__.py __version__. The __init__ value is surfaced by 'tether --version' (via cli.py version_option) and used by run-smoke.sh as the wheel-stamp base; the pyproject value is what the built wheel reports. Both currently hold 0.1.0 and must be bumped together: a mismatch silently makes 'tether --version' disagree with the built/installed package version, and no test catches it.",
+  "id": "019ec7b1-02c5-7951-a130-511789cca5af",
+  "refreshed_at": "2026-06-14T19:52:07Z",
+  "schema_version": 1
+}

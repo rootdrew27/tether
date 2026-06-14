@@ -1,0 +1,15 @@
+{
+  "a": {
+    "fingerprint": "d8d3a220cd124f841580b6426bb20bb8d07b7cfe",
+    "path": "evals/margin/agent-definitions/claude-code-stock/hooks/run-prepare.js"
+  },
+  "b": {
+    "fingerprint": "4f5684d8b4ee2b5622d24b3540a3c295409b9f13",
+    "path": "evals/margin/agent-definitions/claude-code-tether/hooks/run-prepare.js"
+  },
+  "created_at": "2026-06-14T19:50:02Z",
+  "description": "Control arm (claude-code-stock) and treatment arm (claude-code-tether) share run-prepare.js EXCEPT the treatment arm adds the tetherSetup and gated onboard blocks (per evals/margin/CLAUDE.md). The shared baseline (claudeDir/env/claudeState setup and the agent launch command construction) must stay aligned across both files; a change to the control baseline not mirrored into the treatment arm, or a change to the treatment arm's non-tether sections, silently makes the arms differ on something other than tether.",
+  "id": "019ec7af-1b40-7eb1-992d-0c995eb2cc4e",
+  "refreshed_at": "2026-06-14T19:50:02Z",
+  "schema_version": 1
+}

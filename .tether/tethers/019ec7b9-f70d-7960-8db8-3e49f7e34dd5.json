@@ -1,0 +1,15 @@
+{
+  "a": {
+    "fingerprint": "468d579e041acdc5be85c0f1a4b1576c4e55db37",
+    "path": "tether/claude_code/skill.py"
+  },
+  "b": {
+    "fingerprint": "2cff6c7f3a0f2d17f2551817b1bbbdbcdec7e203",
+    "path": "agent-notes/claude-code/Claude-Code-Integration.md"
+  },
+  "created_at": "2026-06-14T20:01:53Z",
+  "description": "tether/claude_code/skill.py holds the ONBOARD_SKILL constant written to .claude/skills/tether-onboard/SKILL.md. agent-notes/claude-code/Claude-Code-Integration.md section 'Onboard skill' names skill.py as the source of truth and documents the skill's behavior and key frontmatter decisions (disable-model-invocation true, no context fork, no load-time shell injection). Changes to those documented decisions or to ONBOARD_SKILL's frontmatter/flow must stay aligned.",
+  "id": "019ec7b9-f70d-7960-8db8-3e49f7e34dd5",
+  "refreshed_at": "2026-06-14T20:01:53Z",
+  "schema_version": 1
+}

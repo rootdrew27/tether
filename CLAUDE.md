@@ -57,3 +57,5 @@ Project documentation is split by ownership (see **Vault access** above):
 - **`agent-notes/`** — Claude-writable. The engineering documentation Claude maintains: design specs (`design/`, incl. `design/future/`), research (`research/`), and the Claude Code integration docs (`claude-code/`, incl. `strategies/`).
 
 New docs Claude writes go under `agent-notes/`, never in the vault or under `src/`. Filenames use Title-Case-Kebab (e.g. `Tether-Design-MVP.md`); acronyms stay uppercase. The code is the source of truth for current behavior; these docs are the source of truth for design intent and rationale.
+
+@.tether/tether.md

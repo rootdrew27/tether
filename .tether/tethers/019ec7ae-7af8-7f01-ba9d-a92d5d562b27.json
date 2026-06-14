@@ -1,0 +1,15 @@
+{
+  "a": {
+    "fingerprint": "602902ba0828a5b4e2bb44336e6103112c6884e7",
+    "path": "README.md"
+  },
+  "b": {
+    "fingerprint": "127a933e88dfd9e4dbd04a2f3577447e5acedaf8",
+    "path": "tether/cli.py"
+  },
+  "created_at": "2026-06-14T19:49:21Z",
+  "description": "README.md's '## CLI' table documents every tether subcommand and its flags (init, init claude-code, add, status with --json/--diff, show, coverage with --list-untethered-files/--list-tethered-files/--json, refresh, update, mv, rm) that are defined as click commands in tether/cli.py. Adding, removing, or renaming a subcommand, or changing its arguments/flags in cli.py, must update the README CLI table.",
+  "id": "019ec7ae-7af8-7f01-ba9d-a92d5d562b27",
+  "refreshed_at": "2026-06-14T19:49:21Z",
+  "schema_version": 1
+}

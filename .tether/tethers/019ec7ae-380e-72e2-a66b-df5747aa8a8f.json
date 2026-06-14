@@ -1,0 +1,15 @@
+{
+  "a": {
+    "fingerprint": "91f798dfa765aa523b5eed5e14db8f4ae579e2ce",
+    "path": "tests/test_normalize.py"
+  },
+  "b": {
+    "fingerprint": "f9f304f5c8e6015f69252fa37e6df6c0e4120cca",
+    "path": "tether/normalize.py"
+  },
+  "created_at": "2026-06-14T19:49:04Z",
+  "description": "tests/test_normalize.py pins the byte-level behavior of the drift normalizer in tether/normalize.py: CRLF/CR to LF folding, BOM stripping, per-line trailing-whitespace removal, EOF-newline collapsing, leading-tab expansion at a configurable tabstop, and binary (non-UTF-8) rejection returning None. Adding, removing, or reordering a normalization step in normalize.py must update these tests.",
+  "id": "019ec7ae-380e-72e2-a66b-df5747aa8a8f",
+  "refreshed_at": "2026-06-14T19:49:04Z",
+  "schema_version": 1
+}

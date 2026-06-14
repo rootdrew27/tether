@@ -1,0 +1,15 @@
+{
+  "a": {
+    "fingerprint": "fd0aecbb6934109c4f1770f685097beb13ba506a",
+    "path": "evals/margin/agent-definitions/claude-code-stock/hooks/install-run.js"
+  },
+  "b": {
+    "fingerprint": "fd0aecbb6934109c4f1770f685097beb13ba506a",
+    "path": "evals/margin/agent-definitions/claude-code-tether/hooks/install-run.js"
+  },
+  "created_at": "2026-06-14T19:49:42Z",
+  "description": "Control arm (claude-code-stock) vs treatment arm (claude-code-tether) eval definitions differ ONLY in run-prepare.js/schema.json/definition.toml (per evals/margin/CLAUDE.md); all other hooks are byte-identical copies. These two install-run.js (the upstream claude-code install step, identical in both arms) must stay byte-identical, or the arms install a different agent and the A/B comparison is silently invalid.",
+  "id": "019ec7ae-ccd6-7991-8e15-351eebc9499f",
+  "refreshed_at": "2026-06-14T19:49:42Z",
+  "schema_version": 1
+}

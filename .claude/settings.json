@@ -16,13 +16,60 @@
       "Bash(lsblk:*)",
       "Bash(lsusb:*)",
       "Bash(which:*)",
-
       "Bash(uv pip show:*)",
       "Bash(uv pip list:*)",
       "Bash(uv run ruff:*)",
       "Bash(uv run pyright:*)",
       "Bash(uv run pytest:*)",
-      "Bash(uv sync:*)"
+      "Bash(uv sync:*)",
+      "Bash(tether status:*)",
+      "Bash(tether refresh:*)",
+      "Bash(tether update:*)",
+      "Bash(tether add:*)",
+      "Bash(tether mv:*)",
+      "Bash(tether refs:*)",
+      "Bash(tether show:*)",
+      "Bash(tether coverage:*)",
+      "Bash(uv run tether status:*)",
+      "Bash(uv run tether refresh:*)",
+      "Bash(uv run tether update:*)",
+      "Bash(uv run tether add:*)",
+      "Bash(uv run tether mv:*)",
+      "Bash(uv run tether refs:*)",
+      "Bash(uv run tether show:*)",
+      "Bash(uv run tether coverage:*)",
+      "Bash(poetry run tether status:*)",
+      "Bash(poetry run tether refresh:*)",
+      "Bash(poetry run tether update:*)",
+      "Bash(poetry run tether add:*)",
+      "Bash(poetry run tether mv:*)",
+      "Bash(poetry run tether refs:*)",
+      "Bash(poetry run tether show:*)",
+      "Bash(poetry run tether coverage:*)",
+      "Bash(conda run -n * tether status:*)",
+      "Bash(conda run -n * tether refresh:*)",
+      "Bash(conda run -n * tether update:*)",
+      "Bash(conda run -n * tether add:*)",
+      "Bash(conda run -n * tether mv:*)",
+      "Bash(conda run -n * tether refs:*)",
+      "Bash(conda run -n * tether show:*)",
+      "Bash(conda run -n * tether coverage:*)",
+      "Bash(.venv/bin/tether status:*)",
+      "Bash(.venv/bin/tether refresh:*)",
+      "Bash(.venv/bin/tether update:*)",
+      "Bash(.venv/bin/tether add:*)",
+      "Bash(.venv/bin/tether mv:*)",
+      "Bash(.venv/bin/tether refs:*)",
+      "Bash(.venv/bin/tether show:*)",
+      "Bash(.venv/bin/tether coverage:*)",
+      "Bash(${CLAUDE_PROJECT_DIR}/.venv/bin/tether status:*)",
+      "Bash(${CLAUDE_PROJECT_DIR}/.venv/bin/tether refresh:*)",
+      "Bash(${CLAUDE_PROJECT_DIR}/.venv/bin/tether update:*)",
+      "Bash(${CLAUDE_PROJECT_DIR}/.venv/bin/tether add:*)",
+      "Bash(${CLAUDE_PROJECT_DIR}/.venv/bin/tether mv:*)",
+      "Bash(${CLAUDE_PROJECT_DIR}/.venv/bin/tether refs:*)",
+      "Bash(${CLAUDE_PROJECT_DIR}/.venv/bin/tether show:*)",
+      "Bash(${CLAUDE_PROJECT_DIR}/.venv/bin/tether coverage:*)"
     ],
     "ask": [
       "Bash(rm:*)"
@@ -31,7 +78,11 @@
       "Edit(/tether-vault/**)",
       "Write(/tether-vault/**)",
       "MultiEdit(/tether-vault/**)",
-      "NotebookEdit(/tether-vault/**)"
+      "NotebookEdit(/tether-vault/**)",
+      "Edit(.tether/**)",
+      "Write(.tether/**)",
+      "MultiEdit(.tether/**)",
+      "NotebookEdit(.tether/**)"
     ]
   },
   "hooks": {
@@ -41,7 +92,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'set -o pipefail; cd \"$CLAUDE_PROJECT_DIR\" && listing=$(find tether-vault \\( -name .git -o -name .obsidian -o -name .venv -o -name .claude -o -name node_modules \\) -prune -o -type f -print | sort) && jq -Rn --arg body \"$listing\" '\\''{hookSpecificOutput: {hookEventName: \"SessionStart\", additionalContext: (\"Vault file listing (recursive from tether-vault/, repo-relative paths):\\n\" + $body)}}'\\'''"
+            "command": "bash -c 'set -o pipefail; cd \"$CLAUDE_PROJECT_DIR\" && listing=$(find agent-notes \\( -name .git -o -name .obsidian -o -name .venv -o -name .claude -o -name node_modules \\) -prune -o -type f -print | sort) && jq -Rn --arg body \"$listing\" '\\''{hookSpecificOutput: {hookEventName: \"SessionStart\", additionalContext: (\"Vault file listing (recursive from agent-notes/, repo-relative paths):\\n\" + $body)}}'\\'''"
           }
         ]
       },
@@ -50,7 +101,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'set -o pipefail; cd \"$CLAUDE_PROJECT_DIR\" && listing=$(find tether-vault \\( -name .git -o -name .obsidian -o -name .venv -o -name .claude -o -name node_modules \\) -prune -o -type f -print | sort) && jq -Rn --arg body \"$listing\" '\\''{hookSpecificOutput: {hookEventName: \"SessionStart\", additionalContext: (\"Vault file listing (recursive from tether-vault/, repo-relative paths):\\n\" + $body)}}'\\'''"
+            "command": "bash -c 'set -o pipefail; cd \"$CLAUDE_PROJECT_DIR\" && listing=$(find agent-notes \\( -name .git -o -name .obsidian -o -name .venv -o -name .claude -o -name node_modules \\) -prune -o -type f -print | sort) && jq -Rn --arg body \"$listing\" '\\''{hookSpecificOutput: {hookEventName: \"SessionStart\", additionalContext: (\"Vault file listing (recursive from agent-notes/, repo-relative paths):\\n\" + $body)}}'\\'''"
           }
         ]
       }
@@ -58,8 +109,7 @@
     "Stop": [
       {
         "matcher": "*",
-        "hooks": [
-        ]
+        "hooks": []
       }
     ]
   }

@@ -1,0 +1,15 @@
+{
+  "a": {
+    "fingerprint": "dcc4126640a0e3ea818f23c7f8b41539fd711ce8",
+    "path": "evals/margin/agent-definitions/claude-code-stock/hooks/trajectory-collect.js"
+  },
+  "b": {
+    "fingerprint": "dcc4126640a0e3ea818f23c7f8b41539fd711ce8",
+    "path": "evals/margin/agent-definitions/claude-code-tether/hooks/trajectory-collect.js"
+  },
+  "created_at": "2026-06-14T19:49:42Z",
+  "description": "Control arm (claude-code-stock) vs treatment arm (claude-code-tether) eval definitions differ ONLY in run-prepare.js/schema.json/definition.toml (per evals/margin/CLAUDE.md); all other hooks are byte-identical copies. These two trajectory-collect.js (the agent-trajectory collector, i.e. the measurement itself) must stay byte-identical, or the arms record trajectories differently and the measurement is silently corrupted.",
+  "id": "019ec7ae-cd4e-7190-81d6-b121027b780c",
+  "refreshed_at": "2026-06-14T19:49:42Z",
+  "schema_version": 1
+}

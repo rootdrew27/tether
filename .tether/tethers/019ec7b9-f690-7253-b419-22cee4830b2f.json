@@ -1,0 +1,15 @@
+{
+  "a": {
+    "fingerprint": "b54e93cc9bc20208c87488c4fcb285a11756ae92",
+    "path": "tether/project.py"
+  },
+  "b": {
+    "fingerprint": "efdacd1bc9a14388b15318b3abe8805923d18dc3",
+    "path": "tether/coverage.py"
+  },
+  "created_at": "2026-06-14T20:01:53Z",
+  "description": "tether/project.py defines the state-directory name (TETHER_DIR = .tether, TETHERS_SUBDIR = tethers) that locates every tether record; tether/coverage.py independently hardcodes the .tether/ prefix (_TETHER_DIR_PREFIX) to exclude tether-owned files from the coverage denominator. The two must name the same directory: if project.py renames the state dir, coverage.py silently stops excluding it and coverage is deflated on exactly the projects using tether most.",
+  "id": "019ec7b9-f690-7253-b419-22cee4830b2f",
+  "refreshed_at": "2026-06-14T20:01:53Z",
+  "schema_version": 1
+}

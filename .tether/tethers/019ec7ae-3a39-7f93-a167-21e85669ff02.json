@@ -1,0 +1,15 @@
+{
+  "a": {
+    "fingerprint": "b68415addb1ffb86682659ad2d98afa9a0cbd3f8",
+    "path": "tests/test_claude_code.py"
+  },
+  "b": {
+    "fingerprint": "dc8af2fa9ca9f118279b7800dd902b24776e76d4",
+    "path": "tether/claude_code/hooks.py"
+  },
+  "created_at": "2026-06-14T19:49:04Z",
+  "description": "tests/test_claude_code.py pins the hook behaviors in tether/claude_code/hooks.py: SessionStart (silent / all-HEALTHY one-liner / markdown on drift), Stop (silent when healthy / decision=block JSON otherwise), and PreToolUse (silent on non-Read, missing or out-of-project file_path, or no match; emits hookSpecificOutput.additionalContext RefsReport on match; errors always empty). Changes to any hook's output contract or trigger conditions must be reflected here.",
+  "id": "019ec7ae-3a39-7f93-a167-21e85669ff02",
+  "refreshed_at": "2026-06-14T19:49:04Z",
+  "schema_version": 1
+}

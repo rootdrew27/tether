@@ -1,0 +1,15 @@
+{
+  "a": {
+    "fingerprint": "b68415addb1ffb86682659ad2d98afa9a0cbd3f8",
+    "path": "tests/test_claude_code.py"
+  },
+  "b": {
+    "fingerprint": "2a73a7ea1889956b79d13636bb31aed053f0c403",
+    "path": "tether/claude_code/settings.py"
+  },
+  "created_at": "2026-06-14T19:49:04Z",
+  "description": "tests/test_claude_code.py pins the settings/permission logic in tether/claude_code/settings.py: the ALLOW_PATTERNS and DENY_PATTERNS sets, HOOK_EVENTS (event, subcommand, matcher), build_hook_entry shape, detect_tether_command resolution, and the signature-matched merge that preserves user entries while replacing stale tether-owned ones. Changes to these patterns or merge predicates must be reflected here.",
+  "id": "019ec7ae-39f6-7c02-b447-b30d64de3bed",
+  "refreshed_at": "2026-06-14T19:49:04Z",
+  "schema_version": 1
+}

@@ -1,0 +1,15 @@
+{
+  "a": {
+    "fingerprint": "7411b4ac6282b740323b9cdb081427769a1145ef",
+    "path": "evals/margin/agent-definitions/claude-code-stock/schema.json"
+  },
+  "b": {
+    "fingerprint": "67a4d2a32d6f3af649a895d8c6d57f78e13123cf",
+    "path": "evals/margin/agent-definitions/claude-code-tether/schema.json"
+  },
+  "created_at": "2026-06-14T19:50:02Z",
+  "description": "The control (claude-code-stock) and treatment (claude-code-tether) agent-definition schemas describe the same agent-config input contract (claude_version, startup_args, run_args, settings_json, mcp_json) and must stay aligned EXCEPT the treatment schema intentionally adds the optional onboard boolean (per evals/margin/CLAUDE.md). A shared field changed in one schema but not the other means a config valid for one arm is invalid or misread for the other.",
+  "id": "019ec7af-1b78-7181-a001-5eab0aefd007",
+  "refreshed_at": "2026-06-14T19:50:02Z",
+  "schema_version": 1
+}

@@ -1,0 +1,15 @@
+{
+  "a": {
+    "fingerprint": "d8c9c303fc4726f360083318067d384c8e350c09",
+    "path": "evals/margin/agent-definitions/claude-code-stock/hooks/install-check.js"
+  },
+  "b": {
+    "fingerprint": "d8c9c303fc4726f360083318067d384c8e350c09",
+    "path": "evals/margin/agent-definitions/claude-code-tether/hooks/install-check.js"
+  },
+  "created_at": "2026-06-14T19:49:42Z",
+  "description": "The Margin eval runs a control arm (claude-code-stock) and a treatment arm (claude-code-tether). Per evals/margin/CLAUDE.md the two definitions differ ONLY in run-prepare.js, schema.json, and definition.toml; every other hook is a byte-identical copy. These two install-check.js (Margin's pre-install gate) must stay byte-identical: divergence silently makes the arms non-comparable, and there is no automatic upstream re-sync to catch it.",
+  "id": "019ec7ae-cc9d-7033-b5ec-9ffa97f5b112",
+  "refreshed_at": "2026-06-14T19:49:42Z",
+  "schema_version": 1
+}
