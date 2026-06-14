@@ -1,17 +1,26 @@
-# tether
+# README
 
-A content-fingerprinted relationship annotation layer, layered on git.
+Tether is an agent-first, semantic relationship database. It is a simple database, storing one type of object (a tether), and is easily interfaced via CLI commands (e.g. `tether status`).
 
-Create durable, content-fingerprinted links ("tethers") between any two files
-in a project — say, a doc and the code it describes — and tether will tell you
-when one side drifts from the other. State lives as one JSON file per tether
-under `.tether/tethers/`, so the graph is reviewable in pull requests and
-travels with the repo.
+A **tether** is a link between two objects (e.g. files) indicating a relationship, and optionally describing that relationship. This is easily understood when viewing the data model:
 
-> Status: WIP, no released users. The CLI and on-disk JSON shape may change.
-> Design intent and rationale live in [`agent-notes/`](agent-notes/); the canonical
-> design doc is [`Tether-Design-MVP.md`](agent-notes/design/Tether-Design-MVP.md). The
-> [`tether-vault/`](tether-vault/) Obsidian vault holds the glossary and case studies.
+```json
+{
+  "a": {
+    "fingerprint": "a3a02...",
+    "path": "script.py"
+  },
+  "b": {
+    "fingerprint": "e417b...",
+    "path": "doc.md"
+  },
+  "description": "The doc.md file details the program implemented in script.py",
+}
+```
+
+> [!NOTE] A few fields of the tether are not included in order to not overwhelm the reader
+
+As seen above, a tether consists of two artifacts, `a` and `b`, as well as a description. The description makes the connection a semantic one.
 
 ## Concepts
 
@@ -25,117 +34,124 @@ travels with the repo.
 
 Full glossary: [`DICTION.md`](tether-vault/DICTION.md) (MVP vocabulary, matches current code). Forward-state model lives in [`DICTION-Future.md`](agent-notes/design/future/DICTION-Future.md).
 
+## Relationship Layer
+
+If **Git** is the content layer, then **Tether** is the relationship layer.
+
+Tether is built on top of Git, though any VCS would likely suffice, and as such, it relies on, and exploits, the many advantages of having a version-control.
+
+Tether uses a simple database, consisting of tethers, which should be included in git commits.
+
+## Requirements
+
+- **Python 3.12+**
+- **A git repository.** Tether records fingerprints as git blob OIDs, so `tether init` refuses to run outside a git work tree.
+
 ## Install
 
+Tether is a CLI. Install it as a standalone tool:
+
 ```bash
-uv sync
-uv run tether --help
+uv tool install tether     # with uv
+# or
+pipx install tether        # with pipx
 ```
 
-Requires Python 3.12+ and a git repository (`tether init` refuses outside one).
+…or add it to a project's environment:
+
+```bash
+uv add tether
+```
+
+Confirm it resolves:
+
+```bash
+tether --help
+```
 
 ## Quick start
 
 ```bash
 cd my-project
-uv run tether init
-uv run tether add docs/auth.md src/auth.py --description "Covers password reset and 2FA enrollment."
-uv run tether status
-# edit src/auth.py ...
-uv run tether status         # src/auth.py now reports DRIFTED; aggregate DRIFTED
-uv run tether status <id>    # full per-artifact view with unified diff
-# bring the doc in line, then:
-uv run tether refresh <id>   # re-fingerprint both artifacts together
+tether init                                    # create .tether/ in the repo
+
+# Link two files whose content must stay aligned:
+tether add docs/auth.md src/auth.py \
+  --description "The auth.md specifies password reset and 2FA enrollment implemented in the auth module."
+
+tether status                                  # both ends HEALTHY
+# …edit src/auth.py…
+tether status                                  # src/auth.py now DRIFTED
+tether status <id>                             # per-artifact view + unified diff
+
+# Once the doc is back in line with the code, ratify the alignment:
+tether refresh <id>                            # re-fingerprint both ends
 ```
 
-## CLI
+`refresh` is the explicit assertion that the two ends are aligned again — not an automatic side effect of editing. Until you refresh, the drift signal stands.
+
+## Claude Code
+
+Tether is agent-first: it ships a Claude Code integration that keeps a coding agent aware of drift as it works.
+
+```bash
+tether init claude-code
+```
+
+This installs, in the current project:
+
+- a **memory fragment** (`.tether/tether.md`, imported into `CLAUDE.md`) teaching the agent the tether vocabulary and how to react to drift;
+- **SessionStart** and **Stop** hooks that surface drifted or broken tethers at the start of a session and when the agent finishes a turn;
+- **permission rules** that route the agent through the `tether` CLI — blocking hand-edits under `.tether/` and pre-approving the read-only subcommands;
+- a **`/tether-onboard` skill** for seeding a project's initial tether graph.
+
+### Seed the graph with `/tether-onboard`
+
+In a project that has no tethers yet, invoke the skill from Claude Code:
+
+```
+/tether-onboard
+```
+
+The agent surveys the repository, proposes candidate relationships (doc↔code, test↔code, schema↔consumer, registry↔variants, and more), judges each one with **precision over recall**, records the keepers via `tether add` with quality descriptions, and reports coverage at the end. It runs autonomously and only when you invoke it — it never triggers on its own.
+
+From then on, when the agent reads a tethered file, tether injects that file's relationships and their drift state alongside the content, so coordinated edits happen within the turn.
+
+## CLI reference
 
 | Command | Purpose |
 |---|---|
 | `tether init` | Initialize `.tether/` in the current git repo. |
-| `tether init claude-code` | Wire up Claude Code hooks and a memory fragment. |
-| `tether add A B --description "..."` | Create a tether. `--description` is required. |
-| `tether status [ID] [--json] [--diff/--no-diff]` | Report tether state; per-artifact for one ID, summary for all. |
-| `tether show` | List every tether with its description, regardless of state. Reads records from disk; no drift check. |
-| `tether coverage [--list-untethered-files] [--list-tethered-files] [--json]` | Report what fraction of git-tracked files participate in a tether. Structural-only; a progress signal for onboarding, not a target. |
-| `tether refresh ID` | Re-fingerprint both artifacts; asserts they are now aligned. |
-| `tether update ID [--a-path ...] [--b-path ...] [--description ...]` | Modify a tether without touching fingerprints. |
-| `tether mv OLD_PATH NEW_PATH` | Rewrite all tether artifacts pointing at `OLD_PATH` to `NEW_PATH`. |
+| `tether init claude-code` | Install the Claude Code integration (hooks, permissions, memory fragment, onboard skill). |
+| `tether add A B --description "…"` | Create a tether. `--description` is required. |
+| `tether status [ID] [--json] [--diff/--no-diff]` | Report tether state; per-artifact view + diff for one ID, summary for all. |
+| `tether show` | List every tether with its description, regardless of state. |
+| `tether refs PATH` | List tethers referencing a path. |
+| `tether coverage [--list-untethered-files] [--list-tethered-files] [--json]` | Report what fraction of git-tracked files participate in a tether. |
+| `tether refresh ID` | Re-fingerprint both artifacts; assert they are aligned. |
+| `tether update ID [--a-path P] [--b-path P] [--description …]` | Change a path or description without touching fingerprints. |
+| `tether mv OLD NEW` | Rewrite every tether artifact pointing at OLD to NEW. |
 | `tether rm ID` | Delete a tether record. |
-
-A tether is symmetric — neither end is privileged. The two artifacts are named
-`a` and `b` for stable ordering only; the relationship's meaning lives in the
-required description.
 
 ## How drift works
 
-`tether status` resolves each artifact's locator on the current on-disk bytes
-and compares the result's git blob OID against the recorded fingerprint:
+`tether status` resolves each artifact against the current on-disk bytes and compares its git blob OID to the recorded fingerprint:
 
-- **HEALTHY** — OID matches the fingerprint.
-- **DRIFTED** — file resolves but content's OID differs.
-- **BROKEN** — file no longer exists at the recorded path. `tether status`
-  feeds the recorded path and fingerprint to git's rename detector (a synthetic
-  diff against the working tree) and surfaces the best content-similarity match
-  as a rename candidate, with a score — following the file even if it was
-  renamed *and* edited.
+- **HEALTHY** — the OID matches.
+- **DRIFTED** — the file exists but its content's OID differs.
+- **BROKEN** — the file is no longer at the recorded path; tether feeds the path and fingerprint to git's rename detector and surfaces the most content-similar file as a rename candidate.
 
-When the raw OIDs disagree, tether re-runs the comparison through a
-language-agnostic normalizer (line endings, BOM, trailing whitespace, EOF
-newlines, leading-tab expansion). If the normalized hashes match, the artifact
-is still HEALTHY and `tether status` notes "encoding-only drift rescued" —
-the drift signal is preserved as a diff but the state is rescued. See
-[`Normalization.md`](agent-notes/design/Normalization.md) for the
-pipeline and its deliberate non-goals.
+When the raw OIDs disagree, tether re-runs the comparison through a language-agnostic normalizer (line endings, BOM, trailing whitespace, EOF newlines, leading-tab expansion). If the normalized content matches, the artifact stays HEALTHY and the difference is reported as encoding-only.
 
-## Storage layout
+## Storage & version control
 
-```
-project-root/
-  .tether/
-    tethers/
-      <uuid7>.json    # one tether per file, sorted-key pretty JSON
-```
+State lives as one JSON file per tether under `.tether/tethers/<uuid7>.json` (sorted-key, pretty-printed), committed alongside your content. The graph is reviewable in pull requests and travels with the repo, and `git log .tether/tethers/<id>.json` is a tether's audit trail — when it was created, refreshed, and retargeted.
 
-Tether IDs are UUIDv7, so directory sort order is also creation order. Records
-are committed alongside content; `git log .tether/tethers/<id>.json` is the
-audit trail for a tether (created, refreshed, retargeted).
+## Documentation
 
-## Claude Code integration
+- [Glossary (`DICTION.md`)](https://github.com/rootdrew27/tether/blob/master/tether-vault/DICTION.md) — the canonical MVP vocabulary.
 
-`tether init claude-code` installs:
+## License
 
-- A `.tether/tether.md` memory fragment teaching Claude the tether vocabulary
-  and how to react to drift, imported from the project's `CLAUDE.md`.
-- `SessionStart` and `Stop` hooks (in `.claude/settings.local.json`) that
-  surface drifted and broken tethers as context at the start of a session
-  and as attention items when Claude finishes a turn.
-- `permissions.deny` entries (in `.claude/settings.json`) that block direct
-  edits anywhere under `.tether/` so Claude goes through the CLI rather than
-  rewriting fingerprints by hand, plus `permissions.allow` entries
-  pre-approving the tether subcommands the agent will routinely invoke.
-- A `/tether-onboard` skill (in `.claude/skills/tether-onboard/`) that surveys
-  an existing project and creates its initial tether graph: candidate
-  relationships are proposed by heuristics, judged by the agent with
-  precision-over-recall, recorded via `tether add` with quality descriptions,
-  and measured with `tether coverage`. Invoked explicitly; it never triggers
-  on its own.
+[MIT](https://github.com/rootdrew27/tether/blob/master/LICENSE)
 
-The hooks shell out to `tether hook claude-code session-start` and
-`tether hook claude-code stop`. Both read `cwd` from stdin and emit the
-relevant hook contract (markdown stdout for session-start; a JSON `stop`
-block for stop). See
-[`Claude-Code-Integration.md`](agent-notes/claude-code/Claude-Code-Integration.md).
-
-## Development
-
-```bash
-uv sync
-uv run pytest
-uv run ruff check
-uv run ruff format
-uv run pyright
-```
-
-A throwaway `playground/` directory at the repo root is gitignored — use it
-for hand-experimentation (`cd playground && uv run tether init . && ...`).

@@ -1,0 +1,49 @@
+name: Publish to PyPI
+
+# Trusted Publishing (OIDC): no API tokens stored anywhere. A pending publisher
+# must be configured on PyPI first (see agent-notes/Publishing-To-PyPI.md, 6B.1)
+# with: Owner=rootdrew27, Repo=tether, Workflow=publish.yml, Environment=pypi.
+# Releases are cut by pushing a version tag, e.g. `git tag v0.1.0 && git push origin v0.1.0`.
+# The PyPI version itself comes from pyproject.toml's [project].version, not the tag.
+
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  build:
+    name: Build distribution
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+      - name: Build sdist and wheel
+        run: uv build --no-sources
+      - name: Verify metadata
+        run: uvx twine check --strict dist/*
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish-to-pypi:
+    name: Publish to PyPI
+    needs: [build]
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/tether
+    permissions:
+      id-token: write # MANDATORY for trusted publishing — without it OIDC auth fails
+    steps:
+      - name: Download dists
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - name: Publish
+        uses: pypa/gh-action-pypi-publish@release/v1
