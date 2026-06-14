@@ -6,17 +6,22 @@ tags:
 type: meta
 status: active
 ---
-
+## Pre-"Break My Product" Goals
+- [ ] Improve onboarding skill -> it should be usable for most repos
+- [ ] Create install instructions
+- [ ] New playground (`claude --resume new-playground`)
 ## Current
 - [x] Clean documentation
 	- [x] Remove redundancies
 	- [x] Remove out-dated or inaccurate info
 - [x] Split documentation into **For Claude** and **For Me**
-- [x] Remove tests, simplify/organize codebase (the rendering in particular) 
-- [x] Look over the name changes (bookkeeping) I recently made (changes in the working tree) and ensure that they are reasonable
-  and that there are no negative side-effects.
-- [x] Update `fragment.py` (`claude --resume update-cc-fragment`)
+- [x] Remove tests, simplify/organize codebase (the rendering in particular)
 - [x] Simplify: Remove XML rendering -- keep light markdown and JSON
+- [x] Finish implementing the `/tether-onboard` skill into the evals (`claude --resume onboarding-skill-added-to-evals`)
+- [ ] New playground
+- [ ] Review the Tether positioning analysis (`claude --resume tether-cli-positioning-analysis`)
+- [ ] Implement Line-span tethers
+- [ ] Make the quick MultiEdit removal fix (`claude --resume remove-deprecated-multiedit-references`)
 - [ ] Enhanced testing framework for Claude Code integration (resume via `claude --resume testing-framework-enhancement`)
 	- Example scenarios like the one described in Case 01 should be simulated.   
 	-  Do hooks fire? Does Claude respond appropriately given certain states? Are tethers maintained?
