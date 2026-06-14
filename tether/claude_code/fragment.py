@@ -1,12 +1,24 @@
 FRAGMENT = """# tether
 
-This project uses **tether** to track relationships between content in a project. A tether is a record that semantically links two artifacts (e.g. a doc and the code it describes, a test and the code it exercises, etc.) via a textual description. The artifacts themselves are represented by a hash (i.e. an OID) and a file path.
+This project uses **tether** to track relationships between content in a project. A tether is a record that semantically links two artifacts — two files whose content must stay aligned, where a change to one would require a change to the other to keep the project correct — via a textual description. The artifacts themselves are represented by a hash (i.e. an OID) and a file path.
 
-A tether has no direction and no type — it is a declaration of relation between two files. The rich semantics live entirely in the description.
+A tether has no direction and no type — it is a declaration of relation between two files. The relationship can be *anything* whose drift would matter; tether does not constrain it to a fixed set of kinds. The rich semantics live entirely in the description.
 
 ## When to create tethers
 
-Create tethers freely. Whenever you author or modify two files that are intentionally coupled — a doc and the code it describes, a test and its target, two related implementation files — record the relationship with `tether add`.
+Create tethers freely. Whenever two files are intentionally coupled — a change to one demands a change to the other to keep the project correct — record the relationship with `tether add`. The coupling takes many forms; do not stop at the obvious doc↔code and test↔code pairs. A non-exhaustive sampling:
+
+- a doc, comment, or spec and the code it describes
+- a test and the code it exercises
+- an interface, protocol, or base class and each implementation that must satisfy it
+- a producer and consumer of a serialized format (a serializer and its deserializer; a migration and the model or schema it migrates)
+- a registry, dispatch table, or `match`/`switch` and the set of variants it must enumerate
+- a generated or derived artifact and its source (fixtures, golden files, generated code and its generator or spec)
+- the same constant, route, error code, or version string duplicated in two places that must move together
+- a contract mirrored across a boundary (a backend handler and its client stub; a model and its typed schema)
+- an example or usage snippet and the API it demonstrates
+
+The test is always the same: **if a change to one file would silently leave the other wrong, it is a candidate** — whatever its surface form.
 
 `--description` is a **required** flag of the `tether add` command. A **description** is required for every tether and should describe the relationship of the artifacts; that prose is what a future reader (human, LLM, etc.) uses.
 

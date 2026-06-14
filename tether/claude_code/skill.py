@@ -52,14 +52,20 @@ Group the untethered files by top-level directory (`src/`, `docs/`, `tests/`, et
 
    Plus a `NO-PARTNER` list: subsystem files with no apparent drift-sensitive partner, each with a one-phrase reason.
 
-Candidate patterns (heuristic seeds — propose, don't auto-accept):
+Candidate patterns — **seeds, not a taxonomy.** The real test is the Step 2 judge question: *would a change to one side silently leave the other wrong?* Any pair that passes qualifies, even if it matches none of the patterns below. Look actively past the obvious doc↔code and test↔code pairs — most projects have far more relationships than those two kinds.
 
 - **Doc ↔ code** — a doc that names, specifies, or walks through a source file's behavior (README sections, usage guides, design notes, API docs).
 - **Test ↔ implementation** — a test file and its subject (`tests/test_foo.py` ↔ `foo.py` and naming-convention variants).
 - **Schema ↔ consumer** — a schema/contract file (JSON Schema, proto, SQL DDL, OpenAPI) and code that reads, validates, or mirrors it.
 - **Config ↔ reader** — a config file and the module that parses or depends on its keys.
+- **Interface ↔ implementations** — an interface, protocol, ABC, or base class and each implementation that must satisfy it (every implementation must change when the contract does).
+- **Producer ↔ consumer of a format** — a serializer and its deserializer, a writer and its reader, a migration and the model or schema it migrates.
+- **Registry ↔ enumerated set** — a dispatch table, registry, or `match`/`switch` and the set of variants (enum members, plugins, subclasses) it must enumerate exhaustively.
+- **Derived ↔ source** — a generated or derived artifact and its source (golden files, fixtures, snapshots, generated code ↔ its generator or spec).
 - **Duplicated contract** — the same constants, routes, error codes, or version strings defined in two places that must move together.
-- **Cross-language mirror** — one contract reflected on two sides (backend handler ↔ client stub, Python model ↔ TypeScript type).
+- **Cross-boundary mirror** — one contract reflected on two sides (backend handler ↔ client stub, Python model ↔ TypeScript type).
+- **Example ↔ API** — a usage snippet or example and the API surface it demonstrates.
+- **Parallel implementations** — two code paths that must stay behaviorally identical (two backends of one interface, a fast path and a reference path).
 
 ## Step 2 — Judge
 
@@ -71,7 +77,8 @@ For each accepted pair, finalize the description against this bar:
 - State *what must stay aligned* — concretely enough that a future agent reading only the description knows what to check.
 - Mention the trigger if it's not obvious (e.g. "any added/removed subcommand needs a matching usage example").
 
-Good: `"usage.md documents the CLI surface defined in cli.py (add/sub/mul/div); changes to argparse subcommands or arg types must be reflected in the usage examples."`
+Good (doc ↔ code): `"usage.md documents the CLI surface defined in cli.py (add/sub/mul/div); changes to argparse subcommands or arg types must be reflected in the usage examples."`
+Good (registry ↔ enumerated set): `"handlers.py's DISPATCH dict must list one entry per EventType member in events.py; adding or renaming an EventType requires a matching DISPATCH entry, or the event routes nowhere."`
 Bad: `"These files are related."` / `"Doc for cli.py."`
 
 ## Step 3 — Create
