@@ -20,8 +20,12 @@ Reviewed against `pyproject.toml`, the package tree, and the README:
   runtime (its hook/fragment/skill/settings content is embedded as Python
   strings). So no `package-data` / `force-include` is needed; the default wheel
   target captures everything.
-- **The name `tether` is currently unclaimed on PyPI** (the JSON API returns
-  404). PyPI is first-to-upload, so the first successful publish claims it.
+- **The distribution name is `tether-it`.** The bare name `tether` is on PyPI's
+  prohibited list ("This project name isn't allowed"), so the package publishes
+  as `tether-it` (`pip install tether-it`) — the import package and the `tether`
+  CLI command are unchanged. `tether-it` is unclaimed (JSON API returns 404), and
+  PyPI is first-to-upload, so the first successful publish claims it. The built
+  artifact normalizes to `tether_it-<ver>-*.whl` / `tether_it-<ver>.tar.gz`.
 
 **Missing / must address before a good release**
 1. **No `LICENSE` file and no `license` metadata.** Required for a respectable
@@ -115,7 +119,7 @@ Trove classifiers are deprecated (PEP 639), so do not add one.
 
 ```toml
 [project]
-name = "tether"
+name = "tether-it"
 version = "0.1.0"
 description = "Typed-relationship annotation layer over content, layered on git"
 readme = "README.md"
@@ -159,7 +163,7 @@ banner. Bump it as the project matures.)
 ```python
 from importlib.metadata import version
 
-__version__ = version("tether")
+__version__ = version("tether-it")  # argument is the distribution name, not the import package
 ```
 
 `cli.py` surfaces that as `tether --version`, so the CLI, the package metadata,
@@ -182,7 +186,7 @@ wheel by `sed`-ing that exact `version = "..."` line into a local version
 
 `readme = "README.md"` is published verbatim as the project's long description.
 Repo-relative links (`agent-notes/...`, `tether-vault/DICTION.md`, etc.) resolve
-against `https://pypi.org/project/tether/` and **break**. `twine check` does
+against `https://pypi.org/project/tether-it/` and **break**. `twine check` does
 **not** catch this.
 
 - Convert links you want functional on PyPI to absolute URLs, e.g.
@@ -222,8 +226,8 @@ uv build --no-sources               # builds BOTH sdist (.tar.gz) and wheel (.wh
 
 `--no-sources` ignores any `[tool.uv.sources]` dev overrides so the artifact
 matches what a clean build elsewhere would produce. Confirm the filenames have
-**no** local `+g...` segment (e.g. `tether-0.1.0-py3-none-any.whl` and
-`tether-0.1.0.tar.gz`).
+**no** local `+g...` segment (e.g. `tether_it-0.1.0-py3-none-any.whl` and
+`tether_it-0.1.0.tar.gz`).
 
 ### 5b. Validate metadata
 
@@ -254,7 +258,7 @@ runtime deps (`click`, `msgspec`, `uuid-utils`) resolve from real PyPI:
 uv run --no-project --isolated \
   --index https://test.pypi.org/simple/ \
   --index-strategy unsafe-best-match \
-  --with tether \
+  --with tether-it \
   -- tether --version
 ```
 
@@ -280,13 +284,13 @@ For the first release / claiming the name.
    uv publish --token pypi-<your-pypi-token>
    # or: export UV_PUBLISH_TOKEN=pypi-<token> && uv publish
    ```
-4. Verify the live page: https://pypi.org/project/tether/ and a clean install:
+4. Verify the live page: https://pypi.org/project/tether-it/ and a clean install:
    ```bash
-   uv run --no-project --isolated --with tether -- tether --version
+   uv run --no-project --isolated --with tether-it -- tether --version
    ```
 5. **Harden the token:** once the project exists, delete the account-wide token
    and (if you'll publish manually again) create a new one **scoped to the
-   `tether` project**. Better yet, switch to Trusted Publishing (6B).
+   `tether-it` project**. Better yet, switch to Trusted Publishing (6B).
 
 ---
 
@@ -297,19 +301,19 @@ Publishes when you push a version tag and auto-emits PEP 740 attestations.
 
 ### 6B.1 Configure a pending publisher on PyPI
 
-If `tether` does **not** exist yet on PyPI, configure this from your account (it
+If `tether-it` does **not** exist yet on PyPI, configure this from your account (it
 creates the project on first publish). Go to
 https://pypi.org/manage/account/publishing/ → "Add a new pending publisher" →
 **GitHub Actions**, and enter:
 
-- **PyPI Project Name:** `tether`
+- **PyPI Project Name:** `tether-it` (the distribution name; `tether` is prohibited)
 - **Owner:** `rootdrew27`
-- **Repository name:** `tether`
+- **Repository name:** `tether` (the GitHub repo name is unchanged)
 - **Workflow filename:** `publish.yml`
 - **Environment name:** `pypi` (recommended)
 
 > A pending publisher does **not** reserve the name — if someone uploads
-> `tether` first, it's invalidated. If you already published `0.1.0` via 6A, add
+> `tether-it` first, it's invalidated. If you already published `0.1.0` via 6A, add
 > the trusted publisher from the **project's** settings instead (Manage →
 > Publishing on the project page).
 
@@ -350,7 +354,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: pypi
-      url: https://pypi.org/p/tether
+      url: https://pypi.org/p/tether-it
     permissions:
       id-token: write          # MANDATORY for trusted publishing — without it OIDC fails
     steps:
@@ -364,9 +368,15 @@ jobs:
 ```
 
 Notes:
+- The YAML above is the baseline; **the committed `.github/workflows/publish.yml`
+  is authoritative.** It additionally checks out full history (`fetch-depth: 0`)
+  and runs a **master-only guard** in the build job that refuses to publish unless
+  the tagged commit is contained in `origin/master`
+  (`git merge-base --is-ancestor "$GITHUB_SHA" origin/master`) — so a tag created
+  on any other branch can't release. A GitHub Environment *branch* rule cannot
+  express this, because a tag push carries a tag ref, not a branch ref.
 - `@release/v1` is PyPA's recommended moving ref; it stays current.
-- The `environment: pypi` name must match what you set on PyPI in 6B.1. It also
-  lets you add required reviewers / branch rules to releases.
+- The `environment: pypi` name must match what you set on PyPI in 6B.1.
 
 ### 6B.3 Release by tagging
 
@@ -383,7 +393,7 @@ git push origin v0.1.0
 The tag push triggers the workflow, which builds, checks, and publishes. The
 **first** successful run converts the pending publisher to active and creates
 the project. Watch it under the repo's **Actions** tab; confirm at
-https://pypi.org/project/tether/.
+https://pypi.org/project/tether-it/.
 
 > Keep the `v` prefix on the git tag (`v0.1.0`) consistent with the `tags:
 > ["v*"]` trigger; the PyPI version itself comes from `pyproject.toml`, not the

@@ -1,6 +1,6 @@
 {
   "a": {
-    "fingerprint": "4f5684d8b4ee2b5622d24b3540a3c295409b9f13",
+    "fingerprint": "772a80ca95beda7532cc53501e4e54195b2d1be2",
     "path": "evals/margin/agent-definitions/claude-code-tether/hooks/run-prepare.js"
   },
   "b": {
@@ -10,6 +10,6 @@
   "created_at": "2026-06-14T19:50:02Z",
   "description": "The onboard block in claude-code-tether/hooks/run-prepare.js caps the headless tether-onboard pass at 2400s; evals/margin/eval-configs/onboard-smoke.toml sets instance_timeout_seconds=5400 so the onboarding cap leaves the SWE task room (per evals/margin/CLAUDE.md). These two timeouts must keep their gap: raising the onboard cap toward or above the instance timeout would let onboarding consume the whole budget and the SWE task would be killed.",
   "id": "019ec7af-1bf6-7052-8f17-9919eacb466f",
-  "refreshed_at": "2026-06-14T19:50:02Z",
+  "refreshed_at": "2026-06-15T00:12:32Z",
   "schema_version": 1
 }

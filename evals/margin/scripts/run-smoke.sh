@@ -36,11 +36,11 @@ git -C "$repo_root" archive "$sha" | tar -x -C "$build_dir"
 sed -E -i "s/^(version = \"[^\"]+)(\")/\1+g$sha7\2/" "$build_dir/pyproject.toml"
 (cd "$build_dir" && uv build --wheel)
 
-# Stage exactly one wheel: the in-container install globs tether-*.whl.
+# Stage exactly one wheel: the in-container install globs tether_it-*.whl.
 rm -rf "$repo_root/dist"
 mkdir -p "$repo_root/dist"
-cp "$build_dir"/dist/tether-*.whl "$repo_root/dist/"
-wheel="$(basename "$repo_root"/dist/tether-*.whl)"
+cp "$build_dir"/dist/tether_it-*.whl "$repo_root/dist/"
+wheel="$(basename "$repo_root"/dist/tether_it-*.whl)"
 echo "built $wheel from $ref ($sha)" >&2
 
 # Run from the margin dir so output lands in evals/margin/runs/<run-id>/.

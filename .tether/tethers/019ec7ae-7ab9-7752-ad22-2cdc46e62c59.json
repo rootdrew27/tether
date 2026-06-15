@@ -4,12 +4,12 @@
     "path": "tether/cli.py"
   },
   "b": {
-    "fingerprint": "2a73a7ea1889956b79d13636bb31aed053f0c403",
+    "fingerprint": "2a6023172eae43944a23a77e4eb6006c238da996",
     "path": "tether/claude_code/settings.py"
   },
   "created_at": "2026-06-14T19:49:21Z",
   "description": "tether/claude_code/settings.py enumerates tether/cli.py command surface for Claude Code. ALLOW_SUBCOMMANDS lists the agent-facing subcommands pre-approved as permissions (status/refresh/update/add/mv/refs/show/coverage, deliberately excluding rm and init), and HOOK_EVENTS maps the three hook subcommand names (session-start/stop/pre-tool-use) plus their matchers. Adding a new agent-facing subcommand in cli.py requires adding it to ALLOW_SUBCOMMANDS or the agent cannot invoke it; renaming any allowed or hook subcommand must be mirrored in settings.py or the permission/hook silently breaks.",
   "id": "019ec7ae-7ab9-7752-ad22-2cdc46e62c59",
-  "refreshed_at": "2026-06-14T19:49:21Z",
+  "refreshed_at": "2026-06-15T00:43:25Z",
   "schema_version": 1
 }

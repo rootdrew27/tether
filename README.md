@@ -49,18 +49,24 @@ Tether uses a simple database, consisting of tethers, which should be included i
 
 ## Install
 
+> **Naming:** the PyPI package is **`tether-it`** (the bare name `tether` is
+> reserved on PyPI), while the command you run and the Python package you import
+> are both `tether`, and the GitHub repo is
+> [`rootdrew27/tether`](https://github.com/rootdrew27/tether). In short —
+> `pip install tether-it`, then use `tether`.
+
 Tether is a CLI. Install it as a standalone tool:
 
 ```bash
-uv tool install tether     # with uv
+uv tool install tether-it  # with uv
 # or
-pipx install tether        # with pipx
+pipx install tether-it     # with pipx
 ```
 
 …or add it to a project's environment:
 
 ```bash
-uv add tether
+uv add tether-it
 ```
 
 Confirm it resolves:

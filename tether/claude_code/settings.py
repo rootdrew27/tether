@@ -57,7 +57,7 @@ def detect_tether_command(project_root: Path) -> str:
         if which_result is None:
             raise TetherError(
                 "Could not locate the `tether` binary. "
-                "Install tether (e.g. `uv sync` or `pipx install tether`) "
+                "Install tether (e.g. `uv sync` or `pipx install tether-it`) "
                 "before running `tether init claude-code`."
             )
         candidate = Path(which_result)
