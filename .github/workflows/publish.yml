@@ -20,8 +20,10 @@ jobs:
           persist-credentials: false
           fetch-depth: 0 # full history so the master-ancestry check below works
       - name: Refuse to publish a tag that isn't on master
+        # checkout above uses fetch-depth: 0, so origin/master is already a
+        # local ref — no network fetch is needed, and one would fail anyway
+        # under persist-credentials: false on a private repo.
         run: |
-          git fetch --no-tags origin +refs/heads/master:refs/remotes/origin/master
           if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/master; then
             echo "::error::Tag ${GITHUB_REF_NAME} (${GITHUB_SHA}) is not contained in origin/master; refusing to publish."
             exit 1
