@@ -1,6 +1,6 @@
 {
   "a": {
-    "fingerprint": "d58343d61c67f152e79dc1b09912f06c7fb8cef7",
+    "fingerprint": "b83457b59e8807cb222d1ea88bbdc283655dd41e",
     "path": "pyproject.toml"
   },
   "b": {
@@ -10,6 +10,6 @@
   "created_at": "2026-06-15T00:12:31Z",
   "description": "evals/margin/agent-definitions/claude-code-tether/hooks/run-prepare.js installs the bind-mounted wheel in-container by globbing tether_it-*.whl and reports the installed version via 'pip show tether-it'. The wheel-glob prefix is pyproject.toml [project].name normalized (- _ . to _), and the pip-show argument is the exact [project].name. Renaming the distribution requires updating both here, or the install matches no wheel and/or pip show finds nothing, blanking the tether-setup version marker and failing verify-smoke.py.",
   "id": "019ec89f-6d58-71f1-b6a4-665fae8c9996",
-  "refreshed_at": "2026-06-15T00:12:31Z",
+  "refreshed_at": "2026-06-16T03:03:13Z",
   "schema_version": 1
 }

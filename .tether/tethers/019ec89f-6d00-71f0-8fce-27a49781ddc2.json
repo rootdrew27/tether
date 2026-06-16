@@ -1,6 +1,6 @@
 {
   "a": {
-    "fingerprint": "d58343d61c67f152e79dc1b09912f06c7fb8cef7",
+    "fingerprint": "b83457b59e8807cb222d1ea88bbdc283655dd41e",
     "path": "pyproject.toml"
   },
   "b": {
@@ -10,6 +10,6 @@
   "created_at": "2026-06-15T00:12:31Z",
   "description": "evals/margin/scripts/run-smoke.sh stages the built wheel by globbing tether_it-*.whl (cp and basename) to bind-mount it into the eval container. That glob prefix is pyproject.toml [project].name normalized per PEP 427/503 (runs of - _ . collapse to _, so tether-it becomes tether_it). Renaming the distribution in pyproject.toml requires updating this glob, or it matches no wheel and the smoke run fails under set -e.",
   "id": "019ec89f-6d00-71f0-8fce-27a49781ddc2",
-  "refreshed_at": "2026-06-15T00:12:31Z",
+  "refreshed_at": "2026-06-16T03:03:13Z",
   "schema_version": 1
 }
