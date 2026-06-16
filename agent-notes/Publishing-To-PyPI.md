@@ -14,7 +14,8 @@ Reviewed against `pyproject.toml`, the package tree, and the README:
 - Build backend is set: `hatchling` (`[build-system]`).
 - Wheel target is correct: `[tool.hatch.build.targets.wheel] packages = ["tether"]`.
 - Console script is wired: `tether = "tether.cli:main"`.
-- `requires-python = ">=3.12"` is set and matches `.python-version`.
+- `requires-python = ">=3.11"` is set. The floor may sit below `.python-version`
+  (which pins the dev interpreter at 3.12); the package supports 3.11+.
 - The package is **pure Python** — nothing under `tether/` is a non-`.py` data
   file, and `tether/claude_code/` reads only the *target project's* files at
   runtime (its hook/fragment/skill/settings content is embedded as Python
@@ -123,7 +124,7 @@ name = "tether-it"
 version = "0.1.0"
 description = "Typed-relationship annotation layer over content, layered on git"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 license = "MIT"
 license-files = ["LICENSE"]
 authors = [

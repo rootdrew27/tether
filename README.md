@@ -44,7 +44,7 @@ Tether uses a simple database, consisting of tethers, which should be included i
 
 ## Requirements
 
-- **Python 3.12+**
+- **Python 3.11+**
 - **A git repository.** Tether records fingerprints as git blob OIDs, so `tether init` refuses to run outside a git work tree.
 
 ## Install

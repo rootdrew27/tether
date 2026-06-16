@@ -27,8 +27,8 @@ The `tetherSetup` block runs before the agent launches:
 - Wheel is bind-mounted `<repo>/dist` → `/opt/tether-dist` by `run-smoke.sh`
   (`--agent-bind`). The `wheelDir` constant in the hook must match that target.
 - Installs into an **isolated uv venv at `/opt/tether-venv`** with `--python
-  3.12` — never the testbed's own interpreter (swebench pythons predate 3.12;
-  tether requires ≥3.12). `tether` is symlinked into `/usr/local/bin`.
+  3.12` — never the testbed's own interpreter (swebench pythons predate 3.11;
+  tether requires ≥3.11). `tether` is symlinked into `/usr/local/bin`.
 - Runs `tether init` + `tether init claude-code` in `run.cwd`.
 - All output goes to stderr as `tether-setup: …` markers, captured in each
   instance's `run/agent_server_pty.log`. **`verify-smoke.py` matches these exact

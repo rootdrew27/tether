@@ -1,6 +1,6 @@
 {
   "a": {
-    "fingerprint": "04e8b988bb1d4c5fffdfa9f0bb253ac9ef51f99c",
+    "fingerprint": "80ab5fd7e340b0f516b01e860a73fffc38c776ce",
     "path": "README.md"
   },
   "b": {
@@ -10,6 +10,6 @@
   "created_at": "2026-06-14T19:49:21Z",
   "description": "README.md's '## CLI reference' table documents every user-facing tether subcommand from tether/cli.py's click definitions — init, init claude-code, add (--description), status (--json, --diff/--no-diff), show, refs, coverage (--list-untethered-files, --list-tethered-files, --json), refresh, update (--a-path, --b-path, --description), mv, rm — and excludes the intentionally hidden hook command group. Adding, removing, or renaming a subcommand in cli.py, or changing the arguments/flags the table documents, must update the README CLI reference table to match.",
   "id": "019ec7ae-7af8-7f01-ba9d-a92d5d562b27",
-  "refreshed_at": "2026-06-15T00:43:25Z",
+  "refreshed_at": "2026-06-16T03:07:44Z",
   "schema_version": 1
 }
