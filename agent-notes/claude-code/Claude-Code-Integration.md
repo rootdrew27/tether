@@ -160,13 +160,14 @@ It lives under `.tether/` rather than `.claude/` because it is tether's content,
 - State that tethers are symmetric (no direction, no type) and that `--description` is required at `tether add` time.
 - State that `.tether/` is tether-owned and read-only to the agent; mutations go through the CLI.
 - Define the per-artifact states (`HEALTHY` / `DRIFTED` / `BROKEN`), and the aggregate as the most severe of the two.
-- Describe resolution paths for each non-HEALTHY aggregate: the two DRIFTED paths (align files to the description, or `tether update <uuid> --description "..."` to align the description to the files), and the rename/remove flow for BROKEN.
+- Introduce region (sub-file) artifacts: a tether end may target a Python symbol or a markdown section via `path::selector`; its state is scoped to that region; and its on-disk shape differs from a whole-file artifact (`schema_version` 2, a `locator` object, and a `{file_blob_oid, region_hash}` fingerprint).
+- Describe resolution paths for each non-HEALTHY aggregate: the two DRIFTED paths (align files to the description, or `tether update <uuid> --description "..."` to align the description to the files), the rename/remove flow for BROKEN, and selector repointing (`--a-selector`/`--b-selector`) for a region whose symbol moved.
 - Set expectations around `tether status` (diagnostic, not verification) and `tether refresh` (assertion, not auto-action).
-- List the key commands with their signatures.
+- List the key commands with their signatures, including the `::selector` suffix on `add` and the `--a-selector`/`--b-selector` flags on `update`.
 
 **Note on scope:** this fragment is Claude-Code-specific. Other harnesses (Cursor, Aider, Codex) will get their own per-harness fragments with appropriate vocabulary when those integrations ship.
 
-**Note on sub-file locators:** the fragment is whole-file-only — MVP ships only the `WholeFile` locator. When the CLI grows `LineRange` (and beyond) locator support, the fragment's intro and example commands update to introduce sub-file relationships. Tracked in [Future-Work](../design/Future-Work.md); the fragment update itself is tracked as a blocked item in [Claude-Code-Integration-Open](Claude-Code-Integration-Open.md).
+**Note on sub-file locators:** the fragment covers region (sub-file) artifacts alongside whole-file ones. A tether end may target a Python symbol (`kind: "symbol"`, `lang: "python"`, a dotted symbol path) or a markdown section (`kind: "heading"`, `lang: "markdown"`, a slash-separated heading path), each resolved through tree-sitter to a byte span; the intro, record-shape, state-model, resolution, and key-command sections each address the region case. Further languages follow as their tree-sitter grammars are wired in. Design: [Language-Aware-Locators](../design/future/Language-Aware-Locators.md).
 
 ## Onboard skill
 

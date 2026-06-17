@@ -21,6 +21,7 @@ def run_git(
     cwd: Path,
     text: bool = True,
     env: dict[str, str] | None = None,
+    input_data: bytes | str | None = None,
 ) -> subprocess.CompletedProcess[Any]:
     return subprocess.run(
         ["git", *args],
@@ -28,6 +29,7 @@ def run_git(
         capture_output=True,
         text=text,
         env=env,
+        input=input_data,
     )
 
 
@@ -38,8 +40,9 @@ def run_git_or_raise(
     error_prefix: str,
     text: bool = True,
     error_cls: type[TetherError] = GitError,
+    input_data: bytes | str | None = None,
 ) -> subprocess.CompletedProcess[Any]:
-    result = run_git(args, cwd=cwd, text=text)
+    result = run_git(args, cwd=cwd, text=text, input_data=input_data)
     if result.returncode != 0:
         stderr = (
             result.stderr.strip()
@@ -76,6 +79,36 @@ def hash_object(file_path: Path, root: Path) -> str:
         error_prefix="git hash-object failed",
     )
     return result.stdout.strip()
+
+
+def hash_object_write_bytes(data: bytes, root: Path) -> str:
+    """Write arbitrary bytes to git's object store as a blob; return the OID.
+
+    Used to fingerprint a *region* (a located sub-file span) whose bytes have no
+    file of their own. The blob is unreachable from any commit, so it is subject
+    to git's gc grace period like any other loose blob — ref-pinning (see
+    Future-Work) is the planned hardening.
+    """
+    result = run_git_or_raise(
+        ["hash-object", "-w", "--stdin"],
+        cwd=root,
+        text=False,
+        input_data=data,
+        error_prefix="git hash-object -w --stdin failed",
+    )
+    return result.stdout.decode().strip()
+
+
+def hash_object_bytes(data: bytes, root: Path) -> str:
+    """Compute the git blob OID of `data` without writing it (drift compare)."""
+    result = run_git_or_raise(
+        ["hash-object", "--stdin"],
+        cwd=root,
+        text=False,
+        input_data=data,
+        error_prefix="git hash-object --stdin failed",
+    )
+    return result.stdout.decode().strip()
 
 
 def cat_blob(oid: str, root: Path) -> bytes:

@@ -12,8 +12,9 @@ from msgspec.structs import replace
 
 from . import __version__
 from .errors import TetherError
-from .git import hash_object_write
-from .model import Artifact, Tether
+from .git import hash_object_write, hash_object_write_bytes
+from .locators import extract_region
+from .model import Artifact, Locator, RegionFingerprint, Tether
 from .coverage import compute_coverage
 from .output import (
     build_coverage_report,
@@ -60,6 +61,58 @@ def _resolve_rel(project_root: Path, p: str) -> str:
             f"path {p!r} is outside the project root {project_root}"
         ) from e
     return rel.as_posix()
+
+
+# File extension → locator language, and language → locator kind. This build
+# resolves Python symbols; markdown sections are the next language to land.
+# Inference happens only at `add` time; the chosen lang is stored in the record,
+# so a later rename never silently re-infers from a new extension.
+_LANG_BY_EXT: dict[str, str] = {
+    ".py": "python",
+    ".md": "markdown",
+    ".markdown": "markdown",
+}
+_KIND_BY_LANG: dict[str, str] = {"python": "symbol", "markdown": "heading"}
+
+
+def _split_selector(arg: str) -> tuple[str, str | None]:
+    """Split a `path::selector` argument. No `::` → whole file (selector None)."""
+    path, sep, selector = arg.partition("::")
+    if not sep:
+        return arg, None
+    if not selector.strip():
+        raise TetherError(f"empty selector after '::' in {arg!r}")
+    return path, selector
+
+
+def _make_locator(rel: str, selector: str) -> Locator:
+    ext = Path(rel).suffix
+    lang = _LANG_BY_EXT.get(ext)
+    if lang is None:
+        supported = ", ".join(sorted(_LANG_BY_EXT))
+        raise TetherError(
+            f"no section-locator parser for {ext or '(no extension)'} files "
+            f"(supported: {supported})"
+        )
+    return Locator(kind=_KIND_BY_LANG[lang], lang=lang, selector=selector)
+
+
+def _fingerprint_artifact(
+    root: Path, rel: str, locator: Locator | None
+) -> str | RegionFingerprint:
+    """Record the fingerprint for an artifact, writing bytes into git's store.
+
+    Whole-file → the file's blob OID. Region → a pair: the file's blob OID (for
+    file-rename detection) plus the region's own blob OID (the drift signal).
+    Raises a LocatorError (a TetherError) if the region cannot be extracted.
+    """
+    abs_path = root / rel
+    file_oid = hash_object_write(abs_path, root)
+    if locator is None:
+        return file_oid
+    region = extract_region(abs_path.read_bytes(), locator)
+    region_hash = hash_object_write_bytes(region, root)
+    return RegionFingerprint(file_blob_oid=file_oid, region_hash=region_hash)
 
 
 def _surface(*, as_json: bool, plain: bool, is_tty: bool, json_default: bool) -> str:
@@ -132,31 +185,39 @@ def init_claude_code() -> None:
 )
 @handle_errors
 def add(a_path: str, b_path: str, description: str) -> None:
-    """Create a new tether between two existing files."""
+    """Create a new tether between two existing files or regions.
+
+    Each argument is a path, optionally with a `::selector` suffix naming a
+    region (e.g. `src/calc.py::Calculator.multiply`).
+    """
     if not description.strip():
         raise TetherError("--description must be non-empty")
     root = _root()
-    a_rel = _resolve_rel(root, a_path)
-    b_rel = _resolve_rel(root, b_path)
-    if a_rel == b_rel:
-        raise TetherError("a and b must differ; self-tethers are not allowed")
+    a_raw, a_sel = _split_selector(a_path)
+    b_raw, b_sel = _split_selector(b_path)
+    a_rel = _resolve_rel(root, a_raw)
+    b_rel = _resolve_rel(root, b_raw)
+    a_loc = _make_locator(a_rel, a_sel) if a_sel is not None else None
+    b_loc = _make_locator(b_rel, b_sel) if b_sel is not None else None
+    if a_rel == b_rel and a_loc == b_loc:
+        raise TetherError(
+            "a and b address the same content; self-tethers are not allowed"
+        )
 
-    a_abs = root / a_rel
-    b_abs = root / b_rel
-    if not a_abs.is_file():
+    if not (root / a_rel).is_file():
         raise TetherError(f"file does not exist: {a_rel}")
-    if not b_abs.is_file():
+    if not (root / b_rel).is_file():
         raise TetherError(f"file does not exist: {b_rel}")
 
-    a_fp = hash_object_write(a_abs, root)
-    b_fp = hash_object_write(b_abs, root)
+    a_fp = _fingerprint_artifact(root, a_rel, a_loc)
+    b_fp = _fingerprint_artifact(root, b_rel, b_loc)
 
     now = _utcnow_iso()
     t = Tether(
         id=str(uuid7()),
-        schema_version=1,
-        a=Artifact(path=a_rel, fingerprint=a_fp),
-        b=Artifact(path=b_rel, fingerprint=b_fp),
+        schema_version=2 if (a_loc or b_loc) else 1,
+        a=Artifact(path=a_rel, fingerprint=a_fp, locator=a_loc),
+        b=Artifact(path=b_rel, fingerprint=b_fp, locator=b_loc),
         description=description,
         created_at=now,
         refreshed_at=now,
@@ -185,49 +246,83 @@ def refresh(tether_id: str) -> None:
     if ArtifactState.BROKEN in (check.a.state, check.b.state):
         raise TetherError(
             "refresh refuses on BROKEN tether — locator does not resolve. "
-            "Use `tether update --a-path/--b-path` to follow the rename first."
+            "Use `tether update --a-path/--b-path` (or --a-selector/--b-selector) "
+            "to follow the move first."
         )
     new_t = replace(
         t,
-        a=replace(t.a, fingerprint=hash_object_write(root / t.a.path, root)),
-        b=replace(t.b, fingerprint=hash_object_write(root / t.b.path, root)),
+        a=replace(t.a, fingerprint=_fingerprint_artifact(root, t.a.path, t.a.locator)),
+        b=replace(t.b, fingerprint=_fingerprint_artifact(root, t.b.path, t.b.locator)),
         refreshed_at=_utcnow_iso(),
     )
     save_tether(root, new_t)
     click.echo(f"Refreshed tether {tether_id}")
 
 
+def _retarget(
+    art: Artifact,
+    new_path: str | None,
+    new_selector: str | None,
+    root: Path,
+    label: str,
+) -> Artifact:
+    """Apply a structural path/selector change to one artifact (no re-fingerprint)."""
+    if new_path is not None:
+        art = replace(art, path=_resolve_rel(root, new_path))
+    if new_selector is not None:
+        if art.locator is None:
+            raise TetherError(
+                f"--{label}-selector: artifact {label} has no locator to retarget"
+            )
+        art = replace(art, locator=replace(art.locator, selector=new_selector))
+    return art
+
+
 @main.command()
 @click.argument("tether_id")
 @click.option("--a-path", "new_a_path", default=None)
 @click.option("--b-path", "new_b_path", default=None)
+@click.option("--a-selector", "new_a_selector", default=None)
+@click.option("--b-selector", "new_b_selector", default=None)
 @click.option("--description", "new_description", default=None)
 @handle_errors
 def update(
     tether_id: str,
     new_a_path: str | None,
     new_b_path: str | None,
+    new_a_selector: str | None,
+    new_b_selector: str | None,
     new_description: str | None,
 ) -> None:
-    """Modify a tether's path or description without touching fingerprints."""
-    if all(v is None for v in (new_a_path, new_b_path, new_description)):
+    """Modify a tether's path, locator, or description without touching fingerprints."""
+    fields = (
+        new_a_path,
+        new_b_path,
+        new_a_selector,
+        new_b_selector,
+        new_description,
+    )
+    if all(v is None for v in fields):
         raise TetherError(
-            "no fields to update; pass --a-path, --b-path, or --description"
+            "no fields to update; pass --a-path/--b-path, "
+            "--a-selector/--b-selector, or --description"
         )
     if new_description is not None and not new_description.strip():
         raise TetherError("--description must be non-empty")
+    for label, sel in (("a", new_a_selector), ("b", new_b_selector)):
+        if sel is not None and not sel.strip():
+            raise TetherError(f"--{label}-selector must be non-empty")
     root = _root()
     t = load_tether(root, tether_id)
-    changes: dict[str, Any] = {}
-    if new_a_path is not None:
-        changes["a"] = replace(t.a, path=_resolve_rel(root, new_a_path))
-    if new_b_path is not None:
-        changes["b"] = replace(t.b, path=_resolve_rel(root, new_b_path))
+    changes: dict[str, Any] = {
+        "a": _retarget(t.a, new_a_path, new_a_selector, root, "a"),
+        "b": _retarget(t.b, new_b_path, new_b_selector, root, "b"),
+    }
     if new_description is not None:
         changes["description"] = new_description
     new_t = replace(t, **changes)
-    if new_t.a.path == new_t.b.path:
-        raise TetherError("a and b must differ after update")
+    if new_t.a.path == new_t.b.path and new_t.a.locator == new_t.b.locator:
+        raise TetherError("a and b must address different content after update")
     save_tether(root, new_t)
     click.echo(f"Updated tether {tether_id}")
 
@@ -364,7 +459,10 @@ def refs(path: str, as_json: bool, plain: bool, no_color: bool) -> None:
     per-artifact and aggregate state.
     """
     root = _root()
-    rel = _resolve_rel(root, path)
+    # A `::selector` suffix is accepted but only the file path is matched;
+    # region-scoped refs are future work.
+    raw, _ = _split_selector(path)
+    rel = _resolve_rel(root, raw)
     result = find_by_path(root, rel)
     checks = check_all(result.tethers, root)
     rows: list[Row] = [(t, ck) for t, ck in zip(result.tethers, checks)]

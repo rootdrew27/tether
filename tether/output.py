@@ -5,7 +5,7 @@ from pathlib import Path
 import msgspec
 
 from .coverage import Coverage
-from .model import Artifact, Tether
+from .model import Artifact, Locator, Tether
 from .render import Row, by_severity, counts
 from .status import (
     AggregateState,
@@ -21,6 +21,7 @@ class ArtifactStatus(msgspec.Struct, frozen=True, kw_only=True):
     path: str
     fingerprint: str
     state: ArtifactState
+    locator: Locator | None = None
     diff: str | None = None
     normalization_rescued: bool = False
     rename_candidates: tuple[RenameCandidate, ...] = ()
@@ -115,11 +116,17 @@ def build_artifact_status(
             art_check.state == ArtifactState.HEALTHY and art_check.normalization_rescued
         )
     ):
-        diff = artifact_diff(a.path, a.fingerprint, root)
+        diff = artifact_diff(a, root)
+    # The JSON `fingerprint` carries the drift-relevant hash: a whole-file blob
+    # OID, or a region's region_hash. The whole-file blob OID of a region
+    # artifact is available via its locator-bearing record on disk.
+    fp = a.fingerprint
+    fingerprint = fp if isinstance(fp, str) else fp.region_hash
     return ArtifactStatus(
         path=a.path,
-        fingerprint=a.fingerprint,
+        fingerprint=fingerprint,
         state=art_check.state,
+        locator=a.locator,
         diff=diff,
         normalization_rescued=art_check.normalization_rescued,
         rename_candidates=art_check.rename_candidates,

@@ -5,7 +5,7 @@ import textwrap
 from pathlib import Path
 
 from .coverage import Coverage
-from .model import Tether
+from .model import Artifact, Tether
 from .status import (
     STATE_ORDER,
     SEVERITY,
@@ -17,6 +17,12 @@ from .status import (
 )
 
 Row = tuple[Tether, TetherCheck]
+
+
+def art_display(a: Artifact) -> str:
+    """How an artifact is shown to a human: `path`, or `path::selector` for a
+    region. Whole-file artifacts read exactly as before."""
+    return f"{a.path}::{a.locator.selector}" if a.locator is not None else a.path
 
 
 def tether_line(t: Tether, check: TetherCheck) -> str:
@@ -251,12 +257,13 @@ def all_tethers_md(
 
 
 def _drift_block(
-    label: str, path: str, fingerprint: str, root: Path, *, rescued: bool
+    label: str, artifact: Artifact, root: Path, *, rescued: bool
 ) -> list[str]:
+    disp = art_display(artifact)
     header = (
-        f"## Encoding-only drift on {label}: `{path}`"
+        f"## Encoding-only drift on {label}: `{disp}`"
         if rescued
-        else f"## Drift on {label}: `{path}`"
+        else f"## Drift on {label}: `{disp}`"
     )
     body = [
         "",
@@ -272,7 +279,7 @@ def _drift_block(
         [
             "",
             "```diff",
-            artifact_diff(path, fingerprint, root).rstrip("\n"),
+            artifact_diff(artifact, root).rstrip("\n"),
             "```",
         ]
     )
@@ -280,11 +287,12 @@ def _drift_block(
 
 
 def _broken_block(
-    label: str, path: str, candidates: tuple[RenameCandidate, ...]
+    label: str, artifact: Artifact, candidates: tuple[RenameCandidate, ...]
 ) -> list[str]:
     lines = [
         "",
-        f"## Broken {label}: `{path}` (file not present at recorded path)",
+        f"## Broken {label}: `{art_display(artifact)}` "
+        "(content not present at recorded path/locator)",
     ]
     if candidates:
         lines.append("")
@@ -309,25 +317,23 @@ def one_tether_md(
         f"# Tether `{t.id}`",
         "",
         f"- **State:** {check.aggregate.value}",
-        f"- **a:** `{t.a.path}` — {check.a.state.value}"
+        f"- **a:** `{art_display(t.a)}` — {check.a.state.value}"
         + (" (encoding-only drift rescued)" if check.a.normalization_rescued else ""),
-        f"- **b:** `{t.b.path}` — {check.b.state.value}"
+        f"- **b:** `{art_display(t.b)}` — {check.b.state.value}"
         + (" (encoding-only drift rescued)" if check.b.normalization_rescued else ""),
         f"- **Created:** {t.created_at}",
         f"- **Refreshed:** {t.refreshed_at}",
         f"- **Description:** {t.description}",
     ]
     if show_diff:
-        for label, path, fingerprint, art in (
-            ("a", t.a.path, t.a.fingerprint, check.a),
-            ("b", t.b.path, t.b.fingerprint, check.b),
+        for label, artifact, art in (
+            ("a", t.a, check.a),
+            ("b", t.b, check.b),
         ):
             if art.state == ArtifactState.DRIFTED:
-                lines.extend(
-                    _drift_block(label, path, fingerprint, root, rescued=False)
-                )
+                lines.extend(_drift_block(label, artifact, root, rescued=False))
             elif art.state == ArtifactState.HEALTHY and art.normalization_rescued:
-                lines.extend(_drift_block(label, path, fingerprint, root, rescued=True))
+                lines.extend(_drift_block(label, artifact, root, rescued=True))
             elif art.state == ArtifactState.BROKEN:
-                lines.extend(_broken_block(label, path, art.rename_candidates))
+                lines.extend(_broken_block(label, artifact, art.rename_candidates))
     return "\n".join(lines)

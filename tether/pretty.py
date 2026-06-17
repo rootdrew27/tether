@@ -21,7 +21,7 @@ from rich.table import Table
 from rich.text import Text
 
 from .model import Artifact, Tether
-from .render import Row, by_severity, counts
+from .render import Row, art_display, by_severity, counts
 from .status import (
     STATE_ORDER,
     AggregateState,
@@ -105,7 +105,7 @@ def _artifact_cell(artifact: Artifact, art: ArtifactCheck) -> Text:
     zero count uses; dim gray would falsely imply the artifact is absent when
     it is fine.
     """
-    cell = Text(artifact.path, style=_STATE_STYLE[art.state.value])
+    cell = Text(art_display(artifact), style=_STATE_STYLE[art.state.value])
     if art.state == ArtifactState.BROKEN:
         for cand in art.rename_candidates:
             cell.append(f"\n→ {cand.path} (R{cand.similarity})", style="dim")
@@ -182,7 +182,7 @@ def pretty_status_all(
 
 
 def _artifact_inline(artifact: Artifact, art: ArtifactCheck) -> Text:
-    txt = Text.assemble((artifact.path, "cyan"), "  ")
+    txt = Text.assemble((art_display(artifact), "cyan"), "  ")
     txt.append_text(_state_text(art.state))
     if art.normalization_rescued:
         txt.append(" (encoding-only drift rescued)", style="dim")
@@ -208,9 +208,10 @@ def _diff_text(diff: str) -> Text:
 
 
 def _diff_panel(label: str, artifact: Artifact, root: Path, *, rescued: bool) -> Panel:
-    diff = artifact_diff(artifact.path, artifact.fingerprint, root).rstrip("\n")
+    diff = artifact_diff(artifact, root).rstrip("\n")
+    disp = art_display(artifact)
     if rescued:
-        title = f"Encoding-only drift on {label}: {artifact.path}"
+        title = f"Encoding-only drift on {label}: {disp}"
         body: list[RenderableType] = [
             Text(
                 "Bytes differ but normalize equal (line endings / trailing whitespace / "
@@ -222,7 +223,7 @@ def _diff_panel(label: str, artifact: Artifact, root: Path, *, rescued: bool) ->
             _diff_text(diff),
         ]
     else:
-        title = f"Drift on {label}: {artifact.path}"
+        title = f"Drift on {label}: {disp}"
         body = [_diff_text(diff)]
     return Panel(
         Group(*body),
@@ -235,7 +236,10 @@ def _diff_panel(label: str, artifact: Artifact, root: Path, *, rescued: bool) ->
 
 def _broken_panel(label: str, artifact: Artifact, art: ArtifactCheck) -> Panel:
     body: list[RenderableType] = [
-        Text(f"{artifact.path} — file not present at recorded path", style="red")
+        Text(
+            f"{art_display(artifact)} — content not present at recorded path/locator",
+            style="red",
+        )
     ]
     if art.rename_candidates:
         body.append(Text("\nRename candidates (by content similarity):", style="dim"))

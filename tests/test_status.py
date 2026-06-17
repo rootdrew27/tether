@@ -1,8 +1,9 @@
 import subprocess
 from pathlib import Path
 
-from tether.git import find_renames, hash_object_write
-from tether.model import Artifact, Tether
+from tether.git import find_renames, hash_object_write, hash_object_write_bytes
+from tether.locators import extract_region
+from tether.model import Artifact, Locator, RegionFingerprint, Tether
 from tether.status import (
     AggregateState,
     ArtifactState,
@@ -30,7 +31,7 @@ def test_healthy_when_oid_matches(project: Path):
     f = project / "x.md"
     f.write_text("hello\n")
     fp = hash_object_write(f, project)
-    c = check_artifact("x.md", fp, project)
+    c = check_artifact(Artifact(path="x.md", fingerprint=fp), project)
     assert c.state == ArtifactState.HEALTHY
     assert c.normalization_rescued is False
     assert c.rename_candidates == ()
@@ -41,13 +42,13 @@ def test_drifted_when_content_changes(project: Path):
     f.write_text("hello\n")
     fp = hash_object_write(f, project)
     f.write_text("hello world\n")
-    c = check_artifact("x.md", fp, project)
+    c = check_artifact(Artifact(path="x.md", fingerprint=fp), project)
     assert c.state == ArtifactState.DRIFTED
     assert c.normalization_rescued is False
 
 
 def test_broken_when_file_missing(project: Path):
-    c = check_artifact("nope.md", "a" * 40, project)
+    c = check_artifact(Artifact(path="nope.md", fingerprint="a" * 40), project)
     assert c.state == ArtifactState.BROKEN
     assert c.rename_candidates == ()
 
@@ -81,7 +82,7 @@ def test_normalization_rescues_crlf_change(project: Path):
     f.write_bytes(b"hello\nworld\n")
     fp = hash_object_write(f, project)
     f.write_bytes(b"hello\r\nworld\r\n")
-    c = check_artifact("x.md", fp, project)
+    c = check_artifact(Artifact(path="x.md", fingerprint=fp), project)
     assert c.state == ArtifactState.HEALTHY
     assert c.normalization_rescued is True
 
@@ -91,7 +92,7 @@ def test_normalization_rescues_trailing_whitespace(project: Path):
     f.write_bytes(b"hello\nworld\n")
     fp = hash_object_write(f, project)
     f.write_bytes(b"hello   \nworld\t\n")
-    c = check_artifact("x.md", fp, project)
+    c = check_artifact(Artifact(path="x.md", fingerprint=fp), project)
     assert c.state == ArtifactState.HEALTHY
     assert c.normalization_rescued is True
 
@@ -173,7 +174,7 @@ def test_artifact_diff_rewrites_headers_to_relative_paths(project: Path):
     fp = hash_object_write(f, project)
     f.write_text("new\n")
 
-    out = artifact_diff("x.md", fp, project)
+    out = artifact_diff(Artifact(path="x.md", fingerprint=fp), project)
     assert "--- a/x.md (fingerprinted)\n" in out
     assert "+++ b/x.md\n" in out
     assert str(project) not in out  # no absolute paths leak into the diff
@@ -189,7 +190,7 @@ def test_artifact_diff_preserves_content_containing_own_path(project: Path):
     fp = hash_object_write(f, project)
     f.write_text(f'BASE = "{own_path}"\nnew\n')
 
-    out = artifact_diff("x.md", fp, project)
+    out = artifact_diff(Artifact(path="x.md", fingerprint=fp), project)
     assert f' BASE = "{own_path}"\n' in out  # context line untouched
     assert "-old\n" in out
     assert "+new\n" in out
@@ -199,3 +200,139 @@ def test_find_renames_missing_blob_does_not_crash(project: Path):
     # A fingerprint whose blob is not in the object store (e.g. GC'd) is filtered out;
     # detection degrades to no candidate rather than raising.
     assert find_renames([("gone.py", "0" * 40)], project) == {}
+
+
+# --- region (section-locator) artifacts ------------------------------------
+
+_REGION_SRC = """def alpha(x):
+    return x + 1
+
+
+def beta(y):
+    return y * 2
+"""
+
+
+def _py_region_artifact(
+    project: Path, rel: str, source: str, selector: str
+) -> Artifact:
+    f = project / rel
+    f.parent.mkdir(parents=True, exist_ok=True)
+    f.write_text(source)
+    loc = Locator(kind="symbol", lang="python", selector=selector)
+    file_oid = hash_object_write(f, project)
+    region_hash = hash_object_write_bytes(extract_region(source.encode(), loc), project)
+    return Artifact(
+        path=rel,
+        fingerprint=RegionFingerprint(file_blob_oid=file_oid, region_hash=region_hash),
+        locator=loc,
+    )
+
+
+def test_region_healthy_when_symbol_unchanged(project: Path):
+    art = _py_region_artifact(project, "m.py", _REGION_SRC, "alpha")
+    assert check_artifact(art, project).state == ArtifactState.HEALTHY
+
+
+def test_region_healthy_when_other_code_changes(project: Path):
+    # The core promise of section locators: editing `beta` must NOT drift a
+    # tether on `alpha`. A whole-file tether would go DRIFTED here.
+    art = _py_region_artifact(project, "m.py", _REGION_SRC, "alpha")
+    (project / "m.py").write_text(_REGION_SRC.replace("return y * 2", "return y * 99"))
+    assert check_artifact(art, project).state == ArtifactState.HEALTHY
+
+
+def test_region_drifted_when_symbol_body_changes(project: Path):
+    art = _py_region_artifact(project, "m.py", _REGION_SRC, "alpha")
+    (project / "m.py").write_text(_REGION_SRC.replace("return x + 1", "return x + 100"))
+    assert check_artifact(art, project).state == ArtifactState.DRIFTED
+
+
+def test_region_broken_when_symbol_renamed(project: Path):
+    art = _py_region_artifact(project, "m.py", _REGION_SRC, "alpha")
+    (project / "m.py").write_text(_REGION_SRC.replace("def alpha", "def renamed"))
+    assert check_artifact(art, project).state == ArtifactState.BROKEN
+
+
+def test_region_normalization_rescues_crlf(project: Path):
+    art = _py_region_artifact(project, "m.py", _REGION_SRC, "alpha")
+    (project / "m.py").write_bytes(_REGION_SRC.replace("\n", "\r\n").encode())
+    c = check_artifact(art, project)
+    assert c.state == ArtifactState.HEALTHY
+    assert c.normalization_rescued is True
+
+
+def test_region_diff_labels_selector(project: Path):
+    art = _py_region_artifact(project, "m.py", _REGION_SRC, "alpha")
+    (project / "m.py").write_text(_REGION_SRC.replace("return x + 1", "return x + 100"))
+    out = artifact_diff(art, project)
+    assert "m.py::alpha" in out
+    assert "-    return x + 1\n" in out
+    assert "+    return x + 100\n" in out
+
+
+# --- markdown region artifacts ---------------------------------------------
+
+_MD_SRC = """# Doc
+
+## Alpha
+
+Alpha body.
+
+## Beta
+
+Beta body.
+"""
+
+
+def _md_region_artifact(
+    project: Path, rel: str, source: str, selector: str
+) -> Artifact:
+    f = project / rel
+    f.parent.mkdir(parents=True, exist_ok=True)
+    f.write_text(source)
+    loc = Locator(kind="heading", lang="markdown", selector=selector)
+    file_oid = hash_object_write(f, project)
+    region_hash = hash_object_write_bytes(extract_region(source.encode(), loc), project)
+    return Artifact(
+        path=rel,
+        fingerprint=RegionFingerprint(file_blob_oid=file_oid, region_hash=region_hash),
+        locator=loc,
+    )
+
+
+def test_md_region_healthy_when_section_unchanged(project: Path):
+    art = _md_region_artifact(project, "d.md", _MD_SRC, "Doc/Alpha")
+    assert check_artifact(art, project).state == ArtifactState.HEALTHY
+
+
+def test_md_region_healthy_when_other_section_changes(project: Path):
+    # Editing Beta must not drift a tether on Alpha — the section-locator promise.
+    art = _md_region_artifact(project, "d.md", _MD_SRC, "Doc/Alpha")
+    (project / "d.md").write_text(_MD_SRC.replace("Beta body.", "Beta body, revised."))
+    assert check_artifact(art, project).state == ArtifactState.HEALTHY
+
+
+def test_md_region_drifted_when_section_body_changes(project: Path):
+    art = _md_region_artifact(project, "d.md", _MD_SRC, "Doc/Alpha")
+    (project / "d.md").write_text(
+        _MD_SRC.replace("Alpha body.", "Alpha body, revised.")
+    )
+    assert check_artifact(art, project).state == ArtifactState.DRIFTED
+
+
+def test_md_region_broken_when_heading_renamed(project: Path):
+    art = _md_region_artifact(project, "d.md", _MD_SRC, "Doc/Alpha")
+    (project / "d.md").write_text(_MD_SRC.replace("## Alpha", "## Renamed"))
+    assert check_artifact(art, project).state == ArtifactState.BROKEN
+
+
+def test_md_region_diff_labels_selector(project: Path):
+    art = _md_region_artifact(project, "d.md", _MD_SRC, "Doc/Alpha")
+    (project / "d.md").write_text(
+        _MD_SRC.replace("Alpha body.", "Alpha body, revised.")
+    )
+    out = artifact_diff(art, project)
+    assert "d.md::Doc/Alpha" in out
+    assert "-Alpha body.\n" in out
+    assert "+Alpha body, revised.\n" in out

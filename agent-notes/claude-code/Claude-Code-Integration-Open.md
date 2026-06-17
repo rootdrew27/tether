@@ -17,12 +17,9 @@ These were resolved with a clear "decide now, change later" intent. Both are rev
 
 ## Blocked items
 
-- **Sub-file locator language and examples in `.tether/tether.md`.** The fragment is currently whole-file-only because MVP ships only the `WholeFile` locator. When the CLI grows `LineRange` (and beyond — see [Future-Work](../design/Future-Work.md)), update:
-  - The fragment intro sentence to introduce tethers as connecting files *or regions within files*.
-  - The "When to create tethers" examples to include a line-range case.
-  - The "Key commands" `tether add` entry to reflect the new positional / option syntax for sub-file endpoints.
+None currently open. The agent fragment (`tether/claude_code/fragment.py`) covers region locators — the intro, "When to create tethers" examples, the record-shape table, the region state model, BROKEN selector-repointing, and the `::selector` / `--a-selector`/`--b-selector` command surface. See [Language-Aware-Locators](../design/future/Language-Aware-Locators.md) for the feature design.
 
-  Close this item alongside the CLI line-range PR.
+> **Caveat:** an installed project's `.tether/tether.md` is a snapshot written by `tether init claude-code`; it only picks up fragment changes when init is re-run (which also rewrites hooks/settings/skill). This repo's own installed copy can lag the source fragment until regenerated.
 
 ## Deferred features
 

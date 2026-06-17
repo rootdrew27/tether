@@ -9,7 +9,7 @@ from rich.console import Console
 
 from tether import pretty
 from tether.cli import main
-from tether.model import Artifact, Tether
+from tether.model import Artifact, Locator, RegionFingerprint, Tether
 from tether.status import (
     AggregateState,
     ArtifactCheck,
@@ -257,6 +257,35 @@ def test_status_one_renders_diff(in_project: Path) -> None:
     assert "Drift on a" in out
     assert "alpha changed" in out  # the new content shows in the diff
     assert "DRIFTED" in out
+
+
+def _region_row() -> Row:
+    t = Tether(
+        id="019ec7ae-393a-77b3-b2e6-8dae31cacfb0",
+        schema_version=2,
+        a=Artifact(
+            path="calc.py",
+            fingerprint=RegionFingerprint(file_blob_oid="a" * 40, region_hash="b" * 40),
+            locator=Locator(kind="symbol", lang="python", selector="alpha"),
+        ),
+        b=Artifact(path="calc.md", fingerprint="c" * 40),
+        description="alpha is documented in calc.md",
+        created_at="2026-06-15T00:00:00Z",
+        refreshed_at="2026-06-15T00:00:00Z",
+    )
+    check = TetherCheck(
+        a=ArtifactCheck(state=ArtifactState.DRIFTED),
+        b=ArtifactCheck(state=ArtifactState.HEALTHY),
+        aggregate=AggregateState.DRIFTED,
+    )
+    return t, check
+
+
+def test_status_all_table_shows_region_selector() -> None:
+    # A region artifact renders as `path::selector` in the attention table, so
+    # the user can see which region drifted, not just which file.
+    out = _render(pretty.pretty_status_all, [_region_row()], [], Path("."))
+    assert "calc.py::alpha" in _plain(out)
 
 
 def test_status_one_broken_shows_rename_candidate(in_project: Path) -> None:
