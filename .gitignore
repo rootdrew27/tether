@@ -227,5 +227,8 @@ evals/margin/runs/
 # Claude Code per-user settings (allowlist, etc.) — personal state, not project state
 .claude/settings.local.json
 
+# Claude Code worktrees (agent isolation checkouts) — local, not project state
+.claude/worktrees/
+
 # Obsidian
 **/.obsidian

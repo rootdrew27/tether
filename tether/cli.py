@@ -22,6 +22,13 @@ from .output import (
     build_tether_status,
     encode_pretty,
 )
+from .pretty import (
+    make_console,
+    pretty_refs,
+    pretty_show,
+    pretty_status_all,
+    pretty_status_one,
+)
 from .project import find_project_root, init_project
 from .render import Row, all_tethers_md, coverage_md, one_tether_md, refs_md, show_text
 from .status import AggregateState, ArtifactState, check_all, check_tether
@@ -53,6 +60,23 @@ def _resolve_rel(project_root: Path, p: str) -> str:
             f"path {p!r} is outside the project root {project_root}"
         ) from e
     return rel.as_posix()
+
+
+def _surface(*, as_json: bool, plain: bool, is_tty: bool, json_default: bool) -> str:
+    """Pick the output surface for a dual human/agent command.
+
+    Explicit flags win; otherwise a TTY gets the Rich `pretty` view and a pipe
+    gets the plain text an agent or script expects — `json` for refs (its
+    agent contract), `plain` markdown for status. Keeping this pure makes the
+    routing trivially testable without simulating a terminal.
+    """
+    if as_json:
+        return "json"
+    if plain:
+        return "plain"
+    if is_tty:
+        return "pretty"
+    return "json" if json_default else "plain"
 
 
 def handle_errors(fn: Callable[P, R]) -> Callable[P, R]:
@@ -250,6 +274,19 @@ def mv(old_path: str, new_path: str) -> None:
 @click.argument("tether_id", required=False)
 @click.option("--json", "as_json", is_flag=True, default=False, help="Emit JSON.")
 @click.option(
+    "--plain",
+    is_flag=True,
+    default=False,
+    help="Force plain markdown (no color or layout); the default when piped.",
+)
+@click.option(
+    "--no-color",
+    "no_color",
+    is_flag=True,
+    default=False,
+    help="Disable color in the pretty (TTY) view.",
+)
+@click.option(
     "--diff/--no-diff",
     default=None,
     help=(
@@ -258,9 +295,18 @@ def mv(old_path: str, new_path: str) -> None:
     ),
 )
 @handle_errors
-def status(tether_id: str | None, as_json: bool, diff: bool | None) -> None:
+def status(
+    tether_id: str | None,
+    as_json: bool,
+    plain: bool,
+    no_color: bool,
+    diff: bool | None,
+) -> None:
     """Report the status of tethers."""
     root = _root()
+    surface = _surface(
+        as_json=as_json, plain=plain, is_tty=sys.stdout.isatty(), json_default=False
+    )
 
     if tether_id is not None:
         t = load_tether(root, tether_id)
@@ -271,9 +317,12 @@ def status(tether_id: str | None, as_json: bool, diff: bool | None) -> None:
             if diff is not None
             else (check.aggregate != AggregateState.HEALTHY or rescued)
         )
-        ts = build_tether_status(t, check, root, show_diff)
-        if as_json:
-            click.echo(encode_pretty(ts))
+        if surface == "json":
+            click.echo(encode_pretty(build_tether_status(t, check, root, show_diff)))
+        elif surface == "pretty":
+            pretty_status_one(
+                make_console(no_color=no_color), t, check, root, show_diff
+            )
         else:
             click.echo(one_tether_md(t, check, root, show_diff))
         return
@@ -282,47 +331,89 @@ def status(tether_id: str | None, as_json: bool, diff: bool | None) -> None:
     checks = check_all(result.tethers, root)
     rows: list[Row] = [(t, ck) for t, ck in zip(result.tethers, checks)]
 
-    if as_json:
+    if surface == "json":
         click.echo(encode_pretty(build_status_report(rows, result.errors, root)))
+    elif surface == "pretty":
+        pretty_status_all(make_console(no_color=no_color), rows, result.errors, root)
     else:
         click.echo(all_tethers_md(rows, result.errors, root))
 
 
 @main.command()
 @click.argument("path")
+@click.option("--json", "as_json", is_flag=True, default=False, help="Emit JSON.")
 @click.option(
-    "--markdown",
-    "as_markdown",
+    "--plain",
     is_flag=True,
     default=False,
-    help="Emit human-readable markdown instead of JSON.",
+    help="Force plain markdown (no color or layout).",
+)
+@click.option(
+    "--no-color",
+    "no_color",
+    is_flag=True,
+    default=False,
+    help="Disable color in the pretty (TTY) view.",
 )
 @handle_errors
-def refs(path: str, as_markdown: bool) -> None:
-    """List tethers referencing PATH (severity-ordered)."""
+def refs(path: str, as_json: bool, plain: bool, no_color: bool) -> None:
+    """List tethers referencing PATH, severity-ordered, with drift state.
+
+    State-aware: the pretty (TTY) view tints each panel border by aggregate
+    state (with a color key); the JSON (piped, the agent path) carries
+    per-artifact and aggregate state.
+    """
     root = _root()
     rel = _resolve_rel(root, path)
     result = find_by_path(root, rel)
     checks = check_all(result.tethers, root)
     rows: list[Row] = [(t, ck) for t, ck in zip(result.tethers, checks)]
+    surface = _surface(
+        as_json=as_json, plain=plain, is_tty=sys.stdout.isatty(), json_default=True
+    )
 
-    if as_markdown:
+    if surface == "json":
+        click.echo(encode_pretty(build_refs_report(rel, rows, result.errors, root)))
+    elif surface == "pretty":
+        pretty_refs(make_console(no_color=no_color), rel, rows, result.errors, root)
+    else:
         click.echo(refs_md(rel, rows, result.errors, root))
-        return
-    click.echo(encode_pretty(build_refs_report(rel, rows, result.errors, root)))
 
 
 @main.command()
+@click.option(
+    "--plain",
+    is_flag=True,
+    default=False,
+    help="Force plain markdown (no color or layout).",
+)
+@click.option(
+    "--no-color",
+    "no_color",
+    is_flag=True,
+    default=False,
+    help="Disable color in the pretty (TTY) view.",
+)
 @handle_errors
-def show() -> None:
-    """List every tether with its description."""
+def show(plain: bool, no_color: bool) -> None:
+    """List every tether with its description. Structural only — no drift state.
+
+    Reads records from disk without computing drift or touching git, so the
+    pretty (TTY) view is deliberately neutral (no state color). For drift use
+    `tether status`.
+    """
     root = _root()
     result = load_all_tethers(root)
-    text = show_text(result.tethers, result.errors, root)
-    if sys.stdout.isatty():
-        click.echo_via_pager(text + "\n")
-    else:
-        click.echo(text)
+
+    if plain or not sys.stdout.isatty():
+        click.echo(show_text(result.tethers, result.errors, root))
+        return
+
+    # Print straight to the terminal — no pager. Rich's pager routes through
+    # pydoc, which never passes `less -R`, so a non-`-R` pager renders the ANSI
+    # as literal `ESC[...]` junk. Direct printing keeps the color correct; the
+    # terminal's own scrollback covers long catalogs.
+    pretty_show(make_console(no_color=no_color), result.tethers, result.errors, root)
 
 
 @main.command()

@@ -130,14 +130,16 @@ From then on, when the agent reads a tethered file, tether injects that file's r
 | `tether init` | Initialize `.tether/` in the current git repo. |
 | `tether init claude-code` | Install the Claude Code integration (hooks, permissions, memory fragment, onboard skill). |
 | `tether add A B --description "…"` | Create a tether. `--description` is required. |
-| `tether status [ID] [--json] [--diff/--no-diff]` | Report tether state; per-artifact view + diff for one ID, summary for all. |
-| `tether show` | List every tether with its description, regardless of state. |
-| `tether refs PATH` | List tethers referencing a path. |
+| `tether status [ID] [--json] [--plain] [--no-color] [--diff/--no-diff]` | Report tether state; per-artifact view + diff for one ID, summary for all. |
+| `tether show [--plain] [--no-color]` | List every tether with its description, regardless of state. |
+| `tether refs PATH [--json] [--plain] [--no-color]` | List tethers referencing a path. |
 | `tether coverage [--list-untethered-files] [--list-tethered-files] [--json]` | Report what fraction of git-tracked files participate in a tether. |
 | `tether refresh ID` | Re-fingerprint both artifacts; assert they are aligned. |
 | `tether update ID [--a-path P] [--b-path P] [--description …]` | Change a path or description without touching fingerprints. |
 | `tether mv OLD NEW` | Rewrite every tether artifact pointing at OLD to NEW. |
 | `tether rm ID` | Delete a tether record. |
+
+`status`, `show`, and `refs` adapt to where their output goes: on a terminal they render a colorized, aligned view; piped or run by an agent they emit plain text (`status`, `show`) or JSON (`refs`). Force a surface with `--json` / `--plain`, or keep the layout without color via `--no-color`.
 
 ## How drift works
 

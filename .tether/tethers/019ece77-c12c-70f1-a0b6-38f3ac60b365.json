@@ -1,0 +1,15 @@
+{
+  "a": {
+    "fingerprint": "de7e5703446e2316303f50ae0aa30c3416b4d01d",
+    "path": ".github/workflows/publish.yml"
+  },
+  "b": {
+    "fingerprint": "a6d665d2a2b53b886b4d38815f7ec41fe3bfc92d",
+    "path": "agent-notes/Publishing-To-PyPI.md"
+  },
+  "created_at": "2026-06-16T03:26:55Z",
+  "description": "agent-notes/Publishing-To-PyPI.md is the runbook for .github/workflows/publish.yml: it documents the v* tag trigger, the master-ancestry guard, trusted publishing via OIDC (no API tokens), the `environment: pypi`, the pending-publisher claim fields (Owner/Repo/Workflow=publish.yml/Environment=pypi), and the build->publish job split. Changing the workflow's trigger, guard, environment name, or publish mechanism must update the runbook, or the documented release procedure silently misleads.",
+  "id": "019ece77-c12c-70f1-a0b6-38f3ac60b365",
+  "refreshed_at": "2026-06-16T03:26:55Z",
+  "schema_version": 1
+}

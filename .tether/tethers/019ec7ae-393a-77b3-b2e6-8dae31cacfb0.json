@@ -1,15 +1,15 @@
 {
   "a": {
-    "fingerprint": "53288fb6ad58a9178c104d63d2f7456218240938",
+    "fingerprint": "5fa3d43c0ac70fc6b94852c4e85d22af990c05d5",
     "path": "tests/test_cli.py"
   },
   "b": {
-    "fingerprint": "127a933e88dfd9e4dbd04a2f3577447e5acedaf8",
+    "fingerprint": "5bf1a169c715d6579dd3427b4fdf77f58331344d",
     "path": "tether/cli.py"
   },
   "created_at": "2026-06-14T19:49:04Z",
   "description": "tests/test_cli.py exercises the CLI surface defined in tether/cli.py (click command wiring, argument/flag parsing, exit codes, and error reporting via handle_errors). Adding/removing/renaming a subcommand or changing its flags, output text, or exit behavior in cli.py must be reflected in these tests.",
   "id": "019ec7ae-393a-77b3-b2e6-8dae31cacfb0",
-  "refreshed_at": "2026-06-14T19:49:04Z",
+  "refreshed_at": "2026-06-16T18:07:47Z",
   "schema_version": 1
 }

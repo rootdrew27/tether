@@ -6,9 +6,35 @@ from pathlib import Path
 import msgspec
 from click.testing import CliRunner
 
-from tether.cli import main
+from tether.cli import _surface, main
 from tether.model import Tether
 from tether.storage import load_all_tethers
+
+
+def test_surface_routing() -> None:
+    # explicit flags win over everything
+    assert (
+        _surface(as_json=True, plain=False, is_tty=True, json_default=False) == "json"
+    )
+    assert (
+        _surface(as_json=False, plain=True, is_tty=True, json_default=True) == "plain"
+    )
+    # a TTY with no flags gets the pretty view, regardless of json_default
+    assert (
+        _surface(as_json=False, plain=False, is_tty=True, json_default=False)
+        == "pretty"
+    )
+    assert (
+        _surface(as_json=False, plain=False, is_tty=True, json_default=True) == "pretty"
+    )
+    # piped (agent path): refs falls back to JSON, status to plain markdown
+    assert (
+        _surface(as_json=False, plain=False, is_tty=False, json_default=True) == "json"
+    )
+    assert (
+        _surface(as_json=False, plain=False, is_tty=False, json_default=False)
+        == "plain"
+    )
 
 
 def _seed_files(project: Path) -> None:

@@ -4,12 +4,12 @@
     "path": "tether/claude_code/fragment.py"
   },
   "b": {
-    "fingerprint": "2cff6c7f3a0f2d17f2551817b1bbbdbcdec7e203",
+    "fingerprint": "deb893aacaab8f5629f1e12ffe362b4345904d18",
     "path": "agent-notes/claude-code/Claude-Code-Integration.md"
   },
   "created_at": "2026-06-14T20:01:53Z",
   "description": "tether/claude_code/fragment.py holds the FRAGMENT constant written to .tether/tether.md (the agent-facing CLAUDE.md import). agent-notes/claude-code/Claude-Code-Integration.md section 'CLAUDE.md fragment' names fragment.py as the source of truth and enumerates the contract FRAGMENT must satisfy: introduce tether, symmetry plus required description, .tether ownership, the three per-artifact states and the aggregate, the DRIFTED/BROKEN resolution paths, and the key commands with signatures. Changes to that documented contract or to FRAGMENT must stay aligned.",
   "id": "019ec7b9-f6d2-7b00-a5a9-78366d39b142",
-  "refreshed_at": "2026-06-14T20:01:53Z",
+  "refreshed_at": "2026-06-16T17:51:38Z",
   "schema_version": 1
 }

@@ -400,20 +400,21 @@ Re-runs emit the same change lines because merge is signature-matched and replac
 
 ## Output formats
 
-Tether's CLI output mixes defaults by audience: `tether status` is markdown by default (with `--json` opt-in); `tether refs` is JSON by default (with `--markdown` opt-in), matching the format the PreToolUse hook injects so the agent sees the same shape whether it's auto-injected on Read or queried explicitly. (`tether show` is the exception — a plain-text, paged catalog for browsing the whole graph; it is agent-callable but stands outside the markdown/JSON contract.) The surfaces, by audience:
+Tether's three human-facing surfaces — `tether status`, `tether refs`, `tether show` — adapt to where their output goes, gating on `sys.stdout.isatty()`. On a terminal they render a Rich view (color, aligned tables, boxed panels, highlighted diffs). Piped — the agent path, since Claude Code's Bash tool is not a TTY — they emit the plain text an agent or script consumes: plain markdown for `status`/`show`, JSON for `refs` (the same `RefsReport` shape the PreToolUse hook injects, so the agent sees one schema whether auto-injected on Read or queried explicitly). The same command thus serves both audiences with no flag. `--json` / `--plain` force a surface; `--no-color` keeps the Rich layout without color. The Rich rendering lives in `tether/pretty.py`, imported only by the CLI and only on a TTY, so ANSI never reaches an agent's context — or the hooks, which consume the plain `render.py` and JSON `output.py`.
 
-| Surface | Default format | When |
-|---|---|---|
-| `tether status` (no args, no `--json`) | Markdown | Agent runs it; human at a terminal. |
-| `tether status <uuid>` | Markdown (with fenced diff blocks for drifted sides) | Agent fetches details on one tether. |
-| `tether status --json` / `tether status --json <uuid>` | JSON | Scripts, CI, future automation. |
-| `tether refs <path>` | JSON (`RefsReport`) | Default; same shape the PreToolUse hook injects. |
-| `tether refs <path> --markdown` | Markdown | Human-readable summary at a terminal. |
-| `tether coverage` | Markdown (with `--json` opt-in, `CoverageReport`) | Agent measuring onboarding progress; human auditing what's untethered. `--list-untethered-files` / `--list-tethered-files` append the file lists. |
-| Hook subcommands (`tether hook claude-code session-start` / `stop`) | Markdown to stdout (SessionStart); markdown reason inside `{"decision": "block", "reason": "..."}` (Stop) | Claude Code's hook engine consumes. |
-| Hook subcommand `tether hook claude-code pre-tool-use` | JSON (`RefsReport`) inside `additionalContext` | Claude Code routes into the agent's context. |
+| Surface | TTY (human) | Piped (agent / script) | Force |
+|---|---|---|---|
+| `tether status` (all) | Rich summary + attention table | plain markdown | `--json`, `--plain`, `--no-color` |
+| `tether status <uuid>` | Rich metadata + highlighted diff / rename panels | plain markdown (fenced diff blocks) | same |
+| `tether refs <path>` | Rich per-tether panels (queried path underlined; border tinted by aggregate state), severity-ordered | JSON (`RefsReport`) | `--json`, `--plain`, `--no-color` |
+| `tether show` | Rich per-tether panels, printed directly (no pager); strictly neutral (gray, no state color) | plain-text catalog | `--plain`, `--no-color` |
+| `tether coverage` | Markdown (`--json` → `CoverageReport`) | Markdown / JSON | `--json`; `--list-untethered-files` / `--list-tethered-files` append lists |
+| Hook `session-start` / `stop` | — | markdown to stdout (SessionStart); markdown reason in `{"decision": "block", "reason": "..."}` (Stop) | — |
+| Hook `pre-tool-use` | — | JSON (`RefsReport`) inside `additionalContext` | — |
 
-Markdown is the default for status surfaces because Claude reads it natively at lower token cost than JSON. `tether refs` defaults to JSON because its primary consumer is the PreToolUse hook injection — keeping the CLI and hook on a single schema means `tether refs <path>` shows the agent exactly what it would have seen via auto-injection.
+Piped `tether refs` defaults to JSON because its primary consumer is the PreToolUse hook injection — keeping the CLI and hook on a single schema means `tether refs <path>` (piped) shows the agent exactly what auto-injection would. `tether show` prints its Rich catalog **directly rather than through a pager**: Rich's pager routes through `pydoc`, which does not pass `less -R`, so a non-`-R` pager renders the ANSI as literal escape-code junk; direct printing keeps color correct and leans on the terminal's own scrollback for long catalogs.
+
+`refs` and `show` share one panel renderer (`_tether_panel`) so the two views read alike, but they diverge on **color semantics**, which is load-bearing: color is reserved for state. `refs` is drift-aware (it runs `check_all`), so it tints each panel's border by aggregate state — green/yellow/red — and underlines the queried path. `show` is structural-only — it never computes drift or touches git — so it renders strictly neutral (gray border, no cyan, no state color). A colored `show` border would falsely read as a health signal; the neutral palette makes it unmistakable that `show` represents no state. The same rule explains why `tether status`'s green "all HEALTHY" line and the attention table's badges are colored — there, state *is* computed.
 
 ## Hook input contract
 

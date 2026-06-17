@@ -39,9 +39,9 @@ def test_refs_empty_result_json(in_project: Path):
     assert payload["errors"] == []
 
 
-def test_refs_empty_result_markdown(in_project: Path):
+def test_refs_empty_result_plain(in_project: Path):
     _seed_files(in_project)
-    result = CliRunner().invoke(main, ["refs", "src/auth.py", "--markdown"])
+    result = CliRunner().invoke(main, ["refs", "src/auth.py", "--plain"])
     assert result.exit_code == 0, result.output
     assert result.output.strip() == "No tethers reference `src/auth.py`."
 
@@ -127,11 +127,11 @@ def test_refs_corrupt_record_listed_in_errors(in_project: Path):
     assert any("garbage.json" in e["path"] for e in payload["errors"])
 
 
-def test_refs_markdown_includes_paths_and_description(in_project: Path):
+def test_refs_plain_includes_paths_and_description(in_project: Path):
     _seed_files(in_project)
     runner = CliRunner()
     _add(runner, "docs/auth.md", "src/auth.py", "describes auth")
-    result = runner.invoke(main, ["refs", "src/auth.py", "--markdown"])
+    result = runner.invoke(main, ["refs", "src/auth.py", "--plain"])
     assert result.exit_code == 0, result.output
     assert "1 tether referencing `src/auth.py`" in result.output
     assert "`docs/auth.md`" in result.output
@@ -139,7 +139,7 @@ def test_refs_markdown_includes_paths_and_description(in_project: Path):
     assert "describes auth" in result.output
 
 
-def test_refs_markdown_severity_order(in_project: Path):
+def test_refs_plain_severity_order(in_project: Path):
     _seed_files(in_project)
     runner = CliRunner()
     _add(runner, "src/auth.py", "docs/auth.md", "auth doc")
@@ -148,7 +148,7 @@ def test_refs_markdown_severity_order(in_project: Path):
     (in_project / "tests" / "test_auth.py").write_text("def test_auth(token): pass\n")
     (in_project / "docs" / "billing.md").unlink()
 
-    result = runner.invoke(main, ["refs", "src/auth.py", "--markdown"])
+    result = runner.invoke(main, ["refs", "src/auth.py", "--plain"])
     assert result.exit_code == 0, result.output
     # Each tether bullet starts with "- `<id>`: <aggregate>"; extract the aggregate.
     aggregates = [
