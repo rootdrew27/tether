@@ -1,6 +1,6 @@
 # tether
 
-This project uses **tether** to track relationships between content in a project. A tether is a record that semantically links two artifacts — two files whose content must stay aligned, where a change to one would require a change to the other to keep the project correct — via a textual description. The artifacts themselves are represented by a hash (i.e. an OID) and a file path.
+This project uses **tether** to track relationships between content in a project. A tether is a record that semantically links two artifacts — two files (or regions within files) whose content must stay aligned, where a change to one would require a change to the other to keep the project correct — via a textual description. The artifacts themselves are represented by a hash (i.e. an OID) and a file path.
 
 A tether has no direction and no type — it is a declaration of relation between two files. The relationship can be *anything* whose drift would matter; tether does not constrain it to a fixed set of kinds. The rich semantics live entirely in the description.
 
@@ -19,6 +19,16 @@ Create tethers freely. Whenever two files are intentionally coupled — a change
 - an example or usage snippet and the API it demonstrates
 
 The test is always the same: **if a change to one file would silently leave the other wrong, it is a candidate** — whatever its surface form.
+
+**Prefer a region to the whole file.** A tether end can target a **region** — a Python symbol (function, class, or method) or a markdown section — by appending `::selector` to the path: `src/calc.py::Calculator.multiply` for a symbol (dotted path, descending into nested defs, decorators included), `README.md::Install/Requirements` for a markdown heading path (slash-separated, anchored at a top-level heading, document-title heading included if there is one). A region tether drifts only when *that region's* content changes; edits elsewhere in the file leave it HEALTHY — a sharper, lower-noise signal than a whole-file tether. Default to the tightest region that captures the coupling: when a test exercises one function, a doc section describes one symbol, or one method must mirror another, tether those regions, not the whole files. Either or both ends may be a region.
+
+Fall back to a whole-file end only when a region does not fit:
+
+- the coupling genuinely spans the whole file (a small single-purpose module, a fixture, a file consumed in its entirety);
+- the coupled thing is not a single Python `def`/`class`/method or a single markdown section — module-level constants, dicts, and dispatch tables are **not** region-addressable, so tether their file;
+- the file is neither Python (`.py`) nor markdown (`.md`) — no other language has a locator yet, so everything else is whole-file.
+
+A renamed symbol or heading currently breaks its region tether (BROKEN, with no rename candidate), so favor regions whose identity is stable.
 
 `--description` is a **required** flag of the `tether add` command. A **description** is required for every tether and should describe the relationship of the artifacts; that prose is what a future reader (human, LLM, etc.) uses.
 
@@ -51,13 +61,29 @@ Each tether is one JSON file at `.tether/tethers/<id>.json`. Pretty-printed, key
 | Field | Type | Meaning |
 |---|---|---|
 | `id` | UUIDv7 string | The tether's stable identifier (also the filename). Use this as `<uuid>` in CLI commands. |
-| `schema_version` | integer | Record schema version. Current is `1`. |
+| `schema_version` | integer | Record schema version. `1` for a whole-file tether; `2` when either artifact targets a region (carries a `locator`). |
 | `a`, `b` | object | The two ends of the tether. Labels are stable (whichever was passed first to `tether add` becomes `a`) but carry no direction — neither end is privileged. |
 | `a.path`, `b.path` | string | Project-relative POSIX path to the artifact file. |
-| `a.fingerprint`, `b.fingerprint` | string | Git blob OID of the file's content at fingerprint time. Drift detection compares this against the file's current OID. |
+| `a.fingerprint`, `b.fingerprint` | string or object | For a whole-file artifact, the git blob OID of the file's content at fingerprint time. For a region artifact, an object `{"file_blob_oid": ..., "region_hash": ...}` — `file_blob_oid` is the whole file's OID (used for rename detection), `region_hash` is the drift signal compared against the region's current content. |
+| `a.locator`, `b.locator` | object | Present only on a region artifact: `{"kind": "symbol", "lang": "python", "selector": "Calculator.multiply"}` or `{"kind": "heading", "lang": "markdown", "selector": "Install/Requirements"}`. Omitted entirely on a whole-file artifact. |
 | `description` | string | Required free-form prose explaining *why* this relationship exists. The data model itself is untyped — the project-specific semantics live here. |
 | `created_at` | ISO 8601 UTC | When the tether was first added. |
 | `refreshed_at` | ISO 8601 UTC | When the tether was last refreshed (re-fingerprinted). Equal to `created_at` on a freshly added tether. |
+
+A region artifact replaces the string fingerprint with the object form and adds a `locator`. Only the `a` side is shown; the `b` side could be a whole file or another region:
+
+```json
+{
+  "a": {
+    "fingerprint": {
+      "file_blob_oid": "7ba020583495e9a2e4c2acf6c6015e2623c2c29f",
+      "region_hash": "9d2e0c1b5f8a3e7c4b6d0a2f1e8c5b3a7d9f0e1c"
+    },
+    "locator": { "kind": "symbol", "lang": "python", "selector": "Calculator.multiply" },
+    "path": "src/calculator.py"
+  }
+}
+```
 
 ## State model
 
@@ -75,6 +101,11 @@ The aggregate state of a tether is the most severe of its two artifact states (H
 
 A **DRIFTED** aggregate alone does not indicate whether one side or both sides have drifted.
 
+For a **region** artifact (one with a locator), the states are scoped to the selected region, not the whole file:
+
+- **DRIFTED** — the region still resolves but its own content changed. Edits elsewhere in the file leave the region HEALTHY.
+- **BROKEN** — the file is missing at the recorded path, *or* the locator can no longer resolve the region in it (the symbol or heading was renamed or removed, or the file no longer parses). Region-rename suggestions are not yet emitted, so a BROKEN region carries no rename candidate.
+
 ## Resolution
 
 - **HEALTHY** — no action.
@@ -86,7 +117,7 @@ A **DRIFTED** aggregate alone does not indicate whether one side or both sides h
   - **Restructure** (`tether rm <uuid>` + `tether add`) when the relationship's shape has changed — code split into two files, docs merged, scope spans different artifacts than the tether records.
 
   After aligning, run `tether refresh <uuid>` to re-fingerprint both artifacts — the explicit assertion that they are now aligned. *Do not refresh until alignment is real* — refresh erases the drift signal.
-- **BROKEN** — the file was renamed or removed. Run `tether status <uuid>` to see the rename candidate (the most content-similar file in the working tree, if any). To follow the rename: `tether update --a-path <new>` or `tether update --b-path <new>` (structural-only, no fingerprint change), then `tether refresh <uuid>` once the new path matches the intended content. If the file is truly gone, `tether rm <uuid>`.
+- **BROKEN** — the file was renamed or removed. Run `tether status <uuid>` to see the rename candidate (the most content-similar file in the working tree, if any). To follow the rename: `tether update --a-path <new>` or `tether update --b-path <new>` (structural-only, no fingerprint change), then `tether refresh <uuid>` once the new path matches the intended content. If the file is truly gone, `tether rm <uuid>`. For a **region** that broke because its symbol or heading was renamed within a still-present file, repoint the selector instead: `tether update --a-selector <new>` (or `--b-selector`), then `tether refresh <uuid>`.
 
 ## When to run `tether status`
 
@@ -121,8 +152,8 @@ The per-side `state` values are current at the moment of the Read; you do not ne
 - `tether show` — list every tether with its description, regardless of state (including the HEALTHY ones `tether status` collapses into a count). Use for **orientation**: the whole relationship graph and the *why* behind each link, when onboarding to a project or planning a change that spans several files. Not a per-turn check and not a drift diagnostic — use `tether status` for drift and `tether refs <path>` for what touches a specific file.
 - `tether refs <path>` — list tethers referencing a path. Rarely needed during normal work since context is auto-injected on Read.
 - `tether coverage [--list-untethered-files] [--list-tethered-files]` — report what fraction of git-tracked files participate in a tether; the flags append the corresponding file lists. Structural-only. Use when surveying what still lacks tethers (e.g. during project onboarding), not as a per-turn check — many files legitimately have no drift-sensitive partner.
-- `tether add <a> <b> --description "..."` — create a tether. `--description` is required.
+- `tether add <a> <b> --description "..."` — create a tether. `--description` is required. Each of `<a>`/`<b>` may carry a `::selector` suffix to tether a region instead of the whole file (e.g. `src/calc.py::Calculator.multiply` or `README.md::Install/Requirements`).
 - `tether refresh <uuid>` — re-fingerprint both artifacts; the explicit assertion that they are aligned.
-- `tether update <uuid> [--a-path <p>] [--b-path <p>] [--description "..."]` — structural change, no fingerprint touch.
+- `tether update <uuid> [--a-path <p>] [--b-path <p>] [--a-selector <s>] [--b-selector <s>] [--description "..."]` — structural change, no fingerprint touch. `--a-selector`/`--b-selector` repoint a region's symbol.
 - `tether mv <old> <new>` — bulk path rewrite across every tether referencing `<old>`.
 - `tether rm <uuid>` — delete a tether record.

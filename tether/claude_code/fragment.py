@@ -1,6 +1,6 @@
 FRAGMENT = """# tether
 
-This project uses **tether** to track relationships between content in a project. A tether is a record that semantically links two artifacts — two files whose content must stay aligned, where a change to one would require a change to the other to keep the project correct — via a textual description. The artifacts themselves are represented by a hash (i.e. an OID) and a file path.
+This project uses **tether** to track relationships between content in a project. A tether is a record that semantically links two artifacts — two files (or regions within files) whose content must stay aligned, where a change to one would require a change to the other to keep the project correct — via a textual description. The artifacts themselves are represented by a hash (i.e. an OID) and a file path.
 
 A tether has no direction and no type — it is a declaration of relation between two files. The relationship can be *anything* whose drift would matter; tether does not constrain it to a fixed set of kinds. The rich semantics live entirely in the description.
 
@@ -20,7 +20,15 @@ Create tethers freely. Whenever two files are intentionally coupled — a change
 
 The test is always the same: **if a change to one file would silently leave the other wrong, it is a candidate** — whatever its surface form.
 
-A tether end is usually a whole file, but it can also target a **region** — a Python symbol (function, class, or method) or a markdown section — by appending `::selector` to the path: `src/calc.py::Calculator.multiply` for a symbol, `README.md::Install/Requirements` for a markdown heading path. A region tether drifts only when *that region's* content changes; edits elsewhere in the file leave it HEALTHY. Reach for a region when only part of a file is coupled to the peer (one function and its test, one doc section and the code it describes). Either or both ends of a tether may be a region.
+**Prefer a region to the whole file.** A tether end can target a **region** — a Python symbol (function, class, or method) or a markdown section — by appending `::selector` to the path: `src/calc.py::Calculator.multiply` for a symbol (dotted path, descending into nested defs, decorators included), `README.md::Install/Requirements` for a markdown heading path (slash-separated, anchored at a top-level heading, document-title heading included if there is one). A region tether drifts only when *that region's* content changes; edits elsewhere in the file leave it HEALTHY — a sharper, lower-noise signal than a whole-file tether. Default to the tightest region that captures the coupling: when a test exercises one function, a doc section describes one symbol, or one method must mirror another, tether those regions, not the whole files. Either or both ends may be a region.
+
+Fall back to a whole-file end only when a region does not fit:
+
+- the coupling genuinely spans the whole file (a small single-purpose module, a fixture, a file consumed in its entirety);
+- the coupled thing is not a single Python `def`/`class`/method or a single markdown section — module-level constants, dicts, and dispatch tables are **not** region-addressable, so tether their file;
+- the file is neither Python (`.py`) nor markdown (`.md`) — no other language has a locator yet, so everything else is whole-file.
+
+A renamed symbol or heading currently breaks its region tether (BROKEN, with no rename candidate), so favor regions whose identity is stable.
 
 `--description` is a **required** flag of the `tether add` command. A **description** is required for every tether and should describe the relationship of the artifacts; that prose is what a future reader (human, LLM, etc.) uses.
 

@@ -17,6 +17,16 @@ Two rules override everything else:
 - **The description is the deliverable.** A tether's value is its description — the prose a future reader (human or agent) uses to know what must stay aligned. A pair without a good description is not worth tethering.
 - **Precision over recall.** A tether whose drift wouldn't matter is noise that trains everyone to ignore real drift signals. When unsure whether a relationship is drift-sensitive, skip it and record why in the final report.
 
+## Prefer regions to whole files
+
+A tether end can target a **region** of a file — a Python symbol (function, class, or method) or a markdown section — instead of the whole file, by appending `::selector` to the path. A region tether drifts only when *that region's* content changes, so it is a sharper, lower-noise signal than a whole-file tether. **Default to the tightest region that captures the coupling**; fall back to a whole-file end only when a region does not fit.
+
+- **Python** (`.py`): a dotted symbol path — `src/calc.py::Calculator.multiply` (a method), `src/calc.py::Calculator` (the class), `src/calc.py::parse` (a top-level function). Only `def`/`class`/method definitions resolve; module-level constants, dicts, and dispatch tables are **not** region-addressable — tether their file.
+- **Markdown** (`.md`): a slash-separated, top-anchored heading path — `README.md::Install/Requirements` is the `Requirements` subsection under a top-level `Install` heading. Include the document-title heading if the file has one (`README.md::tether/Install`).
+- **Whole file**: use when the coupling spans the whole file (a small single-purpose module, a fixture), the coupled thing is not a single symbol or section, or the file is neither `.py` nor `.md` (no other language has a locator yet).
+
+Either or both ends of a tether may be a region. A renamed symbol or heading currently breaks its region tether with no rename candidate, so favor regions whose identity is stable.
+
 During onboarding, only run `tether coverage`, `tether show`, `tether refs`, and `tether add`. Never run `tether refresh` (every tether you create is freshly fingerprinted; there is nothing to refresh) and never run `tether rm`.
 
 ## Step 0 — Orient
@@ -39,20 +49,21 @@ Group the untethered files by top-level directory (`src/`, `docs/`, `tests/`, et
 
 1. Its subsystem's untethered file list (and the project's full file list for cross-references).
 2. The candidate patterns below.
-3. This required return format — candidates only, never file contents:
+3. The **Prefer regions** rule above, so each end is proposed at the tightest grain.
+4. This required return format — candidates only, never file contents:
 
    ```
    CANDIDATE
-   a: <project-relative path>
-   b: <project-relative path>
+   a: <project-relative path, with ::selector when only a region is coupled>
+   b: <project-relative path, with ::selector when only a region is coupled>
    draft-description: <1–3 sentences: why these must stay aligned>
    confidence: high | medium | low
    evidence: <one line: what in the files ties them together>
    ```
 
-   Plus a `NO-PARTNER` list: subsystem files with no apparent drift-sensitive partner, each with a one-phrase reason.
+   Put the region in the path with `::selector` when only part of a file is coupled (see **Prefer regions**); give the bare path when the whole file is the unit. Plus a `NO-PARTNER` list: subsystem files with no apparent drift-sensitive partner, each with a one-phrase reason.
 
-Candidate patterns — **seeds, not a taxonomy.** The real test is the Step 2 judge question: *would a change to one side silently leave the other wrong?* Any pair that passes qualifies, even if it matches none of the patterns below. Look actively past the obvious doc↔code and test↔code pairs — most projects have far more relationships than those two kinds.
+Candidate patterns — **seeds, not a taxonomy.** The real test is the Step 2 judge question: *would a change to one side silently leave the other wrong?* Any pair that passes qualifies, even if it matches none of the patterns below. Look actively past the obvious doc↔code and test↔code pairs — most projects have far more relationships than those two kinds. Most of these couple a *part* of each file — a function, a class, a section — so name the region per **Prefer regions** above whenever you can, not the whole file.
 
 - **Doc ↔ code** — a doc that names, specifies, or walks through a source file's behavior (README sections, usage guides, design notes, API docs).
 - **Test ↔ implementation** — a test file and its subject (`tests/test_foo.py` ↔ `foo.py` and naming-convention variants).
@@ -77,17 +88,29 @@ For each accepted pair, finalize the description against this bar:
 - State *what must stay aligned* — concretely enough that a future agent reading only the description knows what to check.
 - Mention the trigger if it's not obvious (e.g. "any added/removed subcommand needs a matching usage example").
 
+Then pick the **grain** for each end — the tightest region that captures the coupling, else the whole file (see **Prefer regions**). A proposed selector is only a nominee; you confirm it at create time, since `tether add` resolves and fingerprints each region as it runs and fails loudly when a selector matches no unique symbol or section.
+
 Good (doc ↔ code): `"usage.md documents the CLI surface defined in cli.py (add/sub/mul/div); changes to argparse subcommands or arg types must be reflected in the usage examples."`
 Good (registry ↔ enumerated set): `"handlers.py's DISPATCH dict must list one entry per EventType member in events.py; adding or renaming an EventType requires a matching DISPATCH entry, or the event routes nowhere."`
 Bad: `"These files are related."` / `"Doc for cli.py."`
 
 ## Step 3 — Create
 
-One command per accepted pair:
+One command per accepted pair. Put each end at the grain chosen in Step 2 — a `::selector` suffix for a region, a bare path for a whole file:
 
 ```bash
-tether add <a> <b> --description "<finalized description>"
+tether add <a>[::selector] <b>[::selector] --description "<finalized description>"
 ```
+
+For example:
+
+```bash
+tether add src/calc.py::Calculator.multiply tests/test_calc.py::test_multiply --description "..."
+tether add docs/usage.md::Commands src/cli.py::main --description "..."
+tether add pyproject.toml src/pkg/__init__.py --description "..."   # whole-file: neither end is a single symbol
+```
+
+If a selector fails to resolve (no such symbol/section, or an ambiguous name), the `tether add` command errors — tighten or correct the selector, or fall back to the whole file, and re-run.
 
 ## Step 4 — Measure and iterate
 

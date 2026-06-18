@@ -1,38 +1,50 @@
 # README
 
-Tether is an agent-first, semantic relationship database. It is a simple database, storing one type of object (a tether), and is easily interfaced via CLI commands (e.g. `tether status`).
+Tether is an agent-first, semantic relationship harness extension. It consists of simple database, hooks for agents, and a CLI interface.
 
-A **tether** is a link between two objects (e.g. files) indicating a relationship, and optionally describing that relationship. This is easily understood when viewing the data model:
+The core object is a **tether**. A **tether** is a link between two artifacts (e.g. a function and a markdown section) that defines a relationship between the artifacts. This is easily understood when viewing the data model:
+
+## The Tether
 
 ```json
 {
   "a": {
-    "fingerprint": "a3a02...",
-    "path": "script.py"
+    "fingerprint": {
+      "file_blob_oid": "a3a02...",
+      "region_hash": "9d2e0..."
+    },
+    "locator": { "kind": "symbol", "lang": "python", "selector": "reset_password" },
+    "path": "src/auth.py"
   },
   "b": {
-    "fingerprint": "e417b...",
-    "path": "doc.md"
+    "fingerprint": {
+      "file_blob_oid": "e417b...",
+      "region_hash": "1c5f8..."
+    },
+    "locator": { "kind": "heading", "lang": "markdown", "selector": "Auth/Password reset" },
+    "path": "docs/auth.md"
   },
-  "description": "The doc.md file details the program implemented in script.py",
+  "description": "The Password reset section of docs/auth.md specifies the reset_password function in src/auth.py."
 }
 ```
 
-> [!NOTE] A few fields of the tether are not included in order to not overwhelm the reader
+> [!NOTE]
+> Bookkeeping fields (`id`, `schema_version`, `created_at`, `refreshed_at`) are omitted here to keep the example focused.
 
-As seen above, a tether consists of two artifacts, `a` and `b`, as well as a description. The description makes the connection a semantic one.
+As seen above, a tether consists of two artifacts, `a` and `b`, plus a description. Each artifact has a `path` and a content **fingerprint**; when it targets a *region* of a file rather than the whole thing, it also carries a **locator** naming that region — here the `reset_password` function and the `Password reset` section. The description is what makes the connection a *semantic* one.
 
 ## Concepts
 
 | Term | Meaning |
 |---|---|
 | **Tether** | A declaration of connection between two **artifacts**, with content fingerprints recorded at both ends and a required description. |
-| **Artifact** | One end of a tether: a path plus a locator. In MVP the locator is always `WholeFile`. |
+| **Artifact** | One end of a tether: a path, optionally narrowed to a *region* via a **locator**. A whole-file artifact carries no locator. |
+| **Region** | A locator-addressed part of a file — a Python symbol (`auth.py::reset_password`) or a markdown heading (`auth.md::Auth/Password reset`). A region tether drifts only when that part changes, not the rest of the file. |
 | **Fingerprint** | The git blob OID of the artifact's content, captured at tether creation or refresh. |
 | **Drift** | The condition where current content no longer matches the fingerprint. |
 | **HEALTHY / DRIFTED / BROKEN** | Per-artifact state. A tether's aggregate is the most severe of its two artifacts. |
 
-Full glossary: [`DICTION.md`](tether-vault/DICTION.md) (MVP vocabulary, matches current code). Forward-state model lives in [`DICTION-Future.md`](agent-notes/design/future/DICTION-Future.md).
+Full glossary: [`DICTION.md`](tether-vault/DICTION.md) (MVP vocabulary, matches current code).
 
 ## Relationship Layer
 
@@ -40,7 +52,7 @@ If **Git** is the content layer, then **Tether** is the relationship layer.
 
 Tether is built on top of Git, though any VCS would likely suffice, and as such, it relies on, and exploits, the many advantages of having a version-control.
 
-Tether uses a simple database, consisting of tethers, which should be included in git commits.
+Furthermore, Tether uses a simple database to store tethers, which should be included in git commits.
 
 ## Requirements
 
@@ -49,13 +61,7 @@ Tether uses a simple database, consisting of tethers, which should be included i
 
 ## Install
 
-> **Naming:** the PyPI package is **`tether-it`** (the bare name `tether` is
-> reserved on PyPI), while the command you run and the Python package you import
-> are both `tether`, and the GitHub repo is
-> [`rootdrew27/tether`](https://github.com/rootdrew27/tether). In short —
-> `pip install tether-it`, then use `tether`.
-
-Tether is a CLI. Install it as a standalone tool:
+Install it as a standalone tool:
 
 ```bash
 uv tool install tether-it  # with uv
@@ -85,16 +91,8 @@ tether init                                    # create .tether/ in the repo
 tether add docs/auth.md src/auth.py \
   --description "The auth.md specifies password reset and 2FA enrollment implemented in the auth module."
 
-tether status                                  # both ends HEALTHY
-# …edit src/auth.py…
-tether status                                  # src/auth.py now DRIFTED
-tether status <id>                             # per-artifact view + unified diff
-
-# Once the doc is back in line with the code, ratify the alignment:
-tether refresh <id>                            # re-fingerprint both ends
+tether show                                  
 ```
-
-`refresh` is the explicit assertion that the two ends are aligned again — not an automatic side effect of editing. Until you refresh, the drift signal stands.
 
 ## Claude Code
 
@@ -151,13 +149,15 @@ From then on, when the agent reads a tethered file, tether injects that file's r
 
 When the raw OIDs disagree, tether re-runs the comparison through a language-agnostic normalizer (line endings, BOM, trailing whitespace, EOF newlines, leading-tab expansion). If the normalized content matches, the artifact stays HEALTHY and the difference is reported as encoding-only.
 
+For a **region** tether (an artifact with a locator), state is scoped to the selected part of the file: it is DRIFTED only when that symbol or section changes — edits elsewhere in the file leave it HEALTHY — and BROKEN if the file is gone or the locator no longer resolves (the symbol or heading was renamed or removed).
+
 ## Storage & version control
 
 State lives as one JSON file per tether under `.tether/tethers/<uuid7>.json` (sorted-key, pretty-printed), committed alongside your content. The graph is reviewable in pull requests and travels with the repo, and `git log .tether/tethers/<id>.json` is a tether's audit trail — when it was created, refreshed, and retargeted.
 
 ## Documentation
 
-- [Glossary (`DICTION.md`)](https://github.com/rootdrew27/tether/blob/master/tether-vault/DICTION.md) — the canonical MVP vocabulary.
+- [Glossary (`DICTION.md`)](https://github.com/rootdrew27/tether/blob/master/tether-vault/DICTION.md) — the canonical vocabulary.
 
 ## License
 
