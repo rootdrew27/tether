@@ -1,0 +1,23 @@
+{
+  "a": {
+    "fingerprint": {
+      "file_blob_oid": "78f6fe506dc928642e8bb66a9cebc023f299a358",
+      "region_hash": "c0eddda27c1dd21acf827b583a8cb824874948f3"
+    },
+    "locator": {
+      "kind": "heading",
+      "lang": "markdown",
+      "selector": "Git integration"
+    },
+    "path": "tether-vault/DICTION.md"
+  },
+  "b": {
+    "fingerprint": "c5aa40a96d35dcc03e8cdc3ac177bc1cacd29f38",
+    "path": "tether/git.py"
+  },
+  "created_at": "2026-06-17T23:08:40Z",
+  "description": "DICTION Git integration defines the git mechanisms tether relies on: blob OID as content identity, fingerprint writes via git hash-object, and rename detection via git diff-index. git.py implements exactly these calls. Changing the git plumbing tether uses must update the glossary terms.",
+  "id": "019ed7d8-0971-75d3-b171-0c7ef37a41cf",
+  "refreshed_at": "2026-06-17T23:08:40Z",
+  "schema_version": 2
+}

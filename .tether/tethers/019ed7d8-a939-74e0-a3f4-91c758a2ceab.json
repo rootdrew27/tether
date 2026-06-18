@@ -1,0 +1,15 @@
+{
+  "a": {
+    "fingerprint": "772a80ca95beda7532cc53501e4e54195b2d1be2",
+    "path": "evals/margin/agent-definitions/claude-code-tether/hooks/run-prepare.js"
+  },
+  "b": {
+    "fingerprint": "389686887775bc1c31a85872a9a20ef598395134",
+    "path": "evals/margin/scripts/verify-smoke.py"
+  },
+  "created_at": "2026-06-17T23:09:21Z",
+  "description": "run-prepare.js emits tether-setup: and tether-onboard: progress markers to stderr; verify-smoke.py matches those exact marker strings (SETUP_MARKERS) and regexes (ONBOARD_RECORDS_RE, ONBOARD_COVERAGE_RE) to validate a run. Changing a marker string in the hook must update the matching pattern in the verifier, or validation silently passes or misreports.",
+  "id": "019ed7d8-a939-74e0-a3f4-91c758a2ceab",
+  "refreshed_at": "2026-06-17T23:09:21Z",
+  "schema_version": 1
+}

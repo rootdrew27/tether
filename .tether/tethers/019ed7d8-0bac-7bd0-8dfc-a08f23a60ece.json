@@ -1,0 +1,31 @@
+{
+  "a": {
+    "fingerprint": {
+      "file_blob_oid": "194f553457585c6cd8ce13f0e897882957ccb303",
+      "region_hash": "a289c6b3aa635040564c8a6fa1ac60091b5a069a"
+    },
+    "locator": {
+      "kind": "heading",
+      "lang": "markdown",
+      "selector": "PreToolUse hook"
+    },
+    "path": "agent-notes/claude-code/Claude-Code-Integration.md"
+  },
+  "b": {
+    "fingerprint": {
+      "file_blob_oid": "dc8af2fa9ca9f118279b7800dd902b24776e76d4",
+      "region_hash": "020b3460df1a12503d40a729bcf0fe09baa80471"
+    },
+    "locator": {
+      "kind": "symbol",
+      "lang": "python",
+      "selector": "pre_tool_use"
+    },
+    "path": "tether/claude_code/hooks.py"
+  },
+  "created_at": "2026-06-17T23:08:40Z",
+  "description": "The PreToolUse hook section specifies that on a Read of a tethered file the hook injects a JSON refs report (queried_path, summary, tethers, errors) as additionalContext. hooks.py pre_tool_use() must produce that shape. A change to the injected payload must update the spec.",
+  "id": "019ed7d8-0bac-7bd0-8dfc-a08f23a60ece",
+  "refreshed_at": "2026-06-17T23:08:40Z",
+  "schema_version": 2
+}

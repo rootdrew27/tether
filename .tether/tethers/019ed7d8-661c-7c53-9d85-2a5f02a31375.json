@@ -1,0 +1,23 @@
+{
+  "a": {
+    "fingerprint": "b68415addb1ffb86682659ad2d98afa9a0cbd3f8",
+    "path": "tests/test_claude_code.py"
+  },
+  "b": {
+    "fingerprint": {
+      "file_blob_oid": "17931a25dd7093b440c8dff1db7f2a49aff4007b",
+      "region_hash": "19167f8028f1d07ca7811070d0de0400ce09dee9"
+    },
+    "locator": {
+      "kind": "symbol",
+      "lang": "python",
+      "selector": "install"
+    },
+    "path": "tether/claude_code/install.py"
+  },
+  "created_at": "2026-06-17T23:09:03Z",
+  "description": "test_claude_code.py asserts the Claude Code install: it writes the fragment and the CLAUDE.md @-import, puts deny/allow permissions in settings.json and hooks in settings.local.json, and is idempotent. install() orchestrates that. A change to what install writes or where must update these tests.",
+  "id": "019ed7d8-661c-7c53-9d85-2a5f02a31375",
+  "refreshed_at": "2026-06-17T23:09:03Z",
+  "schema_version": 2
+}

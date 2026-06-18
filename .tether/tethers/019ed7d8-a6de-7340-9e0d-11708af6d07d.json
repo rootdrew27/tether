@@ -1,0 +1,15 @@
+{
+  "a": {
+    "fingerprint": "7411b4ac6282b740323b9cdb081427769a1145ef",
+    "path": "evals/margin/agent-definitions/claude-code-stock/schema.json"
+  },
+  "b": {
+    "fingerprint": "67a4d2a32d6f3af649a895d8c6d57f78e13123cf",
+    "path": "evals/margin/agent-definitions/claude-code-tether/schema.json"
+  },
+  "created_at": "2026-06-17T23:09:20Z",
+  "description": "The two agent-definition schemas are parallel: the tether schema is the stock schema plus the optional onboard field. The shared required fields (claude_version, startup_args, run_args, settings_json) must stay identical; a change to the shared shape in one arm must be mirrored in the other.",
+  "id": "019ed7d8-a6de-7340-9e0d-11708af6d07d",
+  "refreshed_at": "2026-06-17T23:09:20Z",
+  "schema_version": 1
+}

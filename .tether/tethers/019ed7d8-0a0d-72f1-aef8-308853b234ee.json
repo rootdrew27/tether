@@ -1,0 +1,31 @@
+{
+  "a": {
+    "fingerprint": {
+      "file_blob_oid": "38f1743d1ed3789f2ec03a3a55851027d07a8139",
+      "region_hash": "841d0d95cba6c266eae64ee0964de7796e277a62"
+    },
+    "locator": {
+      "kind": "heading",
+      "lang": "markdown",
+      "selector": "Pipeline (v1, language-agnostic)"
+    },
+    "path": "agent-notes/design/Normalization.md"
+  },
+  "b": {
+    "fingerprint": {
+      "file_blob_oid": "f9f304f5c8e6015f69252fa37e6df6c0e4120cca",
+      "region_hash": "f82a9ed4bcf1faa66ad943f0268fcbc1e3e947ea"
+    },
+    "locator": {
+      "kind": "symbol",
+      "lang": "python",
+      "selector": "normalize"
+    },
+    "path": "tether/normalize.py"
+  },
+  "created_at": "2026-06-17T23:08:40Z",
+  "description": "Normalization.md Pipeline section specifies the ordered drift-normalization steps (binary guard, BOM strip, CRLF to LF, trailing-whitespace strip, EOF newline, leading-tab expansion at tabstop 8). normalize() implements that exact sequence. Adding, removing, or reordering a step must update the spec.",
+  "id": "019ed7d8-0a0d-72f1-aef8-308853b234ee",
+  "refreshed_at": "2026-06-17T23:08:40Z",
+  "schema_version": 2
+}

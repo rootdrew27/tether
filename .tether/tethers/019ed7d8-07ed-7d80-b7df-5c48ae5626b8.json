@@ -1,0 +1,31 @@
+{
+  "a": {
+    "fingerprint": {
+      "file_blob_oid": "0051fef007309c3965b2fa57c9877f4012380d91",
+      "region_hash": "d1c9f5de4c18aecabcf140c485c898539563f8a2"
+    },
+    "locator": {
+      "kind": "heading",
+      "lang": "markdown",
+      "selector": "README/Concepts"
+    },
+    "path": "README.md"
+  },
+  "b": {
+    "fingerprint": {
+      "file_blob_oid": "ae2bd524cfd83fbfe0489083c1a296b13a03863e",
+      "region_hash": "e019308e021a09f208d8a926a286ffe71a94a0fd"
+    },
+    "locator": {
+      "kind": "heading",
+      "lang": "markdown",
+      "selector": "Core concepts"
+    },
+    "path": "tether-vault/DICTION.md"
+  },
+  "created_at": "2026-06-17T23:08:39Z",
+  "description": "Both define the core vocabulary (Tether, Artifact, Fingerprint, Drift, the HEALTHY/DRIFTED/BROKEN states). The README Concepts table is the short intro; DICTION Core concepts is the canonical glossary. A change to a term definition in one must be mirrored in the other so the intro and the glossary do not diverge.",
+  "id": "019ed7d8-07ed-7d80-b7df-5c48ae5626b8",
+  "refreshed_at": "2026-06-18T00:06:58Z",
+  "schema_version": 2
+}

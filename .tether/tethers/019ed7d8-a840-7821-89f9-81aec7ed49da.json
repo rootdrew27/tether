@@ -1,0 +1,15 @@
+{
+  "a": {
+    "fingerprint": "43b5a4cfbc4eb4d78a0a509192adb4c1e57174d4",
+    "path": "evals/margin/agent-configs/tether-sonnet/config.toml"
+  },
+  "b": {
+    "fingerprint": "c07a45dceebc3e18bc2b33358029125eff06e708",
+    "path": "evals/margin/agent-configs/tether-onboard-sonnet/config.toml"
+  },
+  "created_at": "2026-06-17T23:09:20Z",
+  "description": "Both treatment configs use the claude-code-tether definition and must pin the same Claude Code version, model, and settings; the onboard config differs only by adding onboard = true to gate the /tether-onboard seeding pass. The pins must move together across both.",
+  "id": "019ed7d8-a840-7821-89f9-81aec7ed49da",
+  "refreshed_at": "2026-06-17T23:09:20Z",
+  "schema_version": 1
+}

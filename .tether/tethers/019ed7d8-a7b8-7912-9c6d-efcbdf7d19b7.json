@@ -1,0 +1,15 @@
+{
+  "a": {
+    "fingerprint": "1f381dbcdc67f392b883707e347bbd98219f7c2d",
+    "path": "evals/margin/agent-configs/baseline-sonnet/config.toml"
+  },
+  "b": {
+    "fingerprint": "43b5a4cfbc4eb4d78a0a509192adb4c1e57174d4",
+    "path": "evals/margin/agent-configs/tether-sonnet/config.toml"
+  },
+  "created_at": "2026-06-17T23:09:20Z",
+  "description": "These are the control and treatment arms of the A/B eval; they must pin the same Claude Code version, model, and shared settings so the only difference is tether. The pins (claude_version, model, startup_args, settings_json) must move together; only the agent-definition pointer differs by design.",
+  "id": "019ed7d8-a7b8-7912-9c6d-efcbdf7d19b7",
+  "refreshed_at": "2026-06-17T23:09:20Z",
+  "schema_version": 1
+}

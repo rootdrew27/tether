@@ -1,0 +1,15 @@
+{
+  "a": {
+    "fingerprint": "fd4c72774e857b62d846d4b194c82832547fbff9",
+    "path": "evals/margin/agent-definitions/claude-code-stock/hooks/translate-unified.js"
+  },
+  "b": {
+    "fingerprint": "fd4c72774e857b62d846d4b194c82832547fbff9",
+    "path": "evals/margin/agent-definitions/claude-code-tether/hooks/translate-unified.js"
+  },
+  "created_at": "2026-06-17T23:11:20Z",
+  "description": "translate-unified.js is a verbatim copy of Margin's upstream claude-code hook, present identically in both the stock (control) and tether (treatment) agent definitions. The two arms must stay byte-identical for this hook; when upstream changes it is re-synced into both. Per the eval CLAUDE.md there is no automatic drift detection, so an edit to one arm must be mirrored in the other.",
+  "id": "019ed7da-7cb3-7c12-a4c3-ce2ddafee3e5",
+  "refreshed_at": "2026-06-17T23:11:20Z",
+  "schema_version": 1
+}

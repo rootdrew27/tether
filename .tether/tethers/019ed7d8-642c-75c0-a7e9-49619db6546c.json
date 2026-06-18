@@ -1,0 +1,15 @@
+{
+  "a": {
+    "fingerprint": "9d42bfd46022e230d1db4b938bf5570f04d91c2b",
+    "path": "tests/test_cli.py"
+  },
+  "b": {
+    "fingerprint": "27c001ed9b074504c42fff5fc223af9b2f3e2a9e",
+    "path": "tether/cli.py"
+  },
+  "created_at": "2026-06-17T23:09:03Z",
+  "description": "test_cli.py drives the CLI end to end (init, add, refresh, update, mv, the region lifecycle, output-surface routing). cli.py defines those subcommands and their behavior. A change to any subcommand behavior, its flags, or the surface-selection logic must update these tests.",
+  "id": "019ed7d8-642c-75c0-a7e9-49619db6546c",
+  "refreshed_at": "2026-06-17T23:09:03Z",
+  "schema_version": 1
+}

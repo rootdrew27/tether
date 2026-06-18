@@ -1,0 +1,15 @@
+{
+  "a": {
+    "fingerprint": "d8d3a220cd124f841580b6426bb20bb8d07b7cfe",
+    "path": "evals/margin/agent-definitions/claude-code-stock/hooks/run-prepare.js"
+  },
+  "b": {
+    "fingerprint": "772a80ca95beda7532cc53501e4e54195b2d1be2",
+    "path": "evals/margin/agent-definitions/claude-code-tether/hooks/run-prepare.js"
+  },
+  "created_at": "2026-06-17T23:09:20Z",
+  "description": "The stock and tether run-prepare hooks share a baseline (env setup, .claude.json pre-trust, settings, command assembly); the tether arm adds tether/onboard install blocks on top. The shared baseline logic must stay identical between the arms; a fix to the common path in one must be mirrored in the other.",
+  "id": "019ed7d8-a735-7c51-8d91-c54a038341cb",
+  "refreshed_at": "2026-06-17T23:09:20Z",
+  "schema_version": 1
+}

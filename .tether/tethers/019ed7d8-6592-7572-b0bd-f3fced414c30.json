@@ -1,0 +1,15 @@
+{
+  "a": {
+    "fingerprint": "f1ff375184fde5c5253915d72721ef0bca35067e",
+    "path": "tests/test_pretty.py"
+  },
+  "b": {
+    "fingerprint": "19a2ef6e89138fe5ca1c969037c89372f619739f",
+    "path": "tether/pretty.py"
+  },
+  "created_at": "2026-06-17T23:09:03Z",
+  "description": "test_pretty.py asserts the Rich TTY rendering for status, refs, and show: severity ordering, state colors, count headers, and peer/description display. pretty.py produces that output. A change to the rendered layout, colors, or ordering must update these tests.",
+  "id": "019ed7d8-6592-7572-b0bd-f3fced414c30",
+  "refreshed_at": "2026-06-17T23:09:03Z",
+  "schema_version": 1
+}

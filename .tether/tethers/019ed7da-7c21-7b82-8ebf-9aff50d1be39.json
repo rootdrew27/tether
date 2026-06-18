@@ -1,0 +1,15 @@
+{
+  "a": {
+    "fingerprint": "dcc4126640a0e3ea818f23c7f8b41539fd711ce8",
+    "path": "evals/margin/agent-definitions/claude-code-stock/hooks/trajectory-collect.js"
+  },
+  "b": {
+    "fingerprint": "dcc4126640a0e3ea818f23c7f8b41539fd711ce8",
+    "path": "evals/margin/agent-definitions/claude-code-tether/hooks/trajectory-collect.js"
+  },
+  "created_at": "2026-06-17T23:11:20Z",
+  "description": "trajectory-collect.js is a verbatim copy of Margin's upstream claude-code hook, present identically in both the stock (control) and tether (treatment) agent definitions. The two arms must stay byte-identical for this hook; when upstream changes it is re-synced into both. Per the eval CLAUDE.md there is no automatic drift detection, so an edit to one arm must be mirrored in the other.",
+  "id": "019ed7da-7c21-7b82-8ebf-9aff50d1be39",
+  "refreshed_at": "2026-06-17T23:11:20Z",
+  "schema_version": 1
+}

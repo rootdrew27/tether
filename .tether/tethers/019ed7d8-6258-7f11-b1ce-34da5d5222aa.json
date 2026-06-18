@@ -1,0 +1,23 @@
+{
+  "a": {
+    "fingerprint": "d71deccc6e84ce36019b6b2ec6ac3ddecc20a0f3",
+    "path": "tests/test_locators.py"
+  },
+  "b": {
+    "fingerprint": {
+      "file_blob_oid": "605094e9132aac2b455cd8c6e4ebf186a58df15a",
+      "region_hash": "af2f3af9ed1b2448f03f54eb7fb0375125f9de82"
+    },
+    "locator": {
+      "kind": "symbol",
+      "lang": "python",
+      "selector": "extract_region"
+    },
+    "path": "tether/locators.py"
+  },
+  "created_at": "2026-06-17T23:09:02Z",
+  "description": "test_locators.py exercises extract_region() for both languages: Python symbol resolution (functions, classes, dotted method paths, nested defs, decorators) and markdown heading resolution (anchored heading paths, nested-subsection inclusion, top-level-heading-is-whole-doc), plus the unresolved-selector error. A change to region extraction must update these tests.",
+  "id": "019ed7d8-6258-7f11-b1ce-34da5d5222aa",
+  "refreshed_at": "2026-06-17T23:09:02Z",
+  "schema_version": 2
+}

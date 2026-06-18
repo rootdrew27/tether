@@ -1,0 +1,15 @@
+{
+  "a": {
+    "fingerprint": "fd0aecbb6934109c4f1770f685097beb13ba506a",
+    "path": "evals/margin/agent-definitions/claude-code-stock/hooks/install-run.js"
+  },
+  "b": {
+    "fingerprint": "fd0aecbb6934109c4f1770f685097beb13ba506a",
+    "path": "evals/margin/agent-definitions/claude-code-tether/hooks/install-run.js"
+  },
+  "created_at": "2026-06-17T23:11:20Z",
+  "description": "install-run.js is a verbatim copy of Margin's upstream claude-code hook, present identically in both the stock (control) and tether (treatment) agent definitions. The two arms must stay byte-identical for this hook; when upstream changes it is re-synced into both. Per the eval CLAUDE.md there is no automatic drift detection, so an edit to one arm must be mirrored in the other.",
+  "id": "019ed7da-7b22-7a33-86c7-eb263e80b83b",
+  "refreshed_at": "2026-06-17T23:11:20Z",
+  "schema_version": 1
+}

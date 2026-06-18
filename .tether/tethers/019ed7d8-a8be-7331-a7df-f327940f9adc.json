@@ -1,0 +1,15 @@
+{
+  "a": {
+    "fingerprint": "57e92d6c257034cf830bb9e1c32df0ad097f3910",
+    "path": "evals/margin/eval-configs/smoke.toml"
+  },
+  "b": {
+    "fingerprint": "f914d550986c2007ef4f42f2492aa366fe110808",
+    "path": "evals/margin/eval-configs/onboard-smoke.toml"
+  },
+  "created_at": "2026-06-17T23:09:20Z",
+  "description": "Both eval configs run the same smoke suite; onboard-smoke uses a larger instance_timeout_seconds so the pre-task /tether-onboard pass plus the SWE task fit under the cap. The shared suite definition must stay aligned, and the onboard timeout must stay large enough to cover the onboard pass on top of the base task.",
+  "id": "019ed7d8-a8be-7331-a7df-f327940f9adc",
+  "refreshed_at": "2026-06-17T23:09:20Z",
+  "schema_version": 1
+}

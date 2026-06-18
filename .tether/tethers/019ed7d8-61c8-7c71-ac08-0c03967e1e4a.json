@@ -1,0 +1,23 @@
+{
+  "a": {
+    "fingerprint": "91f798dfa765aa523b5eed5e14db8f4ae579e2ce",
+    "path": "tests/test_normalize.py"
+  },
+  "b": {
+    "fingerprint": {
+      "file_blob_oid": "f9f304f5c8e6015f69252fa37e6df6c0e4120cca",
+      "region_hash": "f82a9ed4bcf1faa66ad943f0268fcbc1e3e947ea"
+    },
+    "locator": {
+      "kind": "symbol",
+      "lang": "python",
+      "selector": "normalize"
+    },
+    "path": "tether/normalize.py"
+  },
+  "created_at": "2026-06-17T23:09:02Z",
+  "description": "test_normalize.py exercises normalize() behavior: CRLF to LF, BOM strip, trailing-whitespace and trailing-blank-line handling, tab expansion at the tabstop, binary detection, and empty input. A change to the normalization pipeline must be reflected in these assertions.",
+  "id": "019ed7d8-61c8-7c71-ac08-0c03967e1e4a",
+  "refreshed_at": "2026-06-17T23:09:02Z",
+  "schema_version": 2
+}

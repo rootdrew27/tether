@@ -1,0 +1,23 @@
+{
+  "a": {
+    "fingerprint": {
+      "file_blob_oid": "194f553457585c6cd8ce13f0e897882957ccb303",
+      "region_hash": "688d861a05cc9847049f652f9e8064f2fee6a2fd"
+    },
+    "locator": {
+      "kind": "heading",
+      "lang": "markdown",
+      "selector": "CLAUDE.md fragment"
+    },
+    "path": "agent-notes/claude-code/Claude-Code-Integration.md"
+  },
+  "b": {
+    "fingerprint": "f7314153685db1f61aa015d18dd93f15f084dfcf",
+    "path": "tether/claude_code/fragment.py"
+  },
+  "created_at": "2026-06-17T23:08:41Z",
+  "description": "The CLAUDE.md fragment section specifies what the installed agent fragment must cover (tether intro, symmetric semantics, the required description, .tether ownership, the state model, region locators, resolution paths, command list). fragment.py holds that fragment text. A change to the fragment content or to what the spec requires must keep the two aligned.",
+  "id": "019ed7d8-0cc7-78e0-8472-92981b3a5ecd",
+  "refreshed_at": "2026-06-17T23:08:41Z",
+  "schema_version": 2
+}

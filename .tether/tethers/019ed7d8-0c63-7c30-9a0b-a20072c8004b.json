@@ -1,0 +1,31 @@
+{
+  "a": {
+    "fingerprint": {
+      "file_blob_oid": "194f553457585c6cd8ce13f0e897882957ccb303",
+      "region_hash": "9141e9140241f0f94cd3d74a4c327eaa9949f43b"
+    },
+    "locator": {
+      "kind": "heading",
+      "lang": "markdown",
+      "selector": "Stop hook"
+    },
+    "path": "agent-notes/claude-code/Claude-Code-Integration.md"
+  },
+  "b": {
+    "fingerprint": {
+      "file_blob_oid": "dc8af2fa9ca9f118279b7800dd902b24776e76d4",
+      "region_hash": "db3038b1ef3ff835cf2c9bc1746ab89fda4ec427"
+    },
+    "locator": {
+      "kind": "symbol",
+      "lang": "python",
+      "selector": "stop"
+    },
+    "path": "tether/claude_code/hooks.py"
+  },
+  "created_at": "2026-06-17T23:08:40Z",
+  "description": "The Stop hook section specifies that the turn is blocked when any tether is non-HEALTHY, with a markdown list of the offending tethers and their resolution hints. hooks.py stop() must implement that block decision and format. A change to the block condition or message must update the spec.",
+  "id": "019ed7d8-0c63-7c30-9a0b-a20072c8004b",
+  "refreshed_at": "2026-06-17T23:08:40Z",
+  "schema_version": 2
+}

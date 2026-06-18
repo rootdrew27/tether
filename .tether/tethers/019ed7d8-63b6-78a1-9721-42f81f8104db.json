@@ -1,0 +1,15 @@
+{
+  "a": {
+    "fingerprint": "41251b8653e2a01890052be5a309d6ad34a60340",
+    "path": "tests/test_status.py"
+  },
+  "b": {
+    "fingerprint": "c35ee307b897698100bc336c2abbf116ca18ce7f",
+    "path": "tether/status.py"
+  },
+  "created_at": "2026-06-17T23:09:03Z",
+  "description": "test_status.py asserts the state engine: HEALTHY/DRIFTED/BROKEN for whole files and regions, normalization rescue, aggregate() combination rules, rename-candidate surfacing for BROKEN artifacts, and diff header/selector labeling. A change to state computation, aggregation, rename detection, or diff output must update these tests.",
+  "id": "019ed7d8-63b6-78a1-9721-42f81f8104db",
+  "refreshed_at": "2026-06-17T23:09:03Z",
+  "schema_version": 1
+}

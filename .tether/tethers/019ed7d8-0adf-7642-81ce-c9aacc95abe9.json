@@ -1,0 +1,31 @@
+{
+  "a": {
+    "fingerprint": {
+      "file_blob_oid": "194f553457585c6cd8ce13f0e897882957ccb303",
+      "region_hash": "933bd189011accbb639df2d7e47e2f5953d72055"
+    },
+    "locator": {
+      "kind": "heading",
+      "lang": "markdown",
+      "selector": "SessionStart hook"
+    },
+    "path": "agent-notes/claude-code/Claude-Code-Integration.md"
+  },
+  "b": {
+    "fingerprint": {
+      "file_blob_oid": "dc8af2fa9ca9f118279b7800dd902b24776e76d4",
+      "region_hash": "7fef1887a75e86b5e7301a73f1b5a52f6d9d6d6b"
+    },
+    "locator": {
+      "kind": "symbol",
+      "lang": "python",
+      "selector": "session_start"
+    },
+    "path": "tether/claude_code/hooks.py"
+  },
+  "created_at": "2026-06-17T23:08:40Z",
+  "description": "The SessionStart hook section specifies its output contract: nothing when there are no tethers, a one-line affirmation when all HEALTHY, and a severity-ordered markdown summary otherwise. hooks.py session_start() must emit exactly that. A change to the hook output must update the spec.",
+  "id": "019ed7d8-0adf-7642-81ce-c9aacc95abe9",
+  "refreshed_at": "2026-06-17T23:08:40Z",
+  "schema_version": 2
+}

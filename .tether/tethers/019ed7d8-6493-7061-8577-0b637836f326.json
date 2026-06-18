@@ -1,0 +1,23 @@
+{
+  "a": {
+    "fingerprint": "1db59cab98fc69a6d113cadd9230f780b861bcd4",
+    "path": "tests/test_coverage.py"
+  },
+  "b": {
+    "fingerprint": {
+      "file_blob_oid": "efdacd1bc9a14388b15318b3abe8805923d18dc3",
+      "region_hash": "ce76160aed6cfe32119eb54d12d50c40283c0d4e"
+    },
+    "locator": {
+      "kind": "symbol",
+      "lang": "python",
+      "selector": "compute_coverage"
+    },
+    "path": "tether/coverage.py"
+  },
+  "created_at": "2026-06-17T23:09:03Z",
+  "description": "test_coverage.py asserts compute_coverage() counts: which git-tracked files count, that .tether/ is excluded, tethered vs untethered partitioning, and the reported fractions. A change to how coverage is computed or which files are counted must update these tests.",
+  "id": "019ed7d8-6493-7061-8577-0b637836f326",
+  "refreshed_at": "2026-06-17T23:09:03Z",
+  "schema_version": 2
+}

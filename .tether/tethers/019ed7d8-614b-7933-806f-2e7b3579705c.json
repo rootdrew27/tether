@@ -1,0 +1,15 @@
+{
+  "a": {
+    "fingerprint": "58c73eab7ca8528bdb122fef13d11353a524dc5d",
+    "path": "tether/claude_code/skill.py"
+  },
+  "b": {
+    "fingerprint": "8b4a5ab0e5e4b8f7904f2576fa431ab570161472",
+    "path": ".claude/skills/tether-onboard/SKILL.md"
+  },
+  "created_at": "2026-06-17T23:09:02Z",
+  "description": "skill.py embeds the tether-onboard skill as the ONBOARD_SKILL string that tether init claude-code installs; .claude/skills/tether-onboard/SKILL.md is this repo dogfooding that same skill. The two copies are byte-identical and must stay so: any edit to the onboarding instructions must be made in both.",
+  "id": "019ed7d8-614b-7933-806f-2e7b3579705c",
+  "refreshed_at": "2026-06-17T23:09:02Z",
+  "schema_version": 1
+}

@@ -1,0 +1,15 @@
+{
+  "a": {
+    "fingerprint": "fc480c69f735346130c94288f8f16106796dcb10",
+    "path": "evals/margin/agent-definitions/claude-code-stock/definition.toml"
+  },
+  "b": {
+    "fingerprint": "d8ec5416eb064bc07f02099eecf44f1e9747b8a7",
+    "path": "evals/margin/agent-definitions/claude-code-tether/definition.toml"
+  },
+  "created_at": "2026-06-17T23:11:20Z",
+  "description": "Both definition.toml files are forks of Margin's upstream claude-code definition, differing only by design (name/description, and the tether arm enabling its onboard option and own hooks). The shared upstream-derived structure must stay aligned across the control and treatment arms; when upstream changes the definition format, both are re-synced together. There is no automatic drift detection otherwise.",
+  "id": "019ed7da-7d2d-7481-9771-547c3df75257",
+  "refreshed_at": "2026-06-17T23:11:20Z",
+  "schema_version": 1
+}

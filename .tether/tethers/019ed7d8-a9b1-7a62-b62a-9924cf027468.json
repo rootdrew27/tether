@@ -1,0 +1,15 @@
+{
+  "a": {
+    "fingerprint": "b52ec4a5e491d96340c393bc2d6ad3105ad1372b",
+    "path": "evals/margin/scripts/run-smoke.sh"
+  },
+  "b": {
+    "fingerprint": "772a80ca95beda7532cc53501e4e54195b2d1be2",
+    "path": "evals/margin/agent-definitions/claude-code-tether/hooks/run-prepare.js"
+  },
+  "created_at": "2026-06-17T23:09:21Z",
+  "description": "run-smoke.sh bind-mounts the built wheel directory to /opt/tether-dist; run-prepare.js hardcodes that same path in its wheelDir constant to install tether in the container. The bind-mount target and the wheelDir constant must match, or the wheel cannot be found at run time.",
+  "id": "019ed7d8-a9b1-7a62-b62a-9924cf027468",
+  "refreshed_at": "2026-06-17T23:09:21Z",
+  "schema_version": 1
+}

@@ -1,0 +1,23 @@
+{
+  "a": {
+    "fingerprint": {
+      "file_blob_oid": "78f6fe506dc928642e8bb66a9cebc023f299a358",
+      "region_hash": "890085d53cd30e2100ed3cde7ba78ff0aebbab2b"
+    },
+    "locator": {
+      "kind": "heading",
+      "lang": "markdown",
+      "selector": "Tether state"
+    },
+    "path": "tether-vault/DICTION.md"
+  },
+  "b": {
+    "fingerprint": "c35ee307b897698100bc336c2abbf116ca18ce7f",
+    "path": "tether/status.py"
+  },
+  "created_at": "2026-06-17T23:08:40Z",
+  "description": "DICTION Tether state defines the three per-artifact states (HEALTHY, DRIFTED, BROKEN) and the aggregation rule (most severe of the two artifacts wins). status.py implements that model in ArtifactState, AggregateState, and aggregate(). Changing how states are named, computed, or aggregated must update the glossary.",
+  "id": "019ed7d8-08d7-74b3-bc85-e6e9d80bb647",
+  "refreshed_at": "2026-06-17T23:08:40Z",
+  "schema_version": 2
+}

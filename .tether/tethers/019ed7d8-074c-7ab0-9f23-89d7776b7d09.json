@@ -1,0 +1,23 @@
+{
+  "a": {
+    "fingerprint": {
+      "file_blob_oid": "2ea32413ca382e97d8fda48e0411fc397b219084",
+      "region_hash": "0a766a9123445c5a9070dad5729f63ccad587f91"
+    },
+    "locator": {
+      "kind": "heading",
+      "lang": "markdown",
+      "selector": "README/CLI reference"
+    },
+    "path": "README.md"
+  },
+  "b": {
+    "fingerprint": "27c001ed9b074504c42fff5fc223af9b2f3e2a9e",
+    "path": "tether/cli.py"
+  },
+  "created_at": "2026-06-17T23:08:39Z",
+  "description": "README CLI reference table lists every subcommand and its flags (init, add, status, show, refs, coverage, refresh, update, mv, rm). cli.py defines that command surface via Click. Adding, removing, or renaming a subcommand, or changing a flag, must be reflected in the README table.",
+  "id": "019ed7d8-074c-7ab0-9f23-89d7776b7d09",
+  "refreshed_at": "2026-06-17T23:08:39Z",
+  "schema_version": 2
+}

@@ -1,0 +1,23 @@
+{
+  "a": {
+    "fingerprint": "5674dc7b8d826c0341e8845a88a38fef98ea2b94",
+    "path": "tests/test_model.py"
+  },
+  "b": {
+    "fingerprint": {
+      "file_blob_oid": "dc4b78503f95087931a486952660b544dfcfe70f",
+      "region_hash": "3d2fdeb23f4a0e8fa106b728682242a8dc85bec9"
+    },
+    "locator": {
+      "kind": "symbol",
+      "lang": "python",
+      "selector": "validate"
+    },
+    "path": "tether/model.py"
+  },
+  "created_at": "2026-06-17T23:09:03Z",
+  "description": "test_model.py asserts the tether validation invariants: UUIDv7 id, non-empty description, no self-tether, created_at not after refreshed_at, and region-artifact rules (schema_version 2, RegionFingerprint, locator fields). validate() enforces these. Adding, removing, or relaxing an invariant must update the tests.",
+  "id": "019ed7d8-62d7-78f1-81f9-79eb550f01be",
+  "refreshed_at": "2026-06-17T23:09:03Z",
+  "schema_version": 2
+}

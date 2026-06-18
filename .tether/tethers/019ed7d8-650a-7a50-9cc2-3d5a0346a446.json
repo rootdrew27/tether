@@ -1,0 +1,23 @@
+{
+  "a": {
+    "fingerprint": "ffbd83618fc272cc7864516dc8294875891c5235",
+    "path": "tests/test_refs.py"
+  },
+  "b": {
+    "fingerprint": {
+      "file_blob_oid": "bc34446807f1b8531027b16ba28c7c008a334f92",
+      "region_hash": "f9baf3cfb6bf7360e4eb58b1916eb5d50f66d584"
+    },
+    "locator": {
+      "kind": "symbol",
+      "lang": "python",
+      "selector": "find_by_path"
+    },
+    "path": "tether/storage.py"
+  },
+  "created_at": "2026-06-17T23:09:03Z",
+  "description": "test_refs.py asserts that querying a path returns exactly the tethers whose a.path or b.path matches, severity-ordered. find_by_path() implements that lookup. A change to path matching or result ordering must update these tests.",
+  "id": "019ed7d8-650a-7a50-9cc2-3d5a0346a446",
+  "refreshed_at": "2026-06-17T23:09:03Z",
+  "schema_version": 2
+}
