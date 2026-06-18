@@ -1,7 +1,7 @@
 {
   "a": {
     "fingerprint": {
-      "file_blob_oid": "2ea32413ca382e97d8fda48e0411fc397b219084",
+      "file_blob_oid": "0051fef007309c3965b2fa57c9877f4012380d91",
       "region_hash": "4ab42cd3b2f358d731d128679a00dcf834a22af3"
     },
     "locator": {
@@ -12,12 +12,12 @@
     "path": "README.md"
   },
   "b": {
-    "fingerprint": "2bf7067bec0a9747fd7a6cd5f6207cfc67fa7fc4",
+    "fingerprint": "1f1a72f3fc75ef6cc020c3f6493962442819bee3",
     "path": "pyproject.toml"
   },
   "created_at": "2026-06-17T23:08:39Z",
   "description": "README Requirements states the supported Python floor (Python 3.11+); pyproject.toml encodes it as requires-python. Raising or lowering the minimum Python version must update both, or the documented requirement and the packaged metadata disagree.",
   "id": "019ed7d8-085c-73d3-aee4-18a76cf0c678",
-  "refreshed_at": "2026-06-17T23:08:39Z",
+  "refreshed_at": "2026-06-18T00:29:11Z",
   "schema_version": 2
 }

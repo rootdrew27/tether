@@ -1,6 +1,6 @@
 [project]
 name = "tether-it"
-version = "0.1.1"
+version = "0.2.0"
 description = "Typed-relationship annotation layer over content, layered on git"
 authors = [{name = "Andrew Root", email = "root.drew27@gmail.com"}]
 license = "MIT"
